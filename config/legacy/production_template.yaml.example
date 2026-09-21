@@ -7,7 +7,7 @@ experiment:
 noise:
   rates: []
   multipliers: {one_qubit: 1.0, two_qubit: 1.0, idle: 1.0, reset: 1.0, measurement: 1.0}
-circuit: {cache: ../simulation_data}
+circuit: {cache: "../../simulation_data"}
 decoders:
   - {profile: screened_reference}
   - {profile: bposd_ms30_cs10}
@@ -15,4 +15,7 @@ decoders:
 sampling: {shots_per_point: 100000, batch_size: 1000, master_seed: 20260920, warmup_seed: 20260921, warmup_count: 4}
 execution: {workers: 4}
 timing: {mode: throughput}
-output: {root: ../assets/runs}
+output: {root: "../../assets/runs"}
+
+# Explicit paths preserve destinations after moving this file into legacy/.
+analysis: {"input": "../../assets/runs", "output": "../../assets/analysis"}

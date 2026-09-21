@@ -25,24 +25,28 @@ python python_scripts/audit_dependencies.py
 scripts/build_dependencies.sh --check
 python -m pytest -q
 
-scripts/run_benchmark.sh config/smoke.yaml
-scripts/run_benchmark.sh config/latency_smoke.yaml
-scripts/analyze_benchmark.sh config/smoke.yaml --run /path/to/run
-scripts/replay_samples.sh /path/to/run config/decoder_sweep.yaml
-scripts/execute_notebook.sh config/smoke.yaml --run /path/to/run \
+scripts/run_benchmark.sh config/hybrid_smoke.yaml.example
+scripts/run_benchmark.sh config/hybrid_latency.yaml.example
+scripts/analyze_benchmark.sh config/analysis.yaml.example --run /path/to/run
+scripts/replay_samples.sh /path/to/run config/hybrid_ablations.yaml.example
+scripts/execute_notebook.sh config/analysis.yaml.example --run /path/to/run \
   --output assets/notebook/smoke_executed.ipynb
 ```
 
 Add `-v` or `--verbose` to simulation/replay commands for preparation and committed-batch
-progress on stderr, for example `scripts/run_benchmark.sh config/smoke.yaml --verbose`.
+progress on stderr, for example `scripts/run_benchmark.sh config/hybrid_smoke.yaml.example --verbose`.
 stdout remains the completed run directory. Progress updates once per committed batch.
 
-The smoke YAML runs all three native decoders on rotated surface d=5,7,9 and
-BB [[72,12,6]], R=d, with circuit-level noise and Z-check detector inputs. BB retains
-all twelve logical Z observables. It uses 32 shots per instance and four workers;
-smoke_serial.yaml and smoke_two_workers.yaml use the identical plan with one/two
-workers. latency_smoke.yaml uses one isolated worker. The four-shot
-stage5_validation.yaml remains available for a shorter integration check.
+The hybrid smoke template runs the hybrid, upstream BP-OSD-CS0 and published beam
+on surface d=3 and BB [[72,12,6]], with four shots each. BB retains all twelve logical
+Z observables. hybrid_latency.yaml.example uses one isolated worker;
+hybrid_ablations.yaml.example compares warm, cold and no-BP variants.
+
+Historical screened-reference/CS10 configs and existing local main.yaml are in
+`config/legacy/`. Their scientific settings and resolved data/output paths are
+preserved. Simulation/replay commands remain shared. Current analysis uses an independent
+`config/analysis.yaml.example`; the preserved consumer implementation is available
+as `analysis.legacy` and through `scripts/legacy/`. See [analysis migration](docs/analysis_migration.md).
 
 Edit `noise.rates` or `noise.sweep` (exactly one), `decoders` entries, sampling counts
 and execution workers for the requested experiment. The production template rejects

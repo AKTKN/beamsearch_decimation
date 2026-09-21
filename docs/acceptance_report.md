@@ -1,5 +1,9 @@
 # Final clean-build acceptance — stages 1–7
 
+Current checkout note: the legacy configuration files used by the historical
+commands below now live in `config/legacy/`. Recorded commands and evidence are
+preserved as originally executed; shared CLI script paths are unchanged.
+
 Accepted 21 September 2026 (Asia/Tokyo). All required circuits and native decoders
 are available, all final required checks passed, and the full finite end-to-end smoke
 workflow completed. No production rates were selected or production sweep launched.

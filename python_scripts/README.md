@@ -27,8 +27,8 @@ and audit exports ignored binding/stub files plus transitive header hashes. The
 clean_build.py workflow inherits these steps through build_dependencies.py.
 
 Hybrid Stages 4–5 use the same run/replay/analyze/execute-notebook CLIs. Run/replay
-now write v2 tables; analysis reads v1 and v2. For the maintained hybrid notebook,
-pass `--notebook notebook/benchmark_analysis.ipynb.example` and a new output path.
+now write v2 tables; analysis reads v1 and v2. The maintained `notebook/benchmark_analysis.ipynb.example` is now the default;
+use `--notebook` only to select an edited or alternative notebook.
 Use config/hybrid_smoke.yaml.example or hybrid_latency.yaml.example for bounded
 checks; the CLI still prints only the final output path on stdout.
 
@@ -36,3 +36,10 @@ checks; the CLI still prints only the final output path on stdout.
 fresh surface/BB artifacts, one/two workers, isolated timing, replay, no profiling,
 ablations, report CLI and notebook. It saves exact commands/logs and verification.json,
 checks all BB labels and scientific equality, and refuses existing output directories.
+
+Simulation/replay/build CLIs remain shared. The pre-migration analysis and
+notebook entry points are preserved under python_scripts/legacy/ and route to
+analysis.legacy. Current consumers default to config/analysis.yaml.example, accept
+existing strictly validated benchmark configs, and never apply simulation affinity
+or thread settings. Analyze accepts -v/--verbose (stderr); notebook execution
+accepts --timeout SECONDS, or -1 to disable the cell limit.

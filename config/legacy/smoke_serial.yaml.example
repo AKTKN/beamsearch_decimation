@@ -20,7 +20,7 @@ noise:
     reset: 1.0
     measurement: 1.0
 circuit:
-  cache: ../simulation_data
+  cache: "../../simulation_data"
 decoders:
 - profile: screened_reference
 - profile: bposd_ms30_cs10
@@ -32,8 +32,11 @@ sampling:
   warmup_seed: 20260921
   warmup_count: 4
 execution:
-  workers: 2
+  workers: 1
 timing:
   mode: throughput
 output:
-  root: ../assets/runs
+  root: "../../assets/runs"
+
+# Explicit paths preserve destinations after moving this file into legacy/.
+analysis: {"input": "../../assets/runs", "output": "../../assets/analysis"}

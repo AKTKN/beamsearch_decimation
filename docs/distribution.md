@@ -28,7 +28,7 @@ python -m pytest -q
 
 See [build.md](build.md) for environment creation. Setup copies `.example` files
 beside their templates, preserving relative configuration paths and existing
-local work. `config/main.yaml` is not distributed. The production template still
+local work. `config/legacy/main.yaml` is not distributed. The production template still
 requires user-selected physical rates. No simulation runs during local-file setup.
 
 Edit the ignored working files for experiments. Edit `.example` files deliberately

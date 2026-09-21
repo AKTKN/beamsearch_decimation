@@ -1,0 +1,25 @@
+{
+  "moved_files": [
+    "smoke.yaml.example",
+    "smoke.yaml",
+    "smoke_serial.yaml.example",
+    "smoke_serial.yaml",
+    "smoke_two_workers.yaml.example",
+    "smoke_two_workers.yaml",
+    "latency_smoke.yaml.example",
+    "latency_smoke.yaml",
+    "decoder_sweep.yaml.example",
+    "decoder_sweep.yaml",
+    "production_template.yaml.example",
+    "production_template.yaml",
+    "stage5_validation.yaml.example",
+    "stage5_validation.yaml",
+    "stage5_validation_serial.yaml.example",
+    "stage5_validation_serial.yaml",
+    "stage5_validation_latency.yaml.example",
+    "stage5_validation_latency.yaml",
+    "main.yaml"
+  ],
+  "verified_resolved_configs": 17,
+  "production_templates": "remain intentionally invalid until rates are supplied"
+}

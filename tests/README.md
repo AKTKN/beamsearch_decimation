@@ -63,3 +63,18 @@ bindings plus a clean project extension, checks compiled/source identities and r
 all four native tests. It reuses the existing conda dependencies and cleans up its
 own temporary worktree. `python python_scripts/accept_hybrid.py --output NEW_DIR`
 is the bounded command-line E2E acceptance harness (including report/notebook).
+
+Legacy layout: config/circuit tests load tracked config/legacy/*.yaml.example files.
+Template discovery tests cover both directory levels and preserve legacy local
+edits as well as active-file edits and symlinks. This avoids dependency on ignored
+local configs in fresh checkouts.
+
+Consumer migration: test_analysis_migration.py checks preserved Python hashes,
+shot/unequal-batch bootstrap equality against the legacy implementation (including
+int64 overflow and nulls), analysis-only settings, absence of decoder/runner imports,
+CLI stdout/progress and executed notebook behavior. The v1 projection test also
+compares current and preserved readers. The full suite and requested-data notebook
+are indexed under docs/test_results/analysis_migration_*.
+
+`test_quick_plots.py` checks trusted on-demand column projection, all-shot timing
+row retention, and failure-count/Wilson-interval parity with the verified reader.

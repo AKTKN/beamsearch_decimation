@@ -14,17 +14,19 @@ def test_native_import():
 
 
 def test_examples_and_paths():
-    c = load_config(ROOT / "config/smoke.yaml")
+    c = load_config(ROOT / "config/legacy/smoke.yaml.example")
     assert c.circuit.cache == ROOT / "simulation_data"
+    assert c.output.root == c.analysis.input == ROOT / "assets/runs"
+    assert c.analysis.output == ROOT / "assets/analysis"
     assert c.noise.expanded_rates == (.001,)
     assert c.execution.max_pending == 8
     assert len(c.resolved()["experiment"]["instances"]) == 4
-    assert load_config(ROOT / "config/latency_smoke.yaml").execution.workers == 1
-    sweep = load_config(ROOT / "config/decoder_sweep.yaml")
+    assert load_config(ROOT / "config/legacy/latency_smoke.yaml.example").execution.workers == 1
+    sweep = load_config(ROOT / "config/legacy/decoder_sweep.yaml.example")
     assert sweep.noise.expanded_rates == (.0005, .001)
     assert sweep.decoders[-1].beam_width == 32
     with pytest.raises(ValidationError, match="nonempty"):
-        load_config(ROOT / "config/production_template.yaml")
+        load_config(ROOT / "config/legacy/production_template.yaml.example")
 
 
 @pytest.mark.parametrize("patch", [
@@ -57,7 +59,7 @@ def test_yaml_duplicate_and_unsafe(tmp_path):
 
 
 def test_identity_separation():
-    c = load_config(ROOT / "config/smoke.yaml")
+    c = load_config(ROOT / "config/legacy/smoke.yaml.example")
     data = c.model_dump()
     data["execution"]["workers"] = 2
     data["decoders"] = list(reversed(data["decoders"]))

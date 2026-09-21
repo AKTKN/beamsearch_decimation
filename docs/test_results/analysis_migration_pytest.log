@@ -1,0 +1,62 @@
+........................................................................ [ 26%]
+........................................................................ [ 53%]
+.................................................F...................... [ 80%]
+....................................................                     [100%]
+=================================== FAILURES ===================================
+___________________ test_cs0_identity_and_legacy_parameters ____________________
+
+    def test_cs0_identity_and_legacy_parameters():
+        from analysis.plots import decoder_label
+        from qec_bp_benchmark.decoders import implementation_identity
+        assert Bposd().osd_order == 10
+        assert Bposd(osd_order=2).osd_order == 2  # Preserve the legacy configurable order.
+        assert Bposd0().osd_order == 0
+        with pytest.raises(ValidationError):
+            Bposd0(osd_order=10)
+        impl0 = implementation_identity('bposd_ms30_cs0')
+        impl10 = implementation_identity('bposd_ms30_cs10')
+        assert impl0 == impl10  # Same real upstream library, distinct complete settings.
+        assert decoder_identity(Bposd0(), impl0) != decoder_identity(Bposd(), impl10)
+        assert decoder_identity(Bposd0(), impl0) != decoder_identity(Bposd(osd_order=0), impl10)
+        for decoder in (Bposd0(), Bposd()):
+            label = decoder_label({'decoder_profile': decoder.profile, 'decoder_name': decoder.name,
+                                   'decoder_id': 'test', 'decoder_parameters': decoder.model_dump()})
+            assert f'OSD_CS({decoder.osd_order})' in label and 'beam' not in label
+        with pytest.raises(ValueError, match='unsupported'):
+            decoder_label({'decoder_profile': 'future'})
+        for template in (ROOT / 'config').rglob('*.yaml.example'):
+            if 'production' in template.name:
+                with pytest.raises(ValidationError):
+                    load_config(template)
+            else:
+>               loaded = load_config(template)
+                         ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_hybrid_config.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/quantum_teresheys/workspace/beamsearch_decimation/config/analysis.yaml.example')
+
+    def load_config(path: str | Path) -> Config:
+        """Load safe YAML and resolve all paths relative to its file.
+    
+        Args:
+            path: YAML file path, in filesystem units.
+        Returns:
+            Immutable validated configuration. Input files are never modified.
+        Raises:
+            OSError, yaml.YAMLError, ValueError: Missing files or invalid settings.
+        """
+        path = Path(path).resolve()
+>       config = Config.model_validate(yaml.load(path.read_text(), Loader=_UniqueLoader))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for Config
+E       noise
+E         Field required [type=missing, input_value={'analysis': {'input': '....pected_tail_count': 10}}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/missing
+
+src/qec_bp_benchmark/config.py:476: ValidationError
+=========================== short test summary info ============================
+FAILED tests/test_hybrid_config.py::test_cs0_identity_and_legacy_parameters
+1 failed, 267 passed in 86.12s (0:01:26)
+ERROR conda.cli.main_run:execute(125): `conda run python -m pytest -q` failed. (See above for error)

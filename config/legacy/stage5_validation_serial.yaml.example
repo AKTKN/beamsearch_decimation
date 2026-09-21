@@ -1,6 +1,6 @@
-# Same full 32-shot plan as smoke.yaml, for worker-count equality checks.
+# Same physical plan as stage5_validation.yaml, one worker.
 experiment:
-  name: implementation_smoke
+  name: stage5_validation
   codes:
   - family: surface
     distances:
@@ -13,27 +13,24 @@ experiment:
 noise:
   rates:
   - 0.001
-  multipliers:
-    one_qubit: 1.0
-    two_qubit: 1.0
-    idle: 1.0
-    reset: 1.0
-    measurement: 1.0
 circuit:
-  cache: ../simulation_data
+  cache: "../../simulation_data"
 decoders:
 - profile: screened_reference
 - profile: bposd_ms30_cs10
 - profile: beam8
 sampling:
-  shots_per_point: 32
-  batch_size: 16
+  shots_per_point: 4
+  batch_size: 3
   master_seed: 20260920
   warmup_seed: 20260921
-  warmup_count: 4
+  warmup_count: 1
 execution:
   workers: 1
 timing:
   mode: throughput
 output:
-  root: ../assets/runs
+  root: "../../assets/runs"
+
+# Explicit paths preserve destinations after moving this file into legacy/.
+analysis: {"input": "../../assets/runs", "output": "../../assets/analysis"}

@@ -1,0 +1,112 @@
+{
+  "python_executable": "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+  "saved_run": "assets/runs/20260921T052534.450320Z_5d568a465320",
+  "physical_shots": 60000,
+  "commands": [
+    "python -m pip install --no-build-isolation --no-deps -e .",
+    "python -m pytest -q",
+    "scripts/execute_notebook.sh config/analysis.yaml.example --run assets/runs/20260921T052534.450320Z_5d568a465320 --output assets/notebook/hybrid_20260921T052534_analysis_current.ipynb --timeout -1",
+    "scripts/legacy/analyze_benchmark.sh config/hybrid_smoke.yaml.example --run assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+    "scripts/legacy/execute_notebook.sh config/hybrid_smoke.yaml.example --run assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10 --output assets/notebook/legacy_consumer_migration_check.ipynb"
+  ],
+  "full_suite": "269 passed in 74.42s (0:01:14)",
+  "notebook": {
+    "path": "assets/notebook/hybrid_20260921T052534_analysis_current.ipynb",
+    "sha256": "fc451f3357255cecc30b97b35eb773b5abacb6784fcb7985a8763f8f5f025677",
+    "executed_code_cells": 6,
+    "report": "assets/analysis/20260921T062444.686284Z_bfbbec7acc"
+  },
+  "report": {
+    "path": "assets/analysis/20260921T062444.686284Z_bfbbec7acc",
+    "manifest_sha256": "c73a356b174aeb7c029437d28e20ce56609ca29562d9cf5a6936f41146f80b04",
+    "status": "complete",
+    "decode_rows": 180000,
+    "failure_groups": 18,
+    "timing_groups": 122,
+    "paired_groups": 12,
+    "checked_files": 97,
+    "elapsed_seconds": 95.528295,
+    "bootstrap_count": 2000
+  },
+  "legacy_notebook": {
+    "path": "assets/notebook/legacy_consumer_migration_check.ipynb",
+    "sha256": "d8decc14214de0a73a5f115139cad41f63c72a8f842e2c920f4ae3ffdb95f3ce",
+    "executed_code_cells": 6,
+    "report": "assets/analysis/20260921T062523.556798Z_4e2058db4a"
+  },
+  "legacy_notebook_report": {
+    "path": "assets/analysis/20260921T062523.556798Z_4e2058db4a",
+    "manifest_sha256": "459d7c30b0d2ee15dc4d0977b2e4d93fdad6b3e9d09c79e4e023f260b6f93c4f",
+    "status": "complete",
+    "decode_rows": 24,
+    "failure_groups": 6,
+    "timing_groups": 28,
+    "paired_groups": 4,
+    "checked_files": 41,
+    "elapsed_seconds": 15.142494,
+    "bootstrap_count": 2000
+  },
+  "legacy_cli_report": {
+    "path": "assets/analysis/20260921T062524.646583Z_72e143023c",
+    "manifest_sha256": "0af438862e9bfaec2bc1187f34b6572fe0eef243033ec82ed138f1e7b123e3fb",
+    "status": "complete",
+    "decode_rows": 24,
+    "failure_groups": 6,
+    "timing_groups": 28,
+    "paired_groups": 4,
+    "checked_files": 41,
+    "elapsed_seconds": 14.840184,
+    "bootstrap_count": 2000
+  },
+  "preserved_legacy_sha256": {
+    "analysis/legacy/__init__.py": "e6f3cd871908a241a418fd770335abcc1bb88fb6d79657a90a67c2d269f791f4",
+    "analysis/legacy/hybrid.py": "019c0e68210a21baf1009e85fc2d4e677fbfcbaf33c1be4b989130f0ef5a173e",
+    "analysis/legacy/io.py": "37f8f862a0bb75f270b6554581a9ba56736961b7c63521445f17aea960fa93ad",
+    "analysis/legacy/plots.py": "b3c9eceaf1d3c12eaedd3878dba653416ee1dbdc73231ad28da314d310c0984f",
+    "analysis/legacy/report.py": "20fa786db774442c777a71f04cce0a62e6ac7c1a4ff20ff0598a21906f74c6a7",
+    "analysis/legacy/statistics.py": "714b5b6037f453bcd9a7ce8a14589b72a1fc1570889443e99da4b8d590a2ed83",
+    "analysis/legacy/validation.py": "3790ccbd3610f07f45ec1314f3275413032e1e11a2bce043ee4b132c43e6ce47"
+  },
+  "consumer_source_sha256": {
+    "analysis/__init__.py": "ecb87f5f8a7c654e1b6fcdd25a26604bbe59c17d72d4ef9b15bf84c96ceeec81",
+    "analysis/bootstrap.py": "2cf016aa323dd94f416cef52e106e220a04fac2d17a03a120df455007c6bd8d4",
+    "analysis/config.py": "19a94b3fccf9b8c6466afb35bd1668353eebb37d1a88bb952c594f8daabffe2a",
+    "analysis/hybrid.py": "540dab247ecce8c47c8675e88ea06a0cad6cfd1b5a9f9f99cbeebc57625aff76",
+    "analysis/io.py": "37f8f862a0bb75f270b6554581a9ba56736961b7c63521445f17aea960fa93ad",
+    "analysis/legacy/__init__.py": "e6f3cd871908a241a418fd770335abcc1bb88fb6d79657a90a67c2d269f791f4",
+    "analysis/legacy/hybrid.py": "019c0e68210a21baf1009e85fc2d4e677fbfcbaf33c1be4b989130f0ef5a173e",
+    "analysis/legacy/io.py": "37f8f862a0bb75f270b6554581a9ba56736961b7c63521445f17aea960fa93ad",
+    "analysis/legacy/plots.py": "b3c9eceaf1d3c12eaedd3878dba653416ee1dbdc73231ad28da314d310c0984f",
+    "analysis/legacy/report.py": "20fa786db774442c777a71f04cce0a62e6ac7c1a4ff20ff0598a21906f74c6a7",
+    "analysis/legacy/statistics.py": "714b5b6037f453bcd9a7ce8a14589b72a1fc1570889443e99da4b8d590a2ed83",
+    "analysis/legacy/validation.py": "3790ccbd3610f07f45ec1314f3275413032e1e11a2bce043ee4b132c43e6ce47",
+    "analysis/plots.py": "b3c9eceaf1d3c12eaedd3878dba653416ee1dbdc73231ad28da314d310c0984f",
+    "analysis/report.py": "428ae2955d441944dc1b902608ff1954a1f649e59280fa000afa587d4e1f6bba",
+    "analysis/runtime.py": "17a26785a056b04969501c49e5bb193fa81f5fe0eee87f317e4fc9a93282e1b7",
+    "analysis/statistics.py": "714b5b6037f453bcd9a7ce8a14589b72a1fc1570889443e99da4b8d590a2ed83",
+    "analysis/validation.py": "3790ccbd3610f07f45ec1314f3275413032e1e11a2bce043ee4b132c43e6ce47",
+    "config/analysis.yaml.example": "821330c283c8114de5a6d9339604cd78a1c9224ede49149ed07efb1c94966a86",
+    "notebook/benchmark_analysis.ipynb.example": "5b7eed321368b9de6826893d920213ae478c52879576deef41b5e89f2dfa21a9",
+    "notebook/legacy/benchmark_analysis.ipynb.example": "7c2bfa333d1b5cfe44c796b174aa42fbef03196edba6baf96f4bcb7ddfb76cb1",
+    "pyproject.toml": "689ffacbf904434b5280cae6fa7050106ea15fbbad0f25738dd148436256df65",
+    "python_scripts/analyze_benchmark.py": "c2dc7a775a69d12733189b7b3731a2c402889403f80f3a3f2bdc8b60e7415957",
+    "python_scripts/execute_notebook.py": "308d880c19b6d910fbb4cf20e6fad402004674e1e546a967f08f37dc91647629",
+    "python_scripts/legacy/analyze_benchmark.py": "8406622da9a0be4e483d1b39fcb0d91621a07d463d923c8bae74ea0082037121",
+    "python_scripts/legacy/execute_notebook.py": "3977361e7f005ef46b0de3763c71ad9179866c44198b45a471d3d99762567594",
+    "scripts/analyze_benchmark.sh": "8aeea974d7791df2c3eef6fa775038641775fd89a37481b25e1fc74dc50f4511",
+    "scripts/execute_notebook.sh": "fb467dd40ac937620bc63176d4a6eb8b041f30a43d6c84d04a37773fb779b94d",
+    "scripts/legacy/analyze_benchmark.sh": "2eb97c71253a30637ec0663728bde7d6204bb155e636baf1d3a87787188052e4",
+    "scripts/legacy/execute_notebook.sh": "bf78d3dee7f302537e4c105758bfb173283da8e0724b11ee13b9ae150627c7c3",
+    "scripts/setup_local_files.sh": "38e7aad16ae573802310ab7bab669fbb0023d5052beeafe712b1a7f1feed290d",
+    "src/qec_bp_benchmark/config.py": "86285801a200579260d54376d26a33d2b509b79554ac3326c61fa986302cd67c",
+    "tests/test_analysis.py": "d18f4a2cf04ea44b12ea217d74d186d7ae8dcee96db13e3c4affa4bfc9be3df3",
+    "tests/test_analysis_migration.py": "6ba046a567945ca5856e1ea4ed22e53144600d791978d1165f7d63bf81000535",
+    "tests/test_hybrid_config.py": "70b5559f237d24314f9381893b2cd9f0a357be414eb7c78e82d801cfa05e2cb2"
+  },
+  "limits": [
+    "Materializes saved tables in memory; not out-of-core.",
+    "No production simulation or new scientific performance claim.",
+    "Legacy copies share the existing configuration/storage infrastructure.",
+    "Old acceptance Python kernels must be switched/restarted; no sys.path patching."
+  ]
+}

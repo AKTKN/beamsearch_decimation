@@ -14,7 +14,7 @@ noise:
   rates:
   - 0.001
 circuit:
-  cache: ../simulation_data
+  cache: "../../simulation_data"
 decoders:
 - profile: screened_reference
 - profile: bposd_ms30_cs10
@@ -30,4 +30,7 @@ execution:
 timing:
   mode: isolated_latency
 output:
-  root: ../assets/runs
+  root: "../../assets/runs"
+
+# Explicit paths preserve destinations after moving this file into legacy/.
+analysis: {"input": "../../assets/runs", "output": "../../assets/analysis"}

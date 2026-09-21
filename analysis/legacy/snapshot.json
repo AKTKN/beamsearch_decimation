@@ -1,0 +1,15 @@
+{
+  "description": "Analysis implementation before the package-wide consumer migration; Python modules are byte-preserved. CLI/notebook copies route to analysis.legacy.",
+  "sha256": {
+    "analysis/__init__.py": "e6f3cd871908a241a418fd770335abcc1bb88fb6d79657a90a67c2d269f791f4",
+    "analysis/hybrid.py": "019c0e68210a21baf1009e85fc2d4e677fbfcbaf33c1be4b989130f0ef5a173e",
+    "analysis/io.py": "37f8f862a0bb75f270b6554581a9ba56736961b7c63521445f17aea960fa93ad",
+    "analysis/plots.py": "b3c9eceaf1d3c12eaedd3878dba653416ee1dbdc73231ad28da314d310c0984f",
+    "analysis/report.py": "20fa786db774442c777a71f04cce0a62e6ac7c1a4ff20ff0598a21906f74c6a7",
+    "analysis/statistics.py": "714b5b6037f453bcd9a7ce8a14589b72a1fc1570889443e99da4b8d590a2ed83",
+    "analysis/validation.py": "3790ccbd3610f07f45ec1314f3275413032e1e11a2bce043ee4b132c43e6ce47",
+    "python_scripts/analyze_benchmark.py": "426cf92e1a1f37162af4e3927b4f048b87051d42a8ba35e83b18fd9f61391d29",
+    "python_scripts/execute_notebook.py": "a83646a4c145e8cd75d671e0b700bb5b1633eb0a9d43d3a0e8d5ac45c4a46235",
+    "notebook/benchmark_analysis.ipynb.example": "fb4a5d937c6fc7cda74b66402e9353ffedf399f2412e9092d40cb1a86e7b3a1e"
+  }
+}

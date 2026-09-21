@@ -7,10 +7,10 @@ conda activate search_decimation
 python -m pip install --no-build-isolation -e .
 python -m pytest -q
 scripts/build_dependencies.sh --check
-scripts/run_benchmark.sh config/stage5_validation.yaml
-scripts/run_benchmark.sh config/smoke.yaml
-scripts/run_benchmark.sh config/latency_smoke.yaml
-scripts/replay_samples.sh /path/to/saved/run config/decoder_sweep.yaml
+scripts/run_benchmark.sh config/legacy/stage5_validation.yaml
+scripts/run_benchmark.sh config/legacy/smoke.yaml
+scripts/run_benchmark.sh config/legacy/latency_smoke.yaml
+scripts/replay_samples.sh /path/to/saved/run config/legacy/decoder_sweep.yaml
 ```
 
 Replay accepts any valid configuration YAML. Saved source batches define the physical dataset;
@@ -19,9 +19,9 @@ Add -v/--verbose to either run or replay for live preparation and committed-batc
 progress, including elapsed run seconds, batch percent and physical-shot totals:
 
 ```bash
-scripts/run_benchmark.sh config/smoke.yaml --verbose
-scripts/replay_samples.sh /path/to/saved/run config/decoder_sweep.yaml -v
-scripts/run_benchmark.sh config/smoke.yaml -v > run_path.txt 2> progress.log
+scripts/run_benchmark.sh config/legacy/smoke.yaml --verbose
+scripts/replay_samples.sh /path/to/saved/run config/legacy/decoder_sweep.yaml -v
+scripts/run_benchmark.sh config/legacy/smoke.yaml -v > run_path.txt 2> progress.log
 ```
 
 Progress is flushed to stderr by the parent after each batch is safely committed;
@@ -106,7 +106,7 @@ Native Debug and ASan/UBSan cover both the reference kernel and project search.
 No decoder advantage is inferred from these software validation runs.
 
 Recorded validation:
-`config/stage5_validation_serial.yaml` and `config/stage5_validation_latency.yaml`
+`config/legacy/stage5_validation_serial.yaml` and `config/legacy/stage5_validation_latency.yaml`
 use the same four-shot batch plan as stage5_validation.yaml. The final default
 smoke and isolated runs each have 128 physical samples / 384 decode rows. All
 non-timing results matched between worker/mode variants, and replay matched shared

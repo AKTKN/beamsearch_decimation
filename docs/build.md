@@ -32,7 +32,7 @@ ctest --test-dir build/debug --output-on-failure
 cmake -S . -B build/sanitize -DQEC_BUILD_TESTS=ON -DQEC_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
 cmake --build build/sanitize --target test_reference_bp test_search -j2
 ctest --test-dir build/sanitize --output-on-failure
-scripts/prepare_circuits.sh config/smoke.yaml
+scripts/prepare_circuits.sh config/legacy/smoke.yaml
 ```
 
 The reference extension uses -O3, C++17, -fno-fast-math, -ffp-contract=off. Native

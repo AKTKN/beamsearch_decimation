@@ -1,0 +1,22 @@
+{
+  "command": [
+    "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+    "python_scripts/execute_notebook.py",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/on_demand_6b017c5cac/analysis.yaml",
+    "--run",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+    "--notebook",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/on_demand_6b017c5cac/input.ipynb",
+    "--output",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/on_demand_6b017c5cac/executed.ipynb"
+  ],
+  "output": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/on_demand_6b017c5cac",
+  "png_count": 10,
+  "pdf_count": 10,
+  "validation_guard": "passed",
+  "source_sha256": {
+    "analysis/quick_plots.py": "dc5516e5a616923a8aaf5eff7dc18475cc768c85bbb137a7bb2f639385221d5a",
+    "notebook/benchmark_analysis.ipynb": "f8cb2094bb9450df4f05e2fa1ae8be4452b21e8bace4bc84d12a51063a3abdac",
+    "tests/test_quick_plots.py": "de3d012b70f9e948337ec5a05780a3cb6fa3d66678fbb28b4d0ce7f6b8ef1b8a"
+  }
+}

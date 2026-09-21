@@ -97,3 +97,28 @@ bounded final workflow with fresh circuit artifacts, worker/mode/replay equality
 all 12 BB outcomes, report and notebook. Final review adds phase-result vocabulary,
 terminal-stage correspondence and prefix interval validation; corruption fixtures
 exercise each check. See hybrid_acceptance.md and STATUS.md for actual results.
+
+## Saved-data consumer migration
+
+| Requirement | Implementation | Evidence |
+|---|---|---|
+| Preserve previous analysis | analysis/legacy + snapshot.json; legacy scripts/template | Byte hashes, legacy v1 projection and report tests |
+| Independent analysis settings, strict compatibility | analysis/config.py; config/analysis.yaml.example | Strict/path/full-config tests and no runner/decoder imports |
+| Same paired inference with bounded working memory | analysis/bootstrap.py and hybrid.py | Complete legacy parity on shot/unequal-batch draws, large integers and nulls |
+| Active-environment notebook and maintained default | execute_notebook.py; notebook template runtime guard | Executed consumer test and requested 60,000-shot saved run |
+| Current consumer provenance and progress | analysis/runtime.py; report.py; analyze CLI | Source hashes, report checksum verification, stdout/stderr test |
+
+## Lightweight saved-data notebook
+
+The 2026-09-21 notebook simplification maps the requested saved-data-only workflow
+to direct reader/statistics/plot calls in both current notebooks. Loading and
+drawing are separate cells; detailed hybrid/paired/bootstrap analysis stays in
+the full-report API/CLI. See STATUS.md for validation and the source audit.
+Legacy templates and scientific artifacts are unchanged.
+
+The subsequent explicit request for no validation applies only to the local
+interactive notebook. `analysis/quick_plots.py` supplies plot-specific projected
+reads, Arrow failure aggregation and existing plot exports. Tests in
+`tests/test_quick_plots.py` compare physical-shot counts/intervals to the verified
+reader and check that unrelated columns are never requested. Execution evidence
+and source hashes: docs/test_results/notebook_on_demand_verification.json.

@@ -65,3 +65,21 @@ storage corruption tests have distinct logs. hybrid_stage_6_e2e_verification.jso
 indexes the new six-case fresh-circuit workflow, exact scientific comparisons,
 65 checksummed report files, 12 paired groups and executed notebook. No production
 sweep or scientific advantage is asserted by these software checks.
+
+legacy_layout_tests.log records 97 focused passes after relocating historical
+configs; legacy_layout_verification.json records 19 moved files and equality of
+17 runnable resolved configurations. Local files remain ignored, and the two
+production-template files retain their empty-rate validation error.
+
+Analysis consumer migration: analysis_migration_pytest.log preserves the initial
+template-classification failure; analysis_migration_pytest_final.log is the corrected
+full suite. analysis_migration_notebook.log records the requested saved-run notebook.
+analysis_migration_verification.json checks its report/files, source audit and legacy
+snapshot. No production simulation or native source modification was involved.
+
+The post-install suite and final kernel diagnostic are recorded in
+analysis_migration_postinstall_pytest.log and analysis_migration_kernel_tests.log.
+analysis_migration_current_notebook.log is the final requested-data notebook;
+analysis_migration_legacy_cli/notebook.log verify the preserved entry points on an
+existing eight-shot accepted fixture. analysis_migration_install.log records the
+editable reinstall into search_decimation.

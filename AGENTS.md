@@ -13,6 +13,10 @@ docs/hybrid_data.md, docs/hybrid_acceptance.md and STATUS.md for final evidence.
 Use `python python_scripts/accept_hybrid.py --output NEW_DIRECTORY` for bounded E2E
 acceptance. The user explicitly authorized pushing the finalized migration to the
 existing GitHub origin; do not force-push or change historical scientific artifacts.
+Historical screened-reference/CS10 configs live in config/legacy/; top-level
+config templates cover the hybrid and current baseline checks. Simulation/replay CLIs remain shared. Current analysis uses analysis-only
+config/analysis.yaml.example; pre-migration consumers are preserved in analysis/legacy/,
+python_scripts/legacy/, scripts/legacy/ and notebook/legacy/. Preserve relative data/output destinations when moving configs.
 Use the search_decimation conda environment for all programs. Production
 physical rates remain user-supplied; do not launch a production sweep implicitly.
 
@@ -50,13 +54,13 @@ Stable commands (activate search_decimation first):
 scripts/build_dependencies.sh --check
 python -m pip install --no-build-isolation --no-deps -e .
 python -m pytest -q
-scripts/run_benchmark.sh config/stage5_validation.yaml
-scripts/run_benchmark.sh config/smoke.yaml
-scripts/run_benchmark.sh config/latency_smoke.yaml
-scripts/replay_samples.sh SOURCE_RUN config/decoder_sweep.yaml
-scripts/analyze_benchmark.sh config/smoke.yaml --run SOURCE_RUN
+scripts/run_benchmark.sh config/legacy/stage5_validation.yaml
+scripts/run_benchmark.sh config/hybrid_smoke.yaml.example
+scripts/run_benchmark.sh config/hybrid_latency.yaml.example
+scripts/replay_samples.sh SOURCE_RUN config/hybrid_ablations.yaml.example
+scripts/analyze_benchmark.sh config/analysis.yaml.example --run SOURCE_RUN
 python python_scripts/verify_benchmark.py SOURCE_RUN --compare OTHER_RUN
-scripts/execute_notebook.sh config/smoke.yaml --run SOURCE_RUN --output assets/notebook/new.ipynb
+scripts/execute_notebook.sh config/analysis.yaml.example --run SOURCE_RUN --output assets/notebook/new.ipynb
 ```
 
 Rebuild the project extension after native/search.hpp, native/module.cpp,

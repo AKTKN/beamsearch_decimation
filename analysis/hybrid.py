@@ -7,13 +7,13 @@ interval treats repeated physical shot IDs as new independent observations.
 from __future__ import annotations
 from collections import defaultdict
 from itertools import combinations
-from typing import Iterable,Sequence
+from typing import Callable,Iterable,Sequence
 import numpy as np
 from qec_bp_benchmark.config import Analysis
 from .statistics import GROUP_KEYS,_checked_groups,_metric
+from .bootstrap import PairedBootstrap, STAGES
 
 PAIR_KEYS=tuple(k for k in GROUP_KEYS if k!='decoder_id')
-STAGES=('zero_syndrome','search','guided_bp','osd','failed')
 
 
 def terminal(row: dict) -> str:
@@ -90,42 +90,8 @@ def paired_rows(records: Iterable[dict], hybrid_id: str, baseline_id: str) -> li
     return [(sides[hybrid_id][s],sides[baseline_id][s]) for s in sorted(sides[hybrid_id])]
 
 
-def _estimates(pairs: Sequence[tuple[dict,dict]]) -> dict[str,float | None]:
-    n=len(pairs)
-    eh=np.array([int(h['block_failure']) for h,b in pairs]); eb=np.array([int(b['block_failure']) for h,b in pairs])
-    f=np.array([bool(h['osd_entered']) for h,b in pairs]); a=~f
-    delta=eh-eb
-    output={'failure_difference':float(np.mean(delta)),
-        'early_failure_difference':float(np.mean(a*delta)),
-        'fallback_failure_difference':float(np.mean(f*delta))}
-    for stage in STAGES:
-        selected=np.array([terminal(h)==stage for h,b in pairs])
-        output[f'{stage}_failure_difference']=float(np.mean(selected*delta))
-    for clock in ('cpu','wall'):
-        # Subtract/sum Python integers before conversion: int64 nanoseconds can
-        # exceed binary64's exact-integer range even though the difference is tiny.
-        th=[h[f'{clock}_ns'] for h,b in pairs]; tb=[b[f'{clock}_ns'] for h,b in pairs]
-        output[f'{clock}_difference_ns']=sum(x-y for x,y in zip(th,tb))/n
-        output[f'{clock}_ratio']=sum(th)/sum(tb) if sum(tb)>0 else None
-        measured=all(h[f'native_prefix_{clock}_ns'] is not None for h,b in pairs)
-        output[f'{clock}_prefix_on_osd_ns']=None
-        for term in ('prefix','service_other','avoided_baseline','fallback_difference'):
-            output[f'{clock}_{term}_ns']=None
-        for stage in ('zero_syndrome','search','guided_bp','pre_osd_failure'):
-            output[f'{clock}_avoided_{stage}_ns']=None
-        if measured:
-            output[f'{clock}_prefix_ns']=sum(h[f'native_prefix_{clock}_ns'] for h,b in pairs)/n
-            output[f'{clock}_service_other_ns']=sum(h[f'service_other_{clock}_ns'] for h,b in pairs)/n
-            output[f'{clock}_prefix_on_osd_ns']=sum(h[f'native_prefix_{clock}_ns'] for h,b in pairs if h['osd_entered'])/n
-            output[f'{clock}_avoided_baseline_ns']=sum(b[f'{clock}_ns'] for h,b in pairs if not h['osd_entered'])/n
-            output[f'{clock}_fallback_difference_ns']=sum(h[f'osd_{clock}_ns']-b[f'{clock}_ns'] for h,b in pairs if h['osd_entered'])/n
-            for stage in ('zero_syndrome','search','guided_bp','pre_osd_failure'):
-                output[f'{clock}_avoided_{stage}_ns']=sum(b[f'{clock}_ns'] for h,b in pairs if not h['osd_entered'] and
-                    (h['decoding_failure'] if stage=='pre_osd_failure' else terminal(h)==stage))/n
-    return output
-
-
-def summarize_pair(pairs: Sequence[tuple[dict,dict]], *, settings: Analysis | None=None) -> dict:
+def summarize_pair(pairs: Sequence[tuple[dict,dict]], *, settings: Analysis | None=None,
+                   progress: Callable[[str], None] | None=None) -> dict:
     """Exact integer accounting plus paired percentile bootstrap of mean statistics.
 
     Resamples entire paired shots or whole physical batches with replacement. The
@@ -162,16 +128,10 @@ def summarize_pair(pairs: Sequence[tuple[dict,dict]], *, settings: Analysis | No
     components=sum((not h['osd_entered'])*(int(h['block_failure'])-int(b['block_failure']))+
         h['osd_entered']*(int(h['block_failure'])-int(b['block_failure'])) for h,b in joined)
     if total!=components: raise ValueError('paired error identity mismatch')
-    pairs=joined; estimates=_estimates(pairs)
-    units=defaultdict(list)
-    for i,(h,b) in enumerate(pairs): units[h['batch_id'] if settings.bootstrap_unit=='batch' else i].append(i)
-    units=list(units.values()); rng=np.random.default_rng(settings.bootstrap_seed)
-    distributions={k:[] for k,v in estimates.items() if v is not None}
-    for _ in range(settings.bootstrap_count):
-        indices=[i for u in rng.integers(len(units),size=len(units)) for i in units[u]]
-        values=_estimates([pairs[i] for i in indices])
-        for k in distributions:
-            if values[k] is not None: distributions[k].append(values[k])
+    pairs=joined
+    bootstrap=PairedBootstrap(pairs, settings.bootstrap_unit)
+    estimates=bootstrap.estimates()
+    distributions=bootstrap.distributions(seed=settings.bootstrap_seed, count=settings.bootstrap_count, progress=progress)
     alpha=(1-settings.confidence)/2
     intervals={k:{'low':float(np.quantile(v,alpha)),'high':float(np.quantile(v,1-alpha)),
         'valid_resamples':len(v)} if v else {'low':None,'high':None,'valid_resamples':0} for k,v in distributions.items()}
@@ -189,7 +149,7 @@ def summarize_pair(pairs: Sequence[tuple[dict,dict]], *, settings: Analysis | No
         'hybrid_profile':first['decoder_profile'],'baseline_profile':base['decoder_profile'],
         'shots':n,'independent_physical_shots':len({h['shot_id'] for h,b in pairs}),
         'estimates':estimates,'intervals':intervals,'discordance':discordance,'accuracy':accuracy,
-        'bootstrap':dict(metadata,units=len(units)),
+        'bootstrap':dict(metadata,units=bootstrap.units),
         'pre_osd_failures':sum(not h['osd_entered'] and h['decoding_failure'] for h,b in pairs),
         'osd_reach':_metric(sum(h['osd_entered'] for h,b in pairs),n,settings.confidence),
         'accounting':'integer identity checked per shot and in totals; displayed means use binary64',
@@ -199,7 +159,8 @@ def summarize_pair(pairs: Sequence[tuple[dict,dict]], *, settings: Analysis | No
             'caution':'Bootstrap resolution and sample size limit evidence; smoke is not a scientific conclusion.'}}
 
 
-def paired_statistics(records: Iterable[dict], *, settings: Analysis | None=None) -> list[dict]:
+def paired_statistics(records: Iterable[dict], *, settings: Analysis | None=None,
+                      progress: Callable[[str], None] | None=None) -> list[dict]:
     """Return separate hybrid/baseline and warm/cold/no-BP paired comparisons."""
     records=list(records); _checked_groups(records)
     contexts=defaultdict(list)
@@ -211,5 +172,7 @@ def paired_statistics(records: Iterable[dict], *, settings: Analysis | None=None
             if profiles[left].get('algorithm_version') is None:
                 left,right=right,left
             if profiles[left].get('algorithm_version') is None: continue
-            output.append(summarize_pair(paired_rows(rows,left,right),settings=settings))
+            if progress is not None:
+                progress(f"Paired comparison: {profiles[left]['decoder_name']} / {profiles[right]['decoder_name']}")
+            output.append(summarize_pair(paired_rows(rows,left,right),settings=settings,progress=progress))
     return output

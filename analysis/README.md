@@ -30,7 +30,7 @@ missing upstream counters remain unclassified. Failed shots remain in all-shot t
 plots show zero estimates only as explicitly labeled Wilson upper endpoints on log
 axes. CPU/wall plots show individual complete-block times in ms, never divided by R.
 Legends retain native kernel/profile budgets, N and tail support. `report.create_report`
-is shared by the CLI and notebook, creates a new timestamped report, preserves source
+is used by the full-report CLI, creates a new timestamped report, preserves source
 run manifest hashes and output checksums, and leaves status incomplete on error.
 
 Analysis imports no decoder/provider modules, samples no circuit and changes no
@@ -45,7 +45,7 @@ Both inputs must first pass load_run integrity checks.
 Hybrid Stage 1 adds honest plot labels for upstream `bposd_ms30_cs0` and preserves
 CS10 labels with their actual iteration/order settings. Unknown profiles fail
 explicitly rather than acquiring a beam label. Hybrid tables and hypothesis
-analysis are deferred to Stages 4-5; v1 interpretation remains unchanged.
+analysis are implemented below; v1 interpretation remains unchanged.
 
 ## Hybrid APIs
 
@@ -59,10 +59,35 @@ observations. Each replay stays a separate dependent timing trial. `summarize_pa
 rejects mixed identities and flagged timing accounting. All units are ns.
 
 Reports include hybrid_stages.json, paired.json and stage/cost/ablation PNG/PDF
-figures. The notebook consumes these outputs. See docs/hybrid_data.md for exact
+figures. The notebook directly calls the basic readers, statistics and plotting APIs
+without producing these detailed hybrid comparisons. See docs/hybrid_data.md for exact
 schemas, denominators, settings and scientific interpretation limits.
 
 The final E2E harness validates all report checksums and exact integer paired cost
 totals, and executes the saved-data notebook. See docs/hybrid_acceptance.md. Current
 analysis behavior and optional deferrals are recorded there; small smoke samples
 remain insufficient for a scientific speed/accuracy conclusion.
+
+## Current consumer and preserved legacy
+
+`load_analysis_config` accepts strict analysis-only YAML or an existing validated
+benchmark config without applying simulation execution settings. `analysis_runtime`
+identifies the active interpreter and consumer source hashes. `create_report` takes
+an optional progress callback and records consumer provenance in its manifest.
+`bootstrap.PairedBootstrap` reuses exact integer unit totals with legacy-compatible
+RNG draws, including unequal batches and an overflow-safe Python-integer fallback.
+
+The previous complete implementation is byte-preserved in `analysis.legacy`, with
+snapshot hashes and separate legacy consumers. See docs/analysis_migration.md.
+
+## Trusted on-demand plotting
+
+`quick_plots.plot_saved_data` supports the explicitly requested local interactive
+workflow without integrity verification. Each call reads run/instance JSON for
+labels and grouping and projects only the required decode Parquet columns, one
+instance at a time. It never reads sample, event, source archive or circuit files.
+Failure plots aggregate flags with Arrow; timing plots read only the selected
+clock and display all shots. Available decode shards are trusted directly,
+including uncommitted shards; this API is not the verified report reader.
+Scientific/run/decoder/execution grouping and physical-shot denominators remain.
+No bootstrap, hybrid details or shared all-data cache is used.

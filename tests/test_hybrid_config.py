@@ -139,8 +139,11 @@ def test_cs0_identity_and_legacy_parameters():
         assert f'OSD_CS({decoder.osd_order})' in label and 'beam' not in label
     with pytest.raises(ValueError, match='unsupported'):
         decoder_label({'decoder_profile': 'future'})
-    for template in (ROOT / 'config').glob('*.yaml.example'):
-        if 'production' in template.name:
+    for template in (ROOT / 'config').rglob('*.yaml.example'):
+        if template.name == 'analysis.yaml.example':
+            from analysis import load_analysis_config
+            assert load_analysis_config(template).analysis.bootstrap_count == 2000
+        elif 'production' in template.name:
             with pytest.raises(ValidationError):
                 load_config(template)
         else:
@@ -152,20 +155,23 @@ def test_setup_preserves_local_edits_and_symlinks(tmp_path):
     (tmp_path / 'scripts').mkdir()
     for directory in ('config', 'notebook'):
         shutil.copytree(ROOT / directory, tmp_path / directory,
-                        ignore=lambda path, names: [n for n in names if not n.endswith('.example')])
+                        ignore=lambda path, names: [n for n in names if (Path(path)/n).is_file() and not n.endswith('.example')])
     script = tmp_path / 'scripts/setup_local_files.sh'
     shutil.copyfile(ROOT / 'scripts/setup_local_files.sh', script)
     local = tmp_path / 'config/hybrid_smoke.yaml'
     local.write_text('noise: {rates: [0.0123, 0.0234]}\n# local experiment\n')
+    legacy_local = tmp_path / 'config/legacy/smoke.yaml'
+    legacy_local.write_text('noise: {rates: [0.013]}\n# preserved legacy experiment\n')
     symlink = tmp_path / 'config/hybrid_production_template.yaml'
     symlink.symlink_to(tmp_path / 'absent-user-file')
     for _ in range(2):
         subprocess.run(['bash', str(script)], check=True)
     assert local.read_text() == 'noise: {rates: [0.0123, 0.0234]}\n# local experiment\n'
     assert symlink.is_symlink() and not symlink.exists()
-    for template in (tmp_path / 'config').glob('*.yaml.example'):
+    assert legacy_local.read_text() == 'noise: {rates: [0.013]}\n# preserved legacy experiment\n'
+    for template in (tmp_path / 'config').rglob('*.yaml.example'):
         target = template.with_suffix('')
-        if target not in (local, symlink):
+        if target not in (local, symlink, legacy_local):
             assert target.read_bytes() == template.read_bytes()
 
 

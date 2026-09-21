@@ -236,3 +236,7 @@ def test_v1_exact_reader_projection_from_independent_fixture(saved_run,tmp_path)
     assert all(r['algorithm_version'] is None for r in run.decodes.to_pylist())
     assert all(r['valid_logical_mismatch'] is None for r in run.decodes.to_pylist() if r['decoding_failure'])
     assert run.decoder_phases.num_rows==run.hybrid_rounds.num_rows==0
+    from analysis.legacy import load_run as legacy_load_run
+    legacy = legacy_load_run(target)
+    assert legacy.decodes.equals(run.decodes)
+    assert legacy.samples.equals(run.samples)

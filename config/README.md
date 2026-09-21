@@ -1,52 +1,37 @@
-# config
+# Configuration templates
 
-Strict YAML examples: smoke, isolated latency, decoder sweep, and intentionally non-runnable production template. Fields and constraints are defined in qec_bp_benchmark.config. Relative paths use the YAML directory. Tests: test_config.py.
+Top-level templates cover the active hybrid workflow:
 
-stage5_validation.yaml is the finite four-shot/all-four-code/all-three-decoder
-integration case, with two workers and a final short batch. smoke.yaml and
-latency_smoke.yaml are now executable; their output.root controls run location.
-Replay uses any validated YAML for decoder/execution/output settings and the saved
-source batches for its physical dataset, regardless of that YAML's physical grid.
-The stage5_validation_serial.yaml and stage5_validation_latency.yaml files preserve
-that exact physical plan while changing execution/timing mode for equality checks.
+- analysis.yaml.example: saved-data-only settings; no simulation parameters required.
 
-smoke_serial.yaml and smoke_two_workers.yaml preserve the full smoke.yaml 32-shot
-plan with one and two throughput workers. latency_smoke.yaml uses that same plan
-with one isolated worker. All use explicitly labeled implementation p=0.001.
-analysis controls confidence, additional quantiles, selected ECDF/survival/failure
-plots, optional path strata, tail-count threshold and input/output directories.
-See docs/configuration.md for every field and docs/configuration_audit.md for its
-consumer, recorded evidence and tests. Production rates remain user-supplied.
+- hybrid_smoke.yaml.example: bounded surface d=3/BB72 checks with hybrid, CS0 and beam.
+- hybrid_latency.yaml.example: separate one-worker isolated latency checks.
+- hybrid_ablations.yaml.example: warm/cold/no-BP comparisons.
+- hybrid_production_template.yaml.example: surface d=5,7,9 and BB72; supply rates
+  explicitly before use. It intentionally rejects the empty physical rate list.
+- bposd_cs0_smoke.yaml.example: current upstream CS0/CS10/beam baseline comparison.
 
-Editable *.yaml/*.yml files are ignored. Versioned *.yaml.example files preserve
-the validation configurations. Run scripts/setup_local_files.sh after cloning; it
-creates only missing working copies. config/main.yaml is a local experiment and
-is not distributed. Change templates explicitly to publish new defaults.
+Historical screened-reference/CS10 experiment templates and local copies are in
+legacy/. The local main.yaml also moved there with all rates, seeds, budgets and
+comments preserved. Relative paths were rebased to keep the same circuit cache,
+run and analysis destinations. See legacy/README.md for the old configuration matrix.
 
+Simulation/replay entry scripts are shared: choose a decoder workflow through YAML.
+Current analysis accepts its own analysis-only YAML or a validated benchmark YAML;
+legacy analysis entry points remain under scripts/legacy/.
+For example, scripts/run_benchmark.sh config/hybrid_smoke.yaml.example runs the
+hybrid, while scripts/run_benchmark.sh config/legacy/smoke.yaml.example runs the
+historical comparison. Both create new run directories and use current v2 storage.
 
-Hybrid migration templates: `hybrid_smoke.yaml.example`,
-`hybrid_ablations.yaml.example`, and `hybrid_production_template.yaml.example`.
-They resolve and validate the new contract and execute through run/replay with v2
-tables. Production intentionally has no physical rates. `bposd_cs0_smoke` runs
-actual upstream BP-CS0, CS10 and beam with v2 output. Its small
-numbers are software checks only. Existing local YAML files remain untouched by
-setup. The migration map documents every new field and ablation/default constraint.
+Editable .yaml/.yml files are ignored at both levels. scripts/setup_local_files.sh
+creates missing working copies beside templates in config/, config/legacy/ and
+notebook/, preserving existing files and symlinks. Templates can also be run directly.
+Relative paths always resolve from the YAML's directory; config.py has no special
+legacy-path handling. Archived run configurations remain unchanged.
 
-## Hybrid hypothesis settings
-
-hybrid_smoke.yaml.example is a bounded surface/BB throughput check;
-hybrid_latency.yaml.example is a separate one-worker isolated-latency check;
-hybrid_ablations.yaml.example enables warm, cold and no-BP profiles. All use four
-shots per code at an explicitly labeled software-check rate. Run templates directly
-or materialize missing local files with scripts/setup_local_files.sh.
-
-Analysis adds bootstrap_seed (20260921), bootstrap_count (2000), bootstrap_unit
-(shot or batch), and accuracy_margin_absolute (null by default, otherwise [0,1]).
-The existing confidence applies to Wilson/paired percentile intervals and the
-one-sided noninferiority criterion. Every effective setting is saved. No margin
-means no equivalence claim. Production rates remain user supplied.
-
-The production template also explicitly lists the paired-bootstrap/accuracy and
-plot controls; its physical rate list remains empty. The final resolved manifest
-example is docs/examples/hybrid_manifest.json. Its numeric rate is a software-check
-example, not a production recommendation.
+Analysis controls bootstrap_seed, bootstrap_count, bootstrap_unit (shot or batch),
+accuracy_margin_absolute (null by default), confidence, quantiles, plot selections,
+stratification and tail-support thresholds. See docs/configuration.md and
+the configuration audit in docs/configuration_audit.md for validation/consumers.
+The complete resolved smoke example is docs/examples/hybrid_manifest.json; its
+rates/counts are software checks, not production recommendations.

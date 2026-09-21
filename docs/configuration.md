@@ -63,3 +63,13 @@ A complete, actual resolved smoke-run manifest is preserved in
 cycle lists, all settings/seeds, independent model dimensions, table/event policy,
 execution metadata, native identities and provenance hashes. Paths/identities refer
 to that acceptance run and are illustrative for a different checkout.
+
+## Analysis-only configuration
+
+`analysis.load_analysis_config(path)` accepts the strict `analysis` envelope in
+config/analysis.yaml.example without requiring any simulation grid or decoder.
+It returns immutable analysis settings with YAML-relative paths resolved. Full
+benchmark YAML remains supported with complete validation, but its execution
+settings are not applied to the analysis process. Current report/notebook CLIs
+default to the analysis-only template; legacy CLIs still expect benchmark YAML.
+See analysis_migration.md for compatibility, kernels, bootstrap and legacy paths.

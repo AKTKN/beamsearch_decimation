@@ -1,3 +1,74 @@
+# Legacy configuration organization (2026-09-21)
+
+## Saved-data analysis consumer migration (2026-09-21)
+
+Current consumers use analysis-only `config/analysis.yaml.example`, retain strict
+v1/v2 readers, and do not apply simulation execution settings. Existing full YAML
+remains a validated compatibility input. The maintained notebook is the CLI default;
+its kernel/checkout diagnostics cover both analysis and Config imports. Analysis
+progress, configurable notebook timeout and consumer source hashes are recorded.
+
+The complete pre-migration analysis Python implementation is byte-preserved under
+`analysis/legacy/` (seven modules, snapshot hashes tested). Legacy Python/shell
+consumers and notebook template remain executable in their respective legacy/
+directories. Existing local notebooks, archived sources and saved scientific runs
+were not rewritten. Decoder/native/dependency sources are unchanged.
+
+The paired bootstrap now prepares integer unit totals once, keeps identical RNG
+unit draws and seed/count, and guards int64 reductions with a Python-integer
+fallback. Complete legacy-result parity covers shot and unequal-batch draws, nulls,
+zero baseline durations, large integer totals and accuracy-margin decisions.
+
+Actual commands in the search_decimation environment:
+
+| Command/check | Outcome |
+|---|---|
+| `python -m pip install --no-build-isolation --no-deps -e .` | Passed; analysis_migration_install.log; current and legacy imports also verified from /tmp |
+| `python -m pytest -q` after install and final diagnostic | **269 passed in 74.42 s**; analysis_migration_postinstall_pytest.log |
+| `python -m pytest tests/test_analysis_migration.py -q` | **10 passed in 6.49 s**; analysis_migration_kernel_tests.log |
+| `scripts/execute_notebook.sh config/analysis.yaml.example --run assets/runs/20260921T052534.450320Z_5d568a465320 --output assets/notebook/hybrid_20260921T052534_analysis_current.ipynb --timeout -1` | Complete; six executed code cells, 60,000 physical shots / 180,000 decoder rows; report processing **95.53 s**, bootstrap count 2,000 |
+| Legacy analysis and notebook launchers on existing eight-shot accepted fixture | Both complete; analysis_migration_legacy_cli/notebook.log |
+| Output/source verification and `git diff --check` | Passed; 97 report files checksummed, 12 paired groups with exact integer identities, seven preserved modules and 34 consumer source files audited |
+
+Requested-data report: `assets/analysis/20260921T062444.686284Z_bfbbec7acc`.
+Evidence and exact commands: `docs/test_results/analysis_migration_verification.json`.
+The first full test invocation found one test classifying analysis-only YAML as a
+simulation config (267 passed / 1 failed); its log is preserved. Corrected pre-install
+suite: 268 passed in 63.76 s. The final suite includes the mixed-checkout diagnostic.
+The first successful requested-data notebook is also retained separately.
+
+Limits: full saved tables still materialize in memory. Processing times are local
+consumer measurements, not decoder latency comparisons. No production simulation,
+new physical samples or decoder superiority claim is involved. Existing Jupyter
+sessions still need the current search_decimation kernel and a restart. See
+[analysis_migration.md](docs/analysis_migration.md) for APIs, migration and legacy use.
+
+
+Moved nine historical screened-reference/CS10 templates and their nine local
+copies, plus local main.yaml, into config/legacy/. Decoder/rate/seed/budget settings
+and comments are preserved. Relative paths were rebased and implicit path defaults
+made explicit so all 17 runnable configurations resolve identically before/after;
+the two production-template files remain intentionally invalid without rates.
+Local YAML files remain ignored. Original local file text and relocation checks
+are retained in assets/legacy_config_relocation; no scientific artifacts changed.
+
+All existing shell and Python entry points are shared by the hybrid workflow, so
+there were no legacy-only executables to move. They remain at their tested paths;
+scripts/legacy/README.md and python_scripts/legacy/README.md document this boundary.
+The setup script now includes config/legacy/ templates and preserves existing local
+files/symlinks. Current docs/tests reference the new locations, the maintained
+notebook defaults to the hybrid template, and historical commands/logs remain dated
+evidence with a relocation note. No native source/build or dependency lock changed.
+
+Validation in search_decimation:
+`python -m pytest -q tests/test_config.py tests/test_hybrid_config.py tests/test_circuits.py`
+passed **97 tests in 9.33 s** (docs/test_results/legacy_layout_tests.log). Checks cover
+path resolution, all templates including legacy, preservation of local edits and
+symlinks, unchanged scientific settings and existing circuit behavior. Git ignores
+the relocated local main/smoke YAML. See legacy_layout_verification.json for counts.
+
+---
+
 # Hybrid migration — all six stages complete (2026-09-21)
 
 Stage 6 finalizes the HSBP-ALG-1.0 / HSBP-EXP-1.0 implementation and its distribution.
@@ -425,3 +496,65 @@ requires the fixed environment and batch plan; stored samples support exact repl
 In-place resume and streaming/out-of-core analysis are not implemented. At the original acceptance, the root had
 no Git metadata and no code or hosted fork had been published. Original specification/reference
 files remain unchanged.
+
+## Interactive analysis notebook template (2026-09-21)
+
+Updated the local notebook/benchmark_analysis.ipynb to the current analysis API.
+The first code cell contains only editable CONFIG_PATH/RUN_PATHS; subsequent cells
+resolve repository-relative/absolute/home paths, diagnose stale packages, load
+analysis settings and export/display verified failure/timing/hybrid/paired results.
+Removed autoreload and saved outputs. The notebook selects search_decimation and
+performs no simulation. The maintained CLI template and legacy notebook are unchanged.
+Per user instruction, no tests or notebook execution were performed for this edit.
+
+## Lightweight saved-data notebooks (2026-09-21)
+
+Updated both notebook/benchmark_analysis.ipynb.example and the local editable
+notebook at the user's request. Replaced create_report with separate verified
+loading, failure-summary, timing-summary and configured PNG/PDF plotting cells.
+Removed hybrid stage/paired tables and all bootstrap/detail-report calls. The
+local CONFIG_PATH/RUN_PATHS values are preserved. Plotting reuses in-memory records
+and creates a new output directory; basic summaries remain in memory. Full-report
+CLI/API and historical/legacy artifacts are unchanged. Module READMEs, analysis
+documentation and traceability describe the new notebook behavior.
+
+Validation in search_decimation:
+- `conda run -n search_decimation python -m pytest -q tests/test_analysis.py tests/test_analysis_migration.py`: 33 passed in 13.95s, including notebook execution.
+- Executed the maintained notebook with existing bounded hybrid saved data and all
+  five basic plot types: 10 PNG and 10 PDF files. Runtime guards made any report,
+  hybrid stage/paired or bootstrap call fail; execution completed successfully.
+- Both notebook files pass nbformat validation and code-cell compilation and
+  contain no saved outputs. `git diff --check` passed.
+
+The exact execution command, output path and current notebook source hashes are
+recorded in docs/test_results/notebook_lightweight_verification.json. Execution
+artifacts are under assets/notebook/lightweight_check_09a672d497/. Validation used
+a small saved run, not the user's full production-size selection; no speedup is
+claimed from a timed comparison. Initial integrity verification and in-memory
+loading still cost time and memory. No simulations or native builds were run.
+
+## Local notebook on-demand reads without verification (2026-09-21)
+
+Following the user's explicit override, the local benchmark_analysis.ipynb now
+loads no run data during setup. Each plot cell reads only its own decode columns
+through analysis.quick_plots.plot_saved_data. Removed shared records/summaries,
+checksum/provenance/pairing validation and timing-path stratification. Failure
+plots sum physical-shot flags in Arrow; time plots retain every saved row with
+only the selected CPU/wall clock. Existing run/config paths are preserved.
+The maintained example notebook and full-report API remain unchanged in this step.
+
+Validation in search_decimation:
+- `conda run -n search_decimation python -m pytest -q tests/test_quick_plots.py`:
+  3 passed in 7.40s (verified count/interval parity and required-column projection).
+- Executed a copy of the local notebook on bounded existing hybrid data with
+  guards forbidding validation/checksum/report/paired-analysis calls: 10 PNG and
+  10 PDF files produced successfully. Exact command and source hashes are in
+  docs/test_results/notebook_on_demand_verification.json; artifacts are under
+  assets/notebook/on_demand_6b017c5cac/.
+- `git diff --check` passed. No simulation, native changes or production sweep.
+
+This opt-in path trusts available decode shards, including uncommitted ones, and
+does not detect corrupt or duplicated records. It still reads metadata for labels
+and grouping. Memory use is bounded by an instance's selected columns, plus plot
+arrays; no full-size performance measurement is claimed. Updated notebook/analysis
+READMEs, analysis documentation, traceability and test documentation accordingly.

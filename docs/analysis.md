@@ -2,9 +2,9 @@
 
 ```bash
 conda activate search_decimation
-scripts/analyze_benchmark.sh config/smoke.yaml --run /path/to/run
-scripts/analyze_benchmark.sh config/smoke.yaml --run /path/to/run --family bb72 --timing-mode isolated_latency
-scripts/execute_notebook.sh config/smoke.yaml --run /path/to/run --output assets/notebook/smoke.ipynb
+scripts/analyze_benchmark.sh config/analysis.yaml.example --run /path/to/run
+scripts/analyze_benchmark.sh config/analysis.yaml.example --run /path/to/run --family bb72 --timing-mode isolated_latency
+scripts/execute_notebook.sh config/analysis.yaml.example --run /path/to/run --output assets/notebook/smoke.ipynb
 ```
 
 `--run` is repeatable. Without it, the analysis CLI discovers immediate run children
@@ -64,8 +64,8 @@ analysis manifest. Curve legends retain decoder kernel/profile and budgets; diff
 kernels/budgets compare complete decoders, not screening alone.
 
 The installed analysis package contains all loading/statistics/plotting logic.
-notebook/benchmark_analysis.ipynb selects explicit saved manifests, calls create_report
-and displays outputs. The execution CLI uses the active interpreter with a temporary
+notebook/benchmark_analysis.ipynb selects explicit saved manifests and calls the
+reader, basic statistics and plotting APIs directly. The execution CLI uses the active interpreter with a temporary
 local IPC kernel and records selected paths in the executed notebook. Install the
 locked notebook dependencies using the main build helper or the project notebook
 extra. See notebook/README.md for interactive use.
@@ -85,3 +85,36 @@ count/timing outputs. Noninferiority requires a supplied absolute margin; the
 bootstrap criterion is reported explicitly. P99.9 is null below the configured
 tail support threshold. Failed shots stay in timing distributions. Warm/cold/no-BP
 ablations are compared using their distinct recorded decoder identities.
+
+## Consumer migration and legacy
+
+Use analysis-only config/analysis.yaml.example for saved-data work. Current CLIs
+also accept validated full benchmark YAML but do not apply simulation execution
+settings. See [analysis_migration.md](analysis_migration.md) for the independent
+settings API, exact faster bootstrap, runtime provenance, progress, notebook kernel
+selection and the preserved analysis.legacy entry points.
+
+## Lightweight notebook workflow (2026-09-21)
+
+The maintained and local interactive notebooks now call `load_run`/`select_records`,
+`aggregate_failures`, `aggregate_timings`, `plot_failure_rates` and `plot_timings`
+directly, in separate cells. They retain verified saved-data loading, protected
+groups, Wilson intervals, conditional denominators and failed-shot timings.
+The plot cell reuses in-memory data and exports only selected PNG/PDF figures to a
+new `notebook_plots_*` directory. Summary dictionaries remain in memory.
+No `create_report`, bootstrap, hybrid stage statistics or paired hypothesis analysis
+is invoked by the notebook. The full-report CLI/API remains available separately.
+Validation/loading and large figure sets still have costs; no out-of-core loading
+or performance claim is introduced. Local CONFIG_PATH/RUN_PATHS values are retained.
+
+### Local on-demand override (2026-09-21)
+
+The user's subsequent instruction removes even integrity validation from the local
+`notebook/benchmark_analysis.ipynb`. Its independent plot cells call
+`analysis.quick_plots.plot_saved_data`, projecting only plot-specific decode
+columns. Failure counts are grouped in Arrow; CPU/wall plots load only their own
+clock. Configuration setup reads no run data. Available shards are trusted without
+checksum, provenance, pairing, completeness or per-row consistency verification.
+No samples, circuit matrices, event histories, bootstrap or timing strata are read
+or computed. Separate run and scientific contexts and analytic Wilson intervals
+remain. The `.ipynb.example` and full-report API retain verified behavior.

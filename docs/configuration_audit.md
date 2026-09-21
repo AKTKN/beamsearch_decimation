@@ -57,3 +57,21 @@ analysis.hybrid; confidence controls Wilson and paired bootstrap intervals. Repo
 record all settings, repetition policy, denominators and output hashes. Focused
 hand-counted tests cover misleading speed/reach cases, replay independence, batch
 resampling, nulls, exact cost/error identities and corrupted event data.
+
+## Legacy layout maintenance
+
+Historical screened-reference/CS10 examples and local experiment files now reside
+in config/legacy/. Only path text/defaults changed: 17 runnable resolved configs
+were compared before/after and match exactly. Two production templates still reject
+empty rate lists. Setup covers both config levels without overwriting local edits;
+tests use tracked examples rather than depending on ignored user files. Shared
+script entry points and algorithms remain unchanged.
+
+## Saved-data consumer migration
+
+analysis/config.py validates the analysis-only envelope and resolves its paths;
+existing full benchmark configs retain strict Config validation. Analysis settings
+retain the same consumers and statistical definitions. Simulation execution fields
+are used only by simulation/replay, not by current report/notebook consumers.
+Notebook --timeout is an explicit orchestration setting; -v/--verbose controls only
+analysis progress on stderr. No simulation setting or decoder identity changes.

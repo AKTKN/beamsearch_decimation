@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+    "python_scripts/execute_notebook.py",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/lightweight_check_09a672d497/analysis.yaml",
+    "--run",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+    "--notebook",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/lightweight_check_09a672d497/guarded.ipynb",
+    "--output",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/lightweight_check_09a672d497/executed.ipynb"
+  ],
+  "executed_notebook": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/notebook/lightweight_check_09a672d497/executed.ipynb",
+  "source_run": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+  "png_count": 10,
+  "pdf_count": 10,
+  "detailed_analysis_guard": "passed",
+  "source_sha256": {
+    "notebook/benchmark_analysis.ipynb": "0a5832a6d819f73dfd3b66fffe30d10ded96e4fd41e6714b5fb3c90ca3d60801",
+    "notebook/benchmark_analysis.ipynb.example": "1d3b53fc9c33b7b226c52f57122bbb8d6f76cbcd35e4342abcc2cc8fae226026"
+  },
+  "pytest_command": "conda run -n search_decimation python -m pytest -q tests/test_analysis.py tests/test_analysis_migration.py",
+  "pytest_result": "33 passed in 13.95s"
+}

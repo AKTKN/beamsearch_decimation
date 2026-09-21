@@ -10,14 +10,16 @@ import sys
 
 def main() -> None:
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('config',help='Analysis YAML')
+    root=Path(__file__).resolve().parents[1]
+    parser.add_argument('config',nargs='?',default=str(root/'config/analysis.yaml.example'),help='Analysis YAML')
     parser.add_argument('--run',action='append',required=True,help='Saved run path; repeatable')
     parser.add_argument('--output',required=True,help='New executed .ipynb output path')
-    parser.add_argument('--notebook',default=str(Path(__file__).resolve().parents[1]/'notebook/benchmark_analysis.ipynb'))
+    parser.add_argument('--notebook',default=str(root/'notebook/benchmark_analysis.ipynb.example'))
+    parser.add_argument('--timeout',type=int,default=600,help='Seconds per cell; -1 disables the limit')
     args=parser.parse_args()
-    from qec_bp_benchmark.config import load_config
-    from qec_bp_benchmark.runner import configure_execution
-    configure_execution(load_config(args.config))
+    if args.timeout != -1 and args.timeout <= 0: parser.error('--timeout must be positive or -1')
+    from analysis import load_analysis_config
+    load_analysis_config(args.config)
     import nbformat
     from nbclient import NotebookClient
     from jupyter_client.kernelspec import KernelSpecManager
@@ -36,9 +38,10 @@ def main() -> None:
         manager=KernelSpecManager(kernel_dirs=[temporary],ensure_native_kernel=False)
         kernel=KernelManager(kernel_name='qec-acceptance',kernel_spec_manager=manager,
                              transport='ipc',ip=str(directory/'kernel'))
-        client=NotebookClient(notebook,km=kernel,timeout=600,kernel_name='qec-acceptance',
-                              resources={'metadata':{'path':str(Path(args.notebook).resolve().parents[1])}})
+        client=NotebookClient(notebook,km=kernel,timeout=args.timeout,kernel_name='qec-acceptance',
+                              resources={'metadata':{'path':str(root)}})
         client.execute(cleanup_kc=True)
+    notebook.metadata['kernelspec']={'name':'search_decimation','display_name':'Python (search_decimation)','language':'python'}
     with output.open('x') as file: nbformat.write(notebook,file)
     print(output,flush=True)
 

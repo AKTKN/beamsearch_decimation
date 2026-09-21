@@ -126,3 +126,17 @@ Stage 2–3 dependency manifest/patch remains the authoritative source lock. The
 editable project extension was rebuilt and runtime dependency checks rerun. See
 hybrid_stage_6_clean_restore_final.log and hybrid_stage_6_dependencies.log. Existing
 third-party installations are reused; no new full-environment build is claimed.
+
+Legacy layout maintenance changes config locations, setup discovery and consumer
+references only. No native/external source or build input changed; no dependency
+rebuild or lock regeneration is required. Provenance already recursively archives
+config templates, including the new legacy directory. Historical snapshots remain
+unchanged.
+
+## Analysis consumer migration audit
+
+No external source, dependency pin, patch or native build input changed for this
+migration. The source archive collector already includes recursive analysis/, CLI,
+notebook and config sources, so analysis/legacy and new consumer files are captured
+in subsequent runs. The migration verification JSON records current consumer hashes
+and legacy byte preservation; old run archives and manifest.lock.json remain intact.

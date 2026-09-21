@@ -1,36 +1,67 @@
-# Notebook consumer
+# Saved-data notebook consumer
 
-benchmark_analysis.ipynb contains only explicit run selection, calls to the installed
-analysis package, and display. It never implements a decoder, samples circuits or
-repeats statistics. Interactive users set RUN_PATHS and optionally CONFIG_PATH, or
-QEC_ANALYSIS_RUN / QEC_ANALYSIS_CONFIG. Relative defaults discover the repository;
-there are no hard-coded workstation paths in the source notebook.
-
-Execute with the active search_decimation interpreter and an ephemeral local IPC
-kernel (no dependency on the user's global python3 kernel registration):
+`benchmark_analysis.ipynb.example` is the maintained hybrid/baseline consumer.
+It reads verified v1/v2 runs, uses analysis-only settings, and displays
+failure and timing summaries with selected PNG/PDF plots. It contains no simulation, decoding,
+or statistical implementation. BB uses one physical block trial with all 12 labels.
 
 ```bash
-scripts/execute_notebook.sh config/smoke.yaml --run /path/to/saved/run \
-  --output assets/notebook/smoke_executed.ipynb
+conda activate search_decimation
+scripts/execute_notebook.sh config/analysis.yaml.example --run /path/to/saved/run \
+  --output assets/notebook/new.ipynb
 ```
 
-The output path must be new. Parameters are recorded in an injected first cell of
-the executed artifact. The notebook prints its separately timestamped analysis
-folder and displays its exported PNG figures; matching PDFs/JSON/manifests remain
-there. Notebook dependencies are pinned in requirements.lock.txt and the `notebook`
-project extra. Tiny smoke figures are software validation, not performance evidence.
+The CLI defaults to the maintained template, independent of a stale or edited local
+`benchmark_analysis.ipynb`. To execute an edited notebook, pass `--notebook PATH`.
+It creates an ephemeral IPC kernel using the current interpreter; `--timeout` sets
+seconds per cell (600 by default, -1 disables the limit). Output must be new.
+Parameters are recorded in an injected first cell. Statistics and progress messages
+are captured in outputs; the CLI prints only the completed notebook path.
 
-The editable benchmark_analysis.ipynb and all executed notebooks are ignored.
-The versioned benchmark_analysis.ipynb.example is an output-free portable template;
-scripts/setup_local_files.sh creates a working copy only when missing. Existing
-local notebooks are preserved.
+Interactive use: register the current environment once, then select
+**Python (search_decimation)**, restart the kernel and execute all cells:
 
-The maintained .ipynb.example now also displays stage/cycle and paired-cost/error
-JSON from the saved-data report. It contains no statistical implementation.
-Execute it with `--notebook notebook/benchmark_analysis.ipynb.example` to use the
-new template while preserving an edited local notebook. Bootstrap settings and
-physical-trial repetition metadata are retained in the report manifest.
+```bash
+conda activate search_decimation
+python -m ipykernel install --user --name search_decimation \
+  --display-name 'Python (search_decimation)'
+```
 
-Final hybrid E2E acceptance executes the maintained template through the existing
-CLI and verifies every code cell completed without error. The acceptance index
-records the executed notebook hash and its separately saved report artifacts.
+Set RUN_PATHS explicitly and optionally CONFIG_PATH, or use QEC_ANALYSIS_RUN and
+QEC_ANALYSIS_CONFIG. Defaults find config/analysis.yaml.example from the repository.
+The first cell checks the analysis API/checkout and displays interpreter/source
+paths. It raises an actionable error for an archived acceptance package instead of
+attempting to change sys.path or reload an already-imported decoder package.
+
+The notebook validates and loads saved runs once, then keeps `records`, `failures`
+and `timings` in memory. Separate cells aggregate failure rates with analytic Wilson
+intervals, summarize measured timings and draw configured PNG/PDF figures. Rerunning
+the plotting cell creates a new figure directory without reloading the data.
+There is no report manifest/JSON export, bootstrap, hybrid stage analysis or paired
+hypothesis comparison. Relevant settings are output, confidence, quantiles, plots,
+timing strata and tail-support threshold. Bootstrap/accuracy-margin settings apply
+only to the separate full-report CLI. Loading still verifies all saved-data integrity
+and materializes the selected runs; large datasets can remain expensive to load.
+
+Editable notebooks and executed artifacts are ignored. setup_local_files.sh creates
+missing copies only, including notebook/legacy/, and preserves local edits/symlinks.
+The pre-migration template and consumers remain in notebook/legacy/ and
+analysis.legacy; use scripts/legacy/execute_notebook.sh for that workflow.
+See docs/analysis_migration.md for actual migration verification and limits.
+
+The local `benchmark_analysis.ipynb` is an interactive path-editable template for
+the current analysis API. Edit CONFIG_PATH and RUN_PATHS in its first code cell,
+then run all cells with search_decimation. Paths may be absolute, home-relative,
+or repository-relative. Its explicit path cell is intended for interactive use;
+for CLI-injected parameters, use the maintained `.ipynb.example` default instead.
+The local template contains no saved outputs or statistical implementation.
+
+### Local notebook: trusted, on-demand plotting
+
+At the user's request, the local `benchmark_analysis.ipynb` now differs from the
+maintained `.ipynb.example`: setup reads configuration only. Each of five separate
+plot cells calls `analysis.quick_plots.plot_saved_data` to read just its required
+Parquet decode columns. Run only the desired plot cells. There is no shared load,
+summary table, integrity verification, bootstrap, hybrid comparison or timing-path
+stratification in this local notebook. PNG/PDF output uses a fresh per-plot folder.
+Input paths are retained. The maintained CLI template still uses verified loading.

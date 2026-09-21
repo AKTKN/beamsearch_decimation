@@ -1,0 +1,14 @@
+# Saved-data analysis only. Select saved runs explicitly via --run or RUN_PATHS.
+# No simulation, decoder initialization, affinity change, or new shots.
+analysis:
+  input: ../assets/runs
+  output: ../assets/analysis
+  bootstrap_seed: 20260921
+  bootstrap_count: 2000
+  bootstrap_unit: shot
+  accuracy_margin_absolute: null
+  confidence: 0.95
+  quantiles: [0.5, 0.9, 0.95, 0.99, 0.999]
+  plots: [failure_rate, cpu_ecdf, wall_ecdf, cpu_survival, wall_survival]
+  stratify_timing: true
+  min_expected_tail_count: 10

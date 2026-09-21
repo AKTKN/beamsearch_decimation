@@ -80,7 +80,7 @@ def test_bad_detector_provenance():
 
 
 def test_artifact_rebuild(tmp_path):
-    data=load_config(Path(__file__).resolve().parents[1]/'config/smoke.yaml').model_dump()
+    data=load_config(Path(__file__).resolve().parents[1]/'config/legacy/smoke.yaml.example').model_dump()
     data['circuit']['cache']=tmp_path
     cfg=Config.model_validate(data)
     path=prepare_instance(cfg,'bb72',6,.001)
