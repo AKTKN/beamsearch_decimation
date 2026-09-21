@@ -6,3 +6,7 @@ ordinary upstream APIs. BeamSearchDecoder.patch records regenerated Cython C++ o
 its .pyx and beam_search.hpp remain unchanged. Other source patches are empty unless
 explicitly recorded. Apply only to the corresponding pinned commit. All original
 upstream license files and documentation remain in their checkouts.
+
+licenses/ preserves the upstream license and third-party notices accompanying
+the distributed ldpc and BeamSearchDecoder patches. No project-wide license
+is inferred from these dependency licenses.

@@ -1,5 +1,23 @@
 # Implementation status — stages 1–7 complete
 
+Git distribution maintenance (2026-09-21): initialized the parent Git repository
+on main for public publication to AKTKN/beamsearch_decimation. Working YAML and
+notebooks, scientific artifacts, mutable reports, dependency checkouts and caches
+are ignored. Portable .example templates and setup_local_files.sh restore missing
+local inputs without replacing edits. Existing local experiments are preserved.
+Native implementation and dependency sources/builds are unchanged.
+
+Validation in search_decimation: scripts/build_dependencies.sh --check passed;
+python -m pytest -q: **121 passed in 49.57 s**. Logs are
+docs/test_results/git_distribution_{dependencies,pytest}.log. A temporary export
+of tracked files validated setup twice, preservation of a local edit, all eight
+runnable configuration templates, and the output-free notebook schema. Git
+inventory checks found no working YAML/notebooks, data, binaries or gitlinks;
+the authored binding remains in the locked ldpc patch. No new clean native rebuild
+or production sweep was performed. Historical files were not rewritten.
+The initial full-tree whitespace check flags preserved specification Markdown,
+upstream patch bytes, historical logs and a reference file; those bytes are retained.
+
 Latest maintenance: simulation and replay now accept `-v` / `--verbose`. Flushed
 parent-only stderr messages show preparation, planned counts, committed-batch percent
 and physical-shot totals, elapsed run time, verification and completion/failure.

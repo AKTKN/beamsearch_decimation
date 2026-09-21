@@ -38,3 +38,14 @@ at locked commits; the ldpc additions are restored from the versioned patch,
 including the upstream-ignored authored binding. No nested repository gitlinks
 or hosted dependency fork are required. This is a Git source distribution;
 installation requires the documented native dependency build.
+
+## Verification on 2026-09-21
+
+In the existing search_decimation environment, `scripts/build_dependencies.sh
+--check` passed and `python -m pytest -q` passed all 121 tests in 49.57 seconds.
+Logs are saved under docs/test_results/git_distribution_*.log. A temporary tracked
+source export successfully created local files, preserved edits on a second setup,
+validated eight runnable YAML templates and validated the clean notebook schema.
+The production template intentionally remains incomplete. Inventory checks confirm
+that no ignored artifacts or nested Git repository links enter the parent commit.
+No fresh dependency build or new scientific sweep was performed for publication.
