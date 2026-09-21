@@ -24,3 +24,13 @@ The editable benchmark_analysis.ipynb and all executed notebooks are ignored.
 The versioned benchmark_analysis.ipynb.example is an output-free portable template;
 scripts/setup_local_files.sh creates a working copy only when missing. Existing
 local notebooks are preserved.
+
+The maintained .ipynb.example now also displays stage/cycle and paired-cost/error
+JSON from the saved-data report. It contains no statistical implementation.
+Execute it with `--notebook notebook/benchmark_analysis.ipynb.example` to use the
+new template while preserving an edited local notebook. Bootstrap settings and
+physical-trial repetition metadata are retained in the report manifest.
+
+Final hybrid E2E acceptance executes the maintained template through the existing
+CLI and verifies every code cell completed without error. The acceptance index
+records the executed notebook hash and its separately saved report artifacts.

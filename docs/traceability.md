@@ -44,3 +44,56 @@ clean-environment evidence.
 products and nested dependency checkouts. scripts/setup_local_files.sh restores
 versioned templates without overwriting local work. See distribution.md for
 publication checks; scientific algorithms and historical artifacts are unchanged.
+
+
+## Hybrid migration Stage 1
+
+| Contract | Implementation | Evidence |
+|---|---|---|
+| HSBP-ALG section 10 strict nested settings and resolved budgets | config.Hybrid, HybridSearch/BP/Fallback/Numerics | test_hybrid_config valid/invalid/identity/JSON cases |
+| HSBP-ALG section 6.3 distinct actual CS0 and historical CS10 | Bposd0, explicit adapter/identity routing | test_decoders direct pinned outputs and reset; test_hybrid_config identities |
+| No placeholder hybrid or beam fallthrough | require_available_decoder, runner preflight, explicit adapter branches | unknown and hybrid rejection before model/output access |
+| HSBP-ALG section 9 ownership/source boundaries | docs/hybrid_migration.md | documented Stage 2-3 obligations; not a claimed kernel test |
+| Preserve user rates/local templates and bootstrap | setup_local_files.sh, import-light config/preflight | temporary setup edit/symlink checks and fresh-interpreter import check |
+| Reconstructible configuration sources | provenance captures .example files | source archive checks in test_pipeline |
+
+Actual Stage 1 validation logs and limitations are recorded in STATUS.md; historical
+acceptance results above are not new hybrid evidence.
+
+## Hybrid Stages 2-3
+
+| Contract | Implementation | Executed evidence |
+|---|---|---|
+| Stateful flooding min-sum and finite replacement fields | fork stateful_min_sum.hpp, hybrid_graph.hpp | test_hybrid_bp.py with independent min_sum_oracle.py; clipping, signs, repeated minima, degenerate graphs, reset and finite-hint disagreement |
+| Direct signed-LLR CS/order-zero without BP | fork osd0_bridge.hpp | native/test_hybrid_bp.cpp: 1,024 actual-kernel CS0/OSD0 comparisons including ties and inconsistent/rank-deficient matrices |
+| Branch partition, local rejection, fractional bound | native/hybrid_search.hpp | exhaustive tiny matrices/patterns/completions in test_hybrid_search.py; native branch partition checks |
+| Persistent search/BP, ablations, first-generated goal | native/hybrid.hpp | 350 independent full-oracle cases; 768 native reference/optimized comparisons; deterministic terminal/cap/depth fixtures |
+| Native CPU/wall counters/events and failures | hybrid_telemetry.hpp, hybrid_bindings.hpp | sums/nulls/rounds, numerical failure fixture, injected native allocation failure and recovery |
+| Ownership/concurrent independent instances/physical H/A | DecoderAdapter and native model | thread-pool reuse tests, 4 surface + 4 BB shots across all three profiles with 12 BB labels |
+| Authored/transitive source hashes and clean binding restore | source_files.py, native_sources.py, CMake, audit/build helpers | per-file mutation/runtime rejection, pristine patch bytes, separate source-only worktree compilation |
+| Native memory/UB safety | CMake tests | release, Debug and ASan/UBSan; see STATUS.md for final commands and logs |
+
+Hybrid saved tables and paired hypothesis analysis remain Stages 4-5.
+
+## Hybrid experiment migration (Stages 4–5)
+
+| HSBP-EXP-1.0 requirement | Implementation | Behavioral evidence |
+|---|---|---|
+| §§3–4 paired execution/timing | runner/worker.py + native post-service export | test_hybrid_storage paired workers/replay/warmup; legacy timing boundary tests |
+| §§5–6 labels/versioned tables/atomic output | storage/schema.py, telemetry.py, storage writer; analysis/io.py | deterministic all-stage roundtrips; none/phases; fourth-shard interruption; missing/corrupted/duplicate data; v1 projection |
+| §7 exact cost identity | analysis/hybrid.py | hand-counted fewer-OSD-but-slower case; per-shot and aggregate identity; residual errors |
+| §8 paired accuracy and uncertainty | analysis/hybrid.py + statistics.py | faster-but-less-accurate fixture, conditional denominators, discordance, shot/batch bootstrap reproducibility, replay separation |
+| §§9–10 saved-data reporting/provenance | report.py, plots.py, notebook template, pipeline/provenance | bounded CLI report and executed notebook; v2 model sizes and clock metadata |
+
+Exact new schemas and limitations are in hybrid_data.md. Stage 6 clean restoration
+and final migration acceptance remain separate from these software checks.
+
+## Hybrid Stage 6 completion
+
+`tests/check_hybrid_restoration.py` verifies the locked patch and every ldpc source,
+compiles both bindings and the project from a binary-free isolated tree, and executes
+native tests/source-digest checks. `python_scripts/accept_hybrid.py` provides a single
+bounded final workflow with fresh circuit artifacts, worker/mode/replay equality,
+all 12 BB outcomes, report and notebook. Final review adds phase-result vocabulary,
+terminal-stage correspondence and prefix interval validation; corruption fixtures
+exercise each check. See hybrid_acceptance.md and STATUS.md for actual results.

@@ -1,0 +1,28 @@
+{
+  "project": {
+    "project_sha256": "cfc309c72a136a76edacb1633dab66e66320bd8fec492d742361122dd099b832",
+    "fork_sha256": "1715d0e5019e3fa1a16d740cf2ab716695dbbf187fc68488a3f270a9c1358877"
+  },
+  "implementation": {
+    "project_sha256": "cfc309c72a136a76edacb1633dab66e66320bd8fec492d742361122dd099b832",
+    "fork_sha256": "1715d0e5019e3fa1a16d740cf2ab716695dbbf187fc68488a3f270a9c1358877",
+    "build": "qec-bp-benchmark/0.1.0;c++17;binary64;no-fast-math",
+    "fork_build": {
+      "profile": "HSBP-ALG-1.0",
+      "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40",
+      "source_sha256": "1715d0e5019e3fa1a16d740cf2ab716695dbbf187fc68488a3f270a9c1358877",
+      "compiler": "11.4.0",
+      "flags": "-O3 -std=c++17 -fno-fast-math -ffp-contract=off"
+    },
+    "libc": [
+      "glibc",
+      "2.35"
+    ],
+    "native_sha256": "896679d778c5e943b25c1758895bc92c8f8979f87469628c043cad15a71e989d",
+    "adapter_sha256": "a2be910319fba6733d87dc1246ba1f929ca18ec68cf0f3fc1b84f43f241d3c92"
+  },
+  "clock_resolution_seconds": {
+    "process_cpu": 1e-09,
+    "monotone_wall": 1e-09
+  }
+}

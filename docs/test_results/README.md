@@ -34,3 +34,34 @@ Verbose-mode maintenance: verbose_pytest.log records 121 passing tests; verbose_
 and verbose_smoke_path.txt preserve the real two-worker/all-four-code CLI progress
 and completed run path (16 samples, 48 decoder rows, eight batches). The saved run
 also passed verify_benchmark.py integrity validation. Historical acceptance is unchanged.
+
+
+`hybrid_stage_1_*.log` record the separate hybrid
+migration's Stage 1 validation. They do not replace historical acceptance logs.
+See STATUS.md for commands, counts and limitations; no production sweep was run.
+
+`hybrid_stage_2_*`, `hybrid_stage_3_*` and `hybrid_stage_2_3_*` logs preserve all
+validation attempts for Stages 2-3, including the source-edit race and CMake
+relative-hash reconfiguration failures and their successful follow-ups. STATUS.md
+identifies accepted results; earlier failures are retained rather than overwritten.
+
+Hybrid Stages 4–5 evidence is in hybrid_stage_4_5_final_pytest.log (253 full-suite
+passes), final_boundary_tests.log (49 focused passes after the event-policy guard),
+and hybrid_stage_5_integer_accounting_tests.log (21 paired-analysis passes after
+int64-before-float subtraction). hybrid_stage_4_5_dependencies.log verifies native
+source/build identities without changing dependencies. hybrid_stage_4_* logs/path
+files preserve smoke, latency, ablations, worker, replay and none runs. Comparisons
+are in hybrid_stage_4_compare_*.log; verification.json indexes all-12-BB labels,
+row/event counts and output identities. hybrid_stage_5_report.log and final_report.log
+record successful report CLI outputs; notebook.log records the executed saved-data
+notebook. These checks do not establish scientific performance or accuracy advantage.
+
+Hybrid Stage 6 evidence: hybrid_stage_6_clean_restore_final.log verifies both
+source-restored opt-in bindings, a fresh project extension and native 4/4 tests.
+The initial clean_restore.log records a corrected harness identity-key error;
+no failed check is represented as passing. Native release/debug/sanitize logs each
+record 4/4. Project build/dependency check, full Python, selected upstream and final
+storage corruption tests have distinct logs. hybrid_stage_6_e2e_verification.json
+indexes the new six-case fresh-circuit workflow, exact scientific comparisons,
+65 checksummed report files, 12 paired groups and executed notebook. No production
+sweep or scientific advantage is asserted by these software checks.

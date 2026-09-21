@@ -23,7 +23,8 @@ def test_fork_patch_restores_ignored_binding_in_pristine_worktree(tmp_path):
                     'd3429964cd4ffe1abfc041c6ec8b8425cb174f40'],check=True,capture_output=True)
     try:
         subprocess.run(['git','-C',str(worktree),'apply',str(ROOT/'external_lib/patches/ldpc.patch')],check=True)
-        for relative in ('src_cpp/reference_bp.hpp','src_python/ldpc/reference_bp/bindings.cpp',
+        from ldpc.hybrid_bp import SOURCE_FILES
+        for relative in (*SOURCE_FILES, 'src_cpp/reference_bp.hpp','src_python/ldpc/reference_bp/bindings.cpp',
                          'src_python/ldpc/reference_bp/__init__.py','setup_reference.py'):
             assert (worktree/relative).read_bytes()==(fork/relative).read_bytes()
     finally:

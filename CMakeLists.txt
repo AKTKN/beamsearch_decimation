@@ -4,11 +4,27 @@ find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 pybind11_add_module(_native src/qec_bp_benchmark/native/module.cpp)
 target_include_directories(_native PRIVATE external_lib/ldpc/src_cpp)
-file(SHA256 src/qec_bp_benchmark/native/search.hpp SEARCH_HASH)
-file(SHA256 src/qec_bp_benchmark/native/module.cpp BINDING_HASH)
-file(SHA256 CMakeLists.txt CMAKE_HASH)
-file(SHA256 external_lib/ldpc/src_cpp/reference_bp.hpp BP_HASH)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/qec_bp_benchmark/native/search.hpp" SEARCH_HASH)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/qec_bp_benchmark/native/module.cpp" BINDING_HASH)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt" CMAKE_HASH)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/src_cpp/reference_bp.hpp" BP_HASH)
 target_compile_definitions(_native PRIVATE QEC_SEARCH_HASH="${SEARCH_HASH}" QEC_BINDING_HASH="${BINDING_HASH}" QEC_CMAKE_HASH="${CMAKE_HASH}" QEC_BP_HASH="${BP_HASH}")
+# Embedded hashes must be refreshed on ordinary incremental builds too.
+file(GLOB HYBRID_BUILD_INPUTS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/qec_bp_benchmark/native/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/src_cpp/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/src_python/ldpc/hybrid_bp/*.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/src_python/ldpc/hybrid_bp/*.pyi")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${HYBRID_BUILD_INPUTS}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/qec_bp_benchmark/native/module.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/qec_bp_benchmark/native_sources.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/src_python/ldpc/hybrid_bp/bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/setup_hybrid.py")
+execute_process(COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/qec_bp_benchmark/native_sources.py
+    OUTPUT_VARIABLE HYBRID_HASH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+execute_process(COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/external_lib/ldpc/src_python/ldpc/hybrid_bp/source_files.py
+    OUTPUT_VARIABLE HYBRID_FORK_HASH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+target_compile_definitions(_native PRIVATE QEC_HYBRID_HASH="${HYBRID_HASH}" QEC_HYBRID_FORK_HASH="${HYBRID_FORK_HASH}")
 target_compile_features(_native PRIVATE cxx_std_17)
 target_compile_options(_native PRIVATE -Wall -Wextra -fno-fast-math -ffp-contract=off)
 install(TARGETS _native DESTINATION qec_bp_benchmark)
@@ -34,4 +50,22 @@ if(QEC_BUILD_TESTS)
         target_link_options(test_search PRIVATE -fsanitize=address,undefined)
     endif()
     add_test(NAME search COMMAND test_search)
+endif()
+
+if(QEC_BUILD_TESTS)
+    foreach(TEST_NAME hybrid_bp hybrid)
+        add_executable(test_${TEST_NAME} tests/native/test_${TEST_NAME}.cpp)
+        target_include_directories(test_${TEST_NAME} PRIVATE external_lib/ldpc/src_cpp src/qec_bp_benchmark/native)
+        target_compile_features(test_${TEST_NAME} PRIVATE cxx_std_17)
+        target_compile_options(test_${TEST_NAME} PRIVATE -Wall -Wextra -fno-fast-math -ffp-contract=off -UNDEBUG)
+        if(QEC_SANITIZE)
+            target_compile_options(test_${TEST_NAME} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(test_${TEST_NAME} PRIVATE -fsanitize=address,undefined)
+        endif()
+        add_test(NAME ${TEST_NAME} COMMAND test_${TEST_NAME})
+    endforeach()
+    add_executable(benchmark_hybrid_search tests/native/benchmark_hybrid_search.cpp)
+    target_include_directories(benchmark_hybrid_search PRIVATE external_lib/ldpc/src_cpp src/qec_bp_benchmark/native)
+    target_compile_features(benchmark_hybrid_search PRIVATE cxx_std_17)
+    target_compile_options(benchmark_hybrid_search PRIVATE -fno-fast-math -ffp-contract=off)
 endif()

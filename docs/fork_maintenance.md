@@ -48,3 +48,11 @@ configurations implicitly. Preserve modifications and update manifests/patches a
 intentional changes; never silently move a checkout away from its pinned commit. Baseline
 changes require a separately named implementation/profile with direct upstream regression
 coverage. Reference modules and the original algorithm specification remain unchanged.
+
+For hybrid_bp, setup_hybrid.py compiles only the opt-in extension. Its source_files.py
+inventory includes all transitive pinned headers, bindings.cpp, __init__.py/.pyi,
+itself and the build script. Extend it, the manifest/audit/restoration rules and
+project hashes together when adding files. The audited patch exporter explicitly
+includes ignored .cpp and .pyi sources. Run tests/check_hybrid_restoration.py after
+exporting changes. The existing screened-decimation-bp branch/upstream are retained;
+ordinary bp.hpp/osd.hpp behavior is not patched by this addition.

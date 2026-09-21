@@ -41,3 +41,28 @@ and every shared decoder's scientific result, including available search counter
 It ignores timing/instrumentation and optional trace/correction retention fields;
 `allow_additional_decoders=True` permits an expanded decoder replay on the right.
 Both inputs must first pass load_run integrity checks.
+
+Hybrid Stage 1 adds honest plot labels for upstream `bposd_ms30_cs0` and preserves
+CS10 labels with their actual iteration/order settings. Unknown profiles fail
+explicitly rather than acquiring a beam label. Hybrid tables and hypothesis
+analysis are deferred to Stages 4-5; v1 interpretation remains unchanged.
+
+## Hybrid APIs
+
+`io.load_run` dispatches v1/v2 and returns validated hybrid_rounds/decoder_phases
+Arrow tables. V1 absent hybrid fields project to null; invalid mismatch projects
+to null after validation of historical labels. `hybrid.stage_statistics` reports
+exit/reach, conditional accuracy, failure contributions, disjoint native costs and
+per-cycle rescue/work/caps. `hybrid.paired_statistics` preserves protected contexts,
+checks exact four-term CPU/wall accounting, and bootstraps paired shot or batch
+observations. Each replay stays a separate dependent timing trial. `summarize_pair`
+rejects mixed identities and flagged timing accounting. All units are ns.
+
+Reports include hybrid_stages.json, paired.json and stage/cost/ablation PNG/PDF
+figures. The notebook consumes these outputs. See docs/hybrid_data.md for exact
+schemas, denominators, settings and scientific interpretation limits.
+
+The final E2E harness validates all report checksums and exact integer paired cost
+totals, and executes the saved-data notebook. See docs/hybrid_acceptance.md. Current
+analysis behavior and optional deferrals are recorded there; small smoke samples
+remain insufficient for a scientific speed/accuracy conclusion.

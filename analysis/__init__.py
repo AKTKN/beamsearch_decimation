@@ -5,3 +5,6 @@ from .report import create_report
 
 __all__=['RunData','discover_runs','load_run','read_manifest','select_records','aggregate_failures',
          'aggregate_timings','empirical_distribution','timing_statistics','wilson_interval','create_report']
+
+from .hybrid import stage_statistics,paired_rows,summarize_pair,paired_statistics
+__all__ += ['stage_statistics','paired_rows','summarize_pair','paired_statistics']

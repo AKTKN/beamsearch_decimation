@@ -1,0 +1,140 @@
+{
+  "runs": {
+    "smoke": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044633.113050Z_465c7f27faf7",
+      "samples": 8,
+      "decodes": 24,
+      "rounds": 9,
+      "phases": 26,
+      "all_12_bb_labels": true,
+      "exit_reasons": {
+        "bp_iteration_valid": 3,
+        "osd_valid": 1,
+        "search_goal_generated": 1,
+        "zero_syndrome": 3
+      }
+    },
+    "latency": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044637.532370Z_3e257ad8aaf3",
+      "samples": 8,
+      "decodes": 24,
+      "rounds": 9,
+      "phases": 26,
+      "all_12_bb_labels": true,
+      "exit_reasons": {
+        "bp_iteration_valid": 3,
+        "osd_valid": 1,
+        "search_goal_generated": 1,
+        "zero_syndrome": 3
+      }
+    },
+    "ablations": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044642.224054Z_858c22c6915c",
+      "samples": 8,
+      "decodes": 32,
+      "rounds": 33,
+      "phases": 77,
+      "all_12_bb_labels": true,
+      "exit_reasons": {
+        "bp_iteration_valid": 4,
+        "osd_valid": 8,
+        "search_goal_generated": 3,
+        "zero_syndrome": 9
+      }
+    },
+    "multi": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044715.265104Z_681117be92f7",
+      "samples": 8,
+      "decodes": 24,
+      "rounds": 9,
+      "phases": 26,
+      "all_12_bb_labels": true,
+      "exit_reasons": {
+        "bp_iteration_valid": 3,
+        "osd_valid": 1,
+        "search_goal_generated": 1,
+        "zero_syndrome": 3
+      }
+    },
+    "replay": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044722.027623Z_27e9c784f992",
+      "samples": 8,
+      "decodes": 24,
+      "rounds": 9,
+      "phases": 26,
+      "all_12_bb_labels": true,
+      "exit_reasons": {
+        "bp_iteration_valid": 3,
+        "osd_valid": 1,
+        "search_goal_generated": 1,
+        "zero_syndrome": 3
+      }
+    },
+    "none": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044727.729919Z_65b8f27ea6ae",
+      "samples": 8,
+      "decodes": 24,
+      "rounds": 0,
+      "phases": 0,
+      "all_12_bb_labels": true,
+      "exit_reasons": {
+        "bp_iteration_valid": 3,
+        "osd_valid": 1,
+        "search_goal_generated": 1,
+        "zero_syndrome": 3
+      }
+    }
+  },
+  "comparisons": {
+    "latency": {
+      "left_run_id": "315328db76dbbf7198bed8d36de271f20f1f2eb01c6910324590fdc976dcb22b",
+      "right_run_id": "10d633db0745781b1d9a992eec9bea145e4541bcf5ad1a629af77865ca6d253c",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "additional_decode_rows": 0,
+      "status": "equal"
+    },
+    "multi": {
+      "left_run_id": "315328db76dbbf7198bed8d36de271f20f1f2eb01c6910324590fdc976dcb22b",
+      "right_run_id": "d41b070c7b2ff665200f9e3e60b4cef6a33c2d7535e9230dd0008c7457a3c43f",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "additional_decode_rows": 0,
+      "status": "equal"
+    },
+    "replay": {
+      "left_run_id": "315328db76dbbf7198bed8d36de271f20f1f2eb01c6910324590fdc976dcb22b",
+      "right_run_id": "71ff04189ea4e4c83d3374622de58c5569259bf95f40b41a38dffc373950ef10",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "additional_decode_rows": 0,
+      "status": "equal"
+    },
+    "none": {
+      "left_run_id": "315328db76dbbf7198bed8d36de271f20f1f2eb01c6910324590fdc976dcb22b",
+      "right_run_id": "3bd1dca86299afa5f66bd61f76e0ff452ede6655ae25bfd7b754270a6ea89503",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "additional_decode_rows": 0,
+      "status": "equal"
+    }
+  },
+  "reports": {
+    "ablations": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/analysis/20260921T044737.058114Z_ebd23f3893",
+      "paired_groups": 12,
+      "files": 65
+    },
+    "final_ablations": {
+      "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/analysis/20260921T045252.351834Z_4e63178d2b",
+      "paired_groups": 12,
+      "files": 65,
+      "integer_accounting_verified": true
+    }
+  },
+  "notebook": {
+    "path": "assets/notebook/hybrid_stage_5_executed.ipynb",
+    "sha256": "d8e74d31bc437dbb57e1456cc806f84e67ceddd26fab67c7837a96e2950807e9",
+    "executed_code_cells": 6
+  }
+}

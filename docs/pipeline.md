@@ -120,3 +120,10 @@ two and four throughput workers and one isolated worker. Current evidence is in
 acceptance_report.md and test_results/stage_6_7_summary.json. Validate integrity and
 scientific equality with `python python_scripts/verify_benchmark.py RUN --compare RUN`;
 add --allow-additional-decoders when comparing a source run to an expanded replay.
+
+## Hybrid v2 extension
+
+Current workers carry hybrid summaries, rounds and phases through the same paired
+scheduler. Parent publication writes all declared shards before each marker. The
+service timer excludes event export/truth labels. V1/v2 replay creates new v2 runs.
+See hybrid_data.md for full policy and exact table fields.

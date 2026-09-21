@@ -68,7 +68,7 @@ def process_batch(task: BatchTask) -> dict:
     import numpy as np
     from ..identity import content_hash
     from ..storage import failure_labels,sha256
-    from ..storage.schema import COMMON,DECODES
+    from ..storage.schema import COMMON,DECODES_V2 as DECODES
     from ..provenance import timer_diagnostics
     from threadpoolctl import threadpool_info
     (problem,circuit,selected,metadata,decoders),hit,setup_cpu,setup_wall=_prepared(task)
@@ -99,7 +99,7 @@ def process_batch(task: BatchTask) -> dict:
         'n':metadata['n'],'k_Z':metadata['k_Z'],'rounds':metadata['rounds'],'physical_p':metadata['p'],
         'noise_id':content_hash(metadata['noise']),'model_hash':content_hash(problem.hashes),
         'source_hash':_CONTEXT['source_hash'],'config_hash':_CONTEXT['config_hash']}
-    samples=[]; results=[]
+    samples=[]; results=[]; rounds=[]; phases=[]
     for local,(syndrome,truth) in enumerate(zip(syndromes,truths)):
         index=task.offset+local
         row=dict(common,shot_index=index,shot_id=f'{task.instance_id}:{task.sampling_id}:{index}',
@@ -118,6 +118,7 @@ def process_batch(task: BatchTask) -> dict:
             cpu_start=time.process_time_ns(); wall_start=time.perf_counter_ns()
             result=decoder.decode(syndrome)
             wall_ns=time.perf_counter_ns()-wall_start; cpu_ns=time.process_time_ns()-cpu_start
+            events=decoder.export_telemetry() if result.hybrid_summary is not None else None
             prediction=None if result.prediction is None else result.prediction.astype(bool).tolist()
             record={f.name:None for f in DECODES}
             record.update(shared,decoder_id=decoder.identity,decoder_name=decoder.config.name,
@@ -127,16 +128,19 @@ def process_batch(task: BatchTask) -> dict:
                 concurrent_load=_CONFIG.timing.mode=='throughput' and _CONFIG.execution.workers>1,
                 workers=_CONFIG.execution.workers,native_threads=1,blas_threads=1,
                 oversubscribed=_CONTEXT['execution']['oversubscribed'],profiling=_CONFIG.timing.profiling)
-            record.update(failure_labels(result.status,result.syndrome_valid,prediction,truth))
+            record.update(failure_labels(result.status,result.syndrome_valid,prediction,truth,version=2))
             record.update(result.counters)
             if _CONFIG.output.retain_corrections and result.correction is not None:
                 record['correction_packed']=np.packbits(result.correction,bitorder='little').tobytes()
             if result.diagnostics is not None: record['diagnostics_json']=json.dumps(result.diagnostics,allow_nan=False)
             if result.phases is not None: record['phases_json']=json.dumps(result.phases,allow_nan=False)
+            from ..storage.telemetry import attach_telemetry
+            rr,pp=attach_telemetry(record,result.hybrid_summary,events)
+            rounds.extend(rr); phases.extend(pp)
             results.append(record)
     info=threadpool_info()
     if any(pool['num_threads']!=1 for pool in info): raise RuntimeError('effective numerical thread limit is not one')
-    return {'task':task,'samples':samples,'decodes':results,'decoder_ids':tuple(d.identity for d in decoders),
+    return {'task':task,'samples':samples,'decodes':results,'hybrid_rounds':rounds,'decoder_phases':phases,'decoder_ids':tuple(d.identity for d in decoders),
         'setup':{'cache_hit':hit,'setup_cpu_ns':setup_cpu,'setup_wall_ns':setup_wall,
                  'warmup_seed':warm_seed,'warmup_count':_CONFIG.sampling.warmup_count,'warmup_wall_ns':warm_wall,
                  'sampling_wall_ns':sample_wall,'cache_entries':len(_CACHE),'threadpools':info,

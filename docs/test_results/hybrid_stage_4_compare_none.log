@@ -1,0 +1,14 @@
+{
+  "run_id": "315328db76dbbf7198bed8d36de271f20f1f2eb01c6910324590fdc976dcb22b",
+  "status": "complete",
+  "samples": 8,
+  "decodes": 24,
+  "comparison": {
+    "left_run_id": "315328db76dbbf7198bed8d36de271f20f1f2eb01c6910324590fdc976dcb22b",
+    "right_run_id": "3bd1dca86299afa5f66bd61f76e0ff452ede6655ae25bfd7b754270a6ea89503",
+    "samples_equal": 8,
+    "shared_decodes_equal": 24,
+    "additional_decode_rows": 0,
+    "status": "equal"
+  }
+}

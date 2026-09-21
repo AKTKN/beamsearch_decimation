@@ -1,0 +1,86 @@
+# Intentionally invalid empty rate list; supply noise.rates OR noise.sweep. No production rates inferred.
+experiment:
+  name: hybrid_user_production
+  purpose: User must select physical rates and budgets before production
+  codes:
+  - family: surface
+    distances:
+    - 5
+    - 7
+    - 9
+  - family: bb72
+    distances:
+    - 6
+noise:
+  rates: []
+sampling:
+  shots_per_point: 4
+  batch_size: 2
+  master_seed: 20260921
+  warmup_seed: 20260922
+  warmup_count: 1
+execution:
+  workers: 1
+timing:
+  mode: isolated_latency
+  profiling: phases
+output:
+  root: ../assets/runs
+decoders:
+- kind: hybrid_search_soft_bp_osd0
+  profile: hybrid_search_soft_ms_osd0_v1
+  name: hybrid_search_soft_ms_osd0_v1
+  enabled: true
+  algorithm_version: HSBP-ALG-1.0
+  search:
+    max_depth: 2
+    max_cycles: 3
+    expansions_per_cycle:
+    - 8
+    - 8
+    - 8
+    max_generated_nodes: 4096
+    detector_order: canonical_index
+    branch_order: physical_weight_then_index
+    heuristic: residual_fractional_cover
+    goal_test: on_generation
+    guidance_selection: best_unused_generated_pattern
+    prefix_cpu_budget_ns: null
+  bp:
+    enabled: true
+    method: minimum_sum
+    schedule: parallel
+    iterations_per_cycle:
+    - 6
+    - 6
+    - 6
+    scaling_factor: 1.0
+    llr_clip: 25.0
+    hard_decision_zero: one
+    warm_start: true
+    hint_policy: signed_channel_magnitude_plus_margin
+    hint_margin_llr: 8.0
+    replace_previous_hint: true
+  fallback:
+    backend: ldpc_osd_only
+    osd_method: OSD_CS
+    osd_order: 0
+    llr_source: last_bp_else_clipped_channel
+    ordering: pinned_ldpc_signed_llr
+  numerics:
+    dtype: float64
+    heuristic_reduction: fixed_binary_tree
+    fast_math: false
+  native_threads: 1
+- profile: bposd_ms30_cs0
+- profile: beam8
+- profile: bposd_ms30_cs10
+  enabled: false
+
+analysis:
+  bootstrap_seed: 20260921
+  bootstrap_count: 2000
+  bootstrap_unit: shot
+  accuracy_margin_absolute: null
+  stratify_timing: true
+  plots: [failure_rate, cpu_ecdf, wall_ecdf, cpu_survival, wall_survival]

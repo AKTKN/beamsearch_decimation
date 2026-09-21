@@ -1,11 +1,19 @@
 # Circuit-level BP benchmark
 
-All seven implementation stages are complete: physical Z-memory circuits, canonical
+All seven historical implementation stages are complete: physical Z-memory circuits, canonical
 DEM artifacts, native screened-decimation search using the forked ldpc flooding
 kernel, unchanged BP-OSD and published beam baselines, paired serial/spawn simulation,
 exact replay, verified analysis, figures and executable notebooks. A fresh pinned-source
 build passed the full acceptance suite. See [acceptance report](docs/acceptance_report.md)
 and [status](STATUS.md) for actual evidence and limits.
+
+
+The separate hybrid migration has completed Stages 1-6: strict configuration,
+audited stateful min-sum and OSD-only fork interfaces, and native bounded search
+with warm/cold/search-only profiles and CPU/wall telemetry. The hybrid is callable
+through `DecoderAdapter` and paired run/replay with v2 storage and reports. See
+[the native API](docs/hybrid_native.md) and [current status](STATUS.md).
+The upstream `bposd_ms30_cs0` baseline remains runnable through the existing runner.
 
 ```bash
 # Create once; use the existing environment if already installed.
@@ -62,3 +70,15 @@ See [repository setup](docs/distribution.md). Editable `config/*.yaml` files,
 analysis notebooks, scientific artifacts, reports, caches and dependency checkouts
 are local and ignored. Versioned `.example` templates initialize a new checkout
 without replacing local work. Dependency commits and fork patches remain versioned.
+
+Hybrid Stages 4–5 now support saved v2 telemetry and paired hypothesis reports.
+Use `config/hybrid_smoke.yaml.example` for bounded surface/BB checks and
+`config/hybrid_latency.yaml.example` for isolated timing. See
+[docs/hybrid_data.md](docs/hybrid_data.md) for exact schemas, bootstrap settings,
+replay semantics and the saved-data notebook. Smoke checks establish no performance
+or accuracy advantage. Final validation and limitations are recorded in
+[hybrid acceptance](docs/hybrid_acceptance.md). Reproduce the bounded E2E workflow:
+
+```bash
+python python_scripts/accept_hybrid.py --output assets/hybrid_acceptance_new
+```

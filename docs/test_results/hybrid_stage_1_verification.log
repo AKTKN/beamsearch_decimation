@@ -1,0 +1,7 @@
+{
+  "run_id": "1764ff36019234ec06e5e4a586de879ea2ffdbf0a4e3763ce084f246aa90e8ee",
+  "status": "complete",
+  "samples": 8,
+  "decodes": 24
+}
+Verified: 8 physical shots, 24 paired decode rows, all 12 BB observable labels; normative copies byte-identical.

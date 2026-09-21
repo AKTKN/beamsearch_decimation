@@ -85,3 +85,44 @@ remotes and the local screened-decimation-bp branch. No dependency source/build
 bytes changed during this maintenance; the locked audit was not regenerated.
 The ldpc patch still contains reference_bp/bindings.cpp. Historical import paths
 and acceptance logs describe their original environment.
+
+
+## Hybrid Stage 1 source audit
+
+No dependency source, patch, pin or native build input changed. CS0 uses the pinned
+upstream API with OSD_CS/order zero; it is not a new OSD-only implementation.
+Project adapter changes enter decoder identity via its existing SHA256. Provenance
+now includes source `.example` templates, and the normative hybrid contracts under
+docs/. Required future fork/project files and hash/patch restoration obligations
+are listed in hybrid_migration.md. Stage 1 dependency verification and project
+compilation logs are under test_results/hybrid_stage_1_*.log.
+
+## Hybrid Stages 2-3 audit
+
+The pinned ldpc commit and all existing upstream kernels/reference binding are
+unchanged. New opt-in headers/shim/stub/binding/build script are exported in ldpc.patch
+and manifest.lock.json. The hybrid aggregate also covers the pinned transitive
+headers used by graph/OSD. Runtime checks compare both fork and project digests.
+Clean restoration compiled a separate temporary worktree binding; byte restoration
+and 288 pristine BP-OSD comparisons remain regression tests. Original source and
+acceptance logs remain immutable history. See hybrid_native.md for exact inventories.
+
+## Hybrid Stages 4–5 source audit
+
+This stage changes Python orchestration/storage/analysis, examples and docs only;
+no native header, binding, CMake input or external dependency source changes are
+required. The Stage 2–3 locked patch/build identities remain valid. Existing source
+archives include the new telemetry/schema/paired-analysis modules and maintained
+notebook/config templates. Runtime adapter/native identity checks remain enabled.
+The dependency check recorded for this stage verifies the unchanged native inputs;
+Stage 6 full clean restoration is still separate acceptance work.
+
+## Hybrid Stage 6 audit
+
+The final isolated restoration verifies every ldpc source hash and the patch digest,
+compiles both opt-in bindings and a new project extension, and checks their embedded
+source digests. No external/native implementation inputs changed in Stage 6, so the
+Stage 2–3 dependency manifest/patch remains the authoritative source lock. The main
+editable project extension was rebuilt and runtime dependency checks rerun. See
+hybrid_stage_6_clean_restore_final.log and hybrid_stage_6_dependencies.log. Existing
+third-party installations are reused; no new full-environment build is claimed.

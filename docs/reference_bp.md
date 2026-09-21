@@ -67,3 +67,12 @@ small graphs, worked-example residual completions, ownership, reuse and concurre
 calls. Standalone C++ debug and ASan/UBSan tests do not require Python. Ordinary
 BP-OSD is compared with a pristine pinned wheel in independent subprocess imports,
 covering 288 outputs across min-sum/sum-product, fresh/reused objects and shot orders.
+
+## Additional opt-in hybrid interface (Stages 2-3)
+
+The historical flooding API above remains unchanged. bp.verified_hybrid_backend
+loads the separate ldpc.hybrid_bp stateful min-sum/OSD0 binding after transitive
+source/build verification. It retains check messages across finite field changes,
+uses unclipped accumulators for extrinsic updates and resets between shots. The
+project native hybrid shares these C++ sessions directly. See hybrid_native.md for
+all methods, shapes, ownership, finite-hint rules, exception behavior and tests.

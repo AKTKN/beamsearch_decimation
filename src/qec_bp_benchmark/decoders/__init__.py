@@ -10,8 +10,8 @@ from pathlib import Path
 from types import ModuleType
 import time
 import numpy as np
-from ..bp import verified_backend
-from ..config import Decoder, Screened, Bposd
+from ..bp import verified_backend, verified_hybrid_backend
+from ..config import Decoder, Screened, Bposd, Beam, Hybrid, HYBRID_PROFILES, require_available_decoder
 from ..dem.model import DetectorProblem
 from ..identity import decoder_identity
 
@@ -32,21 +32,45 @@ def native_search() -> ModuleType:
     return _native
 
 
-@lru_cache(maxsize=3)
+@lru_cache(maxsize=1)
+def native_hybrid() -> ModuleType:
+    """Verify project and transitive fork source/build identities before session setup."""
+    from ..native_sources import hybrid_project_digest
+    backend = verified_hybrid_backend()
+    module = native_search()
+    expected = {'project_sha256': hybrid_project_digest(ROOT),
+                'fork_sha256': backend.build_identity()['source_sha256']}
+    if module.hybrid_source_identity() != expected:
+        raise RuntimeError('hybrid project source/build mismatch; rebuild the editable package')
+    return module
+
+
+@lru_cache(maxsize=8)
 def implementation_identity(kind: str) -> dict:
     """Actual native bytes and pinned upstream identity, shared by rows/provenance."""
+    require_available_decoder(kind)
     manifest=json.loads((ROOT/'external_lib/manifest.lock.json').read_text())
     if kind == 'screened_reference':
         module=native_search()
         detail=dict(module.source_identity(), build=module.build_identity())
-    else:
-        module=importlib.import_module('ldpc.bposd_decoder._bposd_decoder' if kind=='bposd_ms30_cs10'
-                                       else 'beam_search_decoder._beam_search_decoder')
-        key='ldpc' if kind=='bposd_ms30_cs10' else 'BeamSearchDecoder'
+    elif kind in HYBRID_PROFILES:
+        import platform
+        module=native_hybrid()
+        detail=dict(module.hybrid_source_identity(), build=module.build_identity(),
+                    fork_build=verified_hybrid_backend().build_identity(), libc=platform.libc_ver())
+    elif kind in ('bposd_ms30_cs10', 'bposd_ms30_cs0', 'beam8', 'beam32'):
+        if kind in ('bposd_ms30_cs10', 'bposd_ms30_cs0'):
+            module=importlib.import_module('ldpc.bposd_decoder._bposd_decoder')
+            key='ldpc'
+        elif kind in ('beam8', 'beam32'):
+            module=importlib.import_module('beam_search_decoder._beam_search_decoder')
+            key='BeamSearchDecoder'
         expected=ROOT/'external_lib'/key
         if expected.resolve() not in Path(module.__file__).resolve().parents:
             raise RuntimeError(f'unintended native baseline import: {module.__file__}')
         detail={'upstream_commit': manifest['dependencies'][key]['commit']}
+    else:
+        raise ValueError(f'unsupported implementation identity: {kind}')
     # Path is provenance, not scientific decoder identity: relocation preserves ID.
     return dict(detail, native_sha256=hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest(),
                 adapter_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
@@ -69,10 +93,11 @@ class DecodeResult:
     counters: dict = field(default_factory=dict)
     diagnostics: dict | None = None
     phases: dict | None = None
+    hybrid_summary: dict | None = None
 
 
 class DecoderAdapter:
-    """Worker-owned prepared decoder; decode resets/cold-starts native shot state.
+    """Worker-owned prepared decoder; decode resets native state between shots.
 
     Inputs are immutable-by-contract DetectorProblem and a binary syndrome (m,).
     No sampler/truth arguments. This service includes input copying, native decode,
@@ -80,6 +105,11 @@ class DecoderAdapter:
     object. Screened native calls themselves are const and reentrant.
     """
     def __init__(self, problem: DetectorProblem, config: Decoder, *, diagnostics: bool=False, profiling: bool=False) -> None:
+        require_available_decoder(config.profile)
+        if isinstance(config,Hybrid) and diagnostics:
+            raise ValueError("hybrid per-node traces are unsupported; use profiling and export_telemetry after decode")
+        if not isinstance(config, (Screened, Bposd, Beam, Hybrid)):
+            raise TypeError(f'unsupported decoder configuration: {type(config).__name__}')
         self.problem=problem
         self.config=config
         self.diagnostics=diagnostics
@@ -91,6 +121,20 @@ class DecoderAdapter:
         n=problem.H.shape[1]
         # The exactly normalized empty model has a unique length-zero correction.
         # No native baseline accepts every empty shape, so handle it algebraically.
+        if isinstance(config,Hybrid):
+            native=native_hybrid(); settings=native.HybridSettings()
+            for key,value in {'max_depth':config.search.max_depth,
+                'expansions':list(config.search.expansions_per_cycle), 'iterations':list(config.bp.iterations_per_cycle),
+                'max_generated_nodes':config.search.max_generated_nodes,
+                'prefix_cpu_budget_ns':config.search.prefix_cpu_budget_ns or 0,
+                'alpha':config.bp.scaling_factor,'clip':config.bp.llr_clip,'margin':config.bp.hint_margin_llr,
+                'bp_enabled':config.bp.enabled,'warm':config.bp.warm_start}.items():
+                setattr(settings,key,value)
+            def rows(matrix):
+                csr=matrix.tocsr()
+                return [csr.indices[csr.indptr[a]:csr.indptr[a+1]].tolist() for a in range(csr.shape[0])]
+            self._native=native.HybridDecoder(rows(problem.H),n,problem.probabilities.tolist(),rows(problem.A),settings)
+            return
         if n==0: return
         if isinstance(config,Screened):
             native=native_search()
@@ -105,7 +149,7 @@ class DecoderAdapter:
             from ldpc import BpOsdDecoder
             self._native=BpOsdDecoder(problem.H.copy(),error_channel=problem.probabilities.tolist(),
                 **config.model_dump(exclude={'profile','name','enabled'}))
-        else:
+        elif isinstance(config,Beam):
             from beam_search_decoder import BeamSearchDecoder
             self._native=BeamSearchDecoder(problem.H.copy(),error_channel=problem.probabilities.tolist(),
                 **config.model_dump(exclude={'profile','name','enabled'}))
@@ -119,6 +163,7 @@ class DecoderAdapter:
         s=s.astype(np.uint8,copy=True)
         counters={}
         diagnostics=None
+        hybrid_summary=None
         phases={} if self.profiling else None
         if self.profiling:
             now=time.perf_counter_ns(); phases['input_wall_ns']=now-phase_start; phase_start=now
@@ -126,6 +171,12 @@ class DecoderAdapter:
             candidate=np.zeros(0,dtype=np.uint8)
             declared=bool(s.any())
             native_status='EMPTY_MODEL_CONTRADICTION' if declared else 'EMPTY_MODEL_VALID'
+        elif isinstance(self.config,Hybrid):
+            r=self._native.decode(s.tolist(),self.profiling)
+            candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None
+            declared=not r.valid
+            hybrid_summary=r.summary
+            native_status=hybrid_summary['exit_reason']
         elif isinstance(self.config,Screened):
             r=self._native.decode(s.tolist(),self.diagnostics,self.profiling)
             candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None
@@ -139,17 +190,19 @@ class DecoderAdapter:
             if self.diagnostics:
                 diagnostics=r.diagnostics()
             if self.profiling: phases.update(r.phases)
-        else:
+        elif isinstance(self.config,(Bposd,Beam)):
             candidate=np.asarray(self._native.decode(s.copy()))
             converged=bool(self._native.converge)
             if isinstance(self.config,Bposd):
                 declared=False # converge only describes the BP stage, not OSD.
                 native_status='BP_CONVERGED' if converged else 'OSD_AFTER_BP_NONCONVERGENCE'
                 counters['initial_iterations']=int(self._native.iter) if s.any() else 0
-            else:
+            elif isinstance(self.config,Beam):
                 declared=not converged
                 native_status='CONVERGED' if converged else 'SEARCH_EXHAUSTED'
                 # Upstream iter counts only the last BP call; no total is exposed.
+        else:
+            raise TypeError(f'unsupported decoder configuration: {type(self.config).__name__}')
         if self.profiling:
             now=time.perf_counter_ns(); phases['backend_wall_ns']=now-phase_start; phase_start=now
         valid=(candidate is not None and candidate.shape==(self.problem.H.shape[1],)
@@ -162,4 +215,16 @@ class DecoderAdapter:
             prediction=np.asarray((self.problem.A@correction)%2,dtype=np.uint8)
             cost=sum(w for i,w in enumerate(self._weights) if correction[i])
         if self.profiling: phases['validation_prediction_cost_wall_ns']=time.perf_counter_ns()-phase_start
-        return DecodeResult(correction,prediction,valid,status,native_status,cost,counters,diagnostics,phases)
+        return DecodeResult(correction,prediction,valid,status,native_status,cost,counters,diagnostics,phases,hybrid_summary)
+
+
+    def export_telemetry(self) -> dict:
+        """Copy native hybrid events after timed decode and before the next shot.
+
+        Returned dictionaries/lists own their contents. No truth labels are present.
+        profiling=none yields empty event lists. Non-hybrid calls raise TypeError.
+        Session use, including export, is non-reentrant.
+        """
+        if not isinstance(self.config,Hybrid):
+            raise TypeError('native event export requires a hybrid decoder')
+        return self._native.export_telemetry()

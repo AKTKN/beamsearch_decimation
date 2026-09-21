@@ -11,7 +11,7 @@ import time
 import traceback
 import uuid
 from typing import Callable,Iterable,Iterator,TypeVar
-from ..config import load_config
+from ..config import load_config,require_available_decoder,Hybrid
 from ..identity import content_hash,run_identity,sampling_identity
 from ..storage import atomic_json,commit_batch,committed_batches,sha256
 from . import configure_execution
@@ -73,7 +73,7 @@ def _update_summary(summary: dict, rows: list[dict]) -> None:
         item['shots']+=1
         item['decoding_failures']+=int(row['decoding_failure'])
         item['valid_outputs']+=int(not row['decoding_failure'])
-        item['valid_logical_mismatches']+=int(row['valid_logical_mismatch'])
+        item['valid_logical_mismatches']+=int(bool(row['valid_logical_mismatch']))
         item['block_failures']+=int(row['block_failure'])
         if row['observable_mismatch'] is not None:
             item['observable_mismatches']=[a+int(b) for a,b in zip(item['observable_mismatches'],row['observable_mismatch'])]
@@ -91,6 +91,9 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None=N
     stderr, outside per-shot decode timers. It changes no scientific settings.
     """
     config_path=Path(config_path).resolve(); config=load_config(config_path)
+    for decoder in config.decoders:
+        if decoder.enabled:
+            require_available_decoder(decoder.profile)
     setup_cpu_start=time.process_time_ns(); setup_wall_start=time.perf_counter_ns()
     def report(message: str) -> None:
         if verbose:
@@ -112,7 +115,7 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None=N
     run_id=run_identity(config,timestamp,nonce)
     directory=config.output.root/(timestamp.strftime('%Y%m%dT%H%M%S.%fZ')+'_'+nonce[:12])
     directory.mkdir(parents=True,exist_ok=False)
-    manifest={'schema_version':1,'run_id':run_id,'status':'incomplete','created_utc':timestamp.isoformat(),
+    manifest={'schema_version':2,'run_id':run_id,'status':'incomplete','created_utc':timestamp.isoformat(),
         'completed_batches':0,'expected_batches':None,'instances':[],'config':config.resolved(),
         'sampling':{'recipe':SEED_RECIPE,'recipe_details':'SeedSequence([master, *LE uint32 SHA256(instance_id + NUL + stream), batch_id]).generate_state(1,uint64)',
                     'batch_layout':'range(0, shots_per_point, batch_size), final batch may be short',
@@ -129,6 +132,9 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None=N
             'conditional_mismatch_denominator':'valid_outputs','component_denominator':'shots',
             'observable_total_failure':'decoding_failure OR observable mismatch; all 12 BB outcomes stay in one block'},
         'resume':'not implemented; committed batches remain readable; every attempt creates a new run'}
+    from ..storage.schema import TABLE_VERSIONS
+    manifest.update(table_versions=TABLE_VERSIONS,event_tables='present' if config.timing.profiling=='phases' else 'omitted',
+                    algorithm_contract='HSBP-ALG-1.0',experiment_contract='HSBP-EXP-1.0')
     atomic_json(directory/'manifest.json',manifest,exclusive=True)
     try:
         report(f'Run directory: {directory}')
@@ -170,7 +176,7 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None=N
                 source=Path(replay_source).resolve()
                 report(f'Reading saved samples from {source}')
                 original=json.loads((source/'manifest.json').read_text())
-                if original.get('schema_version')!=1: raise ValueError('unsupported replay run version')
+                if original.get('schema_version') not in (1,2): raise ValueError('unsupported replay run version')
                 manifest['replay']={'source_run_id':original['run_id'],'source_status':original['status'],
                     'source_manifest_sha256':sha256(source/'manifest.json'),'source_path':str(source),
                     'physical_plan':'saved source batches are authoritative; current YAML experiment/noise/sampling do not resample or select shots'}
@@ -188,6 +194,12 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None=N
                 tasks=(task for task in _replay_tasks(source,destinations) if task.instance_id in destinations)
                 atomic_json(directory/'replay_source_manifest.json',original,exclusive=True)
                 shutil.copyfile(source/'config_original.yaml',directory/'replay_source_config.yaml')
+            for entry in manifest['instances']:
+                folder=directory/entry['directory']
+                h=numpy.load(folder/'matrices/H_shape.npy',allow_pickle=False)
+                a=numpy.load(folder/'matrices/A_shape.npy',allow_pickle=False)
+                entry.update(num_detectors=int(h[0]),num_mechanisms=int(h[1]),num_observables=int(a[0]))
+            manifest['timing']['prefix_cpu_limits_active']=any(isinstance(d,Hybrid) and d.enabled and d.search.prefix_cpu_budget_ns is not None for d in config.decoders)
             manifest['expected_batches']=expected
             manifest['run_setup']={'cpu_ns':time.process_time_ns()-setup_cpu_start,
                                    'wall_ns':time.perf_counter_ns()-setup_wall_start,
@@ -205,7 +217,8 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None=N
                 task=result['task']; key=(task.instance_id,task.batch_id)
                 if key in seen: raise ValueError('duplicate task completion')
                 commit_batch(Path(task.artifact),task.batch_id,result['samples'],result['decodes'],
-                             result['decoder_ids'],config.output.compression,result['setup'])
+                             result['decoder_ids'],config.output.compression,result['setup'],version=2,
+                             profiling=config.timing.profiling,hybrid_rounds=result['hybrid_rounds'],decoder_phases=result['decoder_phases'])
                 seen.add(key); _update_summary(summary,result['decodes'])
                 manifest['completed_batches']+=1
                 atomic_json(directory/'manifest.json',manifest)

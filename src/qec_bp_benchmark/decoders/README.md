@@ -24,3 +24,16 @@ Timing must wrap this entire Python service, including conversion, native graph
 work, cost and parity validation, and A prediction. Setup/source verification and
 constructor copies are outside per-shot timing. Native flooding describes message
 update dependencies, not CPU threading. Each backend uses one native CPU thread.
+
+
+Hybrid migration Stage 1: `Bposd0` (`bposd_ms30_cs0`) fixes OSD_CS order zero and
+shares the unchanged upstream BP-OSD adapter; its BP runs normally before fallback.
+This is not the future direct OSD-only bridge. The previous CS10 profile/order
+configuration is preserved. Dispatch and implementation identity enumerate all
+supported profiles and reject unknown kinds. All three hybrid/ablation profiles now call the complete native service, including
+empty models. `DecodeResult.hybrid_summary` owns scalar counters/times. Call
+`export_telemetry()` after timing and before reuse for owned phase/cycle records.
+Per-node `diagnostics=True` is rejected; profiling collects compact events. Session
+lifetimes and error/reset behavior are in docs/hybrid_native.md. No truth is passed
+to the service. Workers now export and label telemetry outside the timer for v2
+tables; see docs/hybrid_data.md.

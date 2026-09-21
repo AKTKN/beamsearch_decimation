@@ -99,6 +99,8 @@ def aggregate_failures(records: Iterable[dict], *, confidence: float=.95) -> lis
 
 def timing_path(row: dict) -> str:
     """Classify only available diagnostics; missing upstream counters stay unknown."""
+    if row.get('exit_stage') is not None:
+        return 'zero_syndrome' if row['exit_reason']=='zero_syndrome' else row['exit_stage']
     if row['decoding_failure']: return 'failure'
     if row.get('initial_success') is True or row.get('native_status') in ('INITIAL_CONVERGED','BP_CONVERGED'):
         return 'initial_bp_success'
@@ -126,7 +128,7 @@ def timing_statistics(values: Iterable[int], *, quantiles: Sequence[float]=DEFAU
     qs=sorted(set(DEFAULT_QUANTILES)|set(quantiles))
     if any(not math.isfinite(q) or not 0<=q<=1 for q in qs): raise ValueError('quantiles must be in [0,1]')
     n=len(data); estimates=np.quantile(data,qs,method='linear').tolist() if n else [None]*len(qs)
-    stats=[{'q':q,'value_ns':value,'expected_tail_count':n*(1-q),
+    stats=[{'q':q,'value_ns':None if q>=.999 and n*(1-q)<min_expected_tail_count else value,'expected_tail_count':n*(1-q),
         'insufficient_for_performance_claim':n*(1-q)<min_expected_tail_count} for q,value in zip(qs,estimates)]
     by_q={item['q']:item['value_ns'] for item in stats}
     return {'samples':n,'units':'ns','quantile_method':'linear','mean_ns':float(np.mean(data)) if n else None,

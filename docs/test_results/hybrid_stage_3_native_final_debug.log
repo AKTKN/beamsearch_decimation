@@ -1,0 +1,23 @@
+-- Found pybind11: /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pybind11/include (found version "2.11.1")
+CMake Error at CMakeLists.txt:7 (file):
+  file SHA256 failed to read file "src/qec_bp_benchmark/native/search.hpp":
+  No such file or directory
+
+
+CMake Error at CMakeLists.txt:8 (file):
+  file SHA256 failed to read file "src/qec_bp_benchmark/native/module.cpp":
+  No such file or directory
+
+
+CMake Error at CMakeLists.txt:9 (file):
+  file SHA256 failed to read file "CMakeLists.txt": No such file or directory
+
+
+CMake Error at CMakeLists.txt:10 (file):
+  file SHA256 failed to read file
+  "external_lib/ldpc/src_cpp/reference_bp.hpp": No such file or directory
+
+
+-- Configuring incomplete, errors occurred!
+See also "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/build/hybrid-debug/CMakeFiles/CMakeOutput.log".
+gmake: *** [Makefile:444: cmake_check_build_system] Error 1

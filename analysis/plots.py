@@ -14,8 +14,11 @@ def decoder_label(row: dict) -> str:
     if profile=='screened_reference':
         params=', '.join(f'{k}={d.get(k,"?")}' for k in ('T0','Tpost','history_window','M','q','K','Lmax'))
         text='screened sum-product; '+params
-    elif profile=='bposd_ms30_cs10': text=f'min-sum BP({d.get("max_iter","?")}) + OSD_CS({d.get("osd_order","?")}), scale=1'
-    else: text='beam min-sum; '+', '.join(f'{k}={d.get(k,"?")}' for k in ('beam_width','max_rounds','initial_iters','iters_per_round','num_results'))
+    elif profile in ('bposd_ms30_cs10', 'bposd_ms30_cs0'): text=f'min-sum BP({d.get("max_iter","?")}) + OSD_CS({d.get("osd_order","?")}), scale=1'
+    elif profile in ('beam8', 'beam32'): text='beam min-sum; '+', '.join(f'{k}={d.get(k,"?")}' for k in ('beam_width','max_rounds','initial_iters','iters_per_round','num_results'))
+    elif profile in ('hybrid_search_soft_ms_osd0_v1','search_osd0_v1','hybrid_search_soft_ms_osd0_cold_v1'):
+        text=f"search D={d.get('search',{}).get('max_depth','?')}; BP enabled={d.get('bp',{}).get('enabled','?')}, warm={d.get('bp',{}).get('warm_start','?')}; direct OSD0"
+    else: raise ValueError(f'unsupported decoder label profile: {profile}')
     return f'{row["decoder_name"]} [{row["decoder_id"][:8]}]\n{text}'
 
 
@@ -125,4 +128,63 @@ def plot_timings(records: Sequence[dict], output: str | Path, *, timer: str='cpu
         fig.legend(*ax.get_legend_handles_labels(),loc='outside lower center',fontsize=7)
         stem=f'{timer}_{"survival" if survival else "ecdf"}_{content_hash(key)[:16]}'
         paths.extend(_save(fig,Path(output),stem)); plt.close(fig)
+    return paths
+
+
+def plot_hybrid(stages: Sequence[dict], pairs: Sequence[dict], timings: Sequence[dict],
+                failures: Sequence[dict], output: str | Path) -> list[Path]:
+    """Export stage/reach curves, disjoint phase costs, paired terms and ablations.
+
+    Figures separate run/model/execution contexts; paired-term bars are signed ns.
+    Prefix aggregates are never stacked with their constituent phases.
+    """
+    import matplotlib.pyplot as plt
+    paths=[]; groups=defaultdict(list)
+    for row in stages:
+        groups[(row['run_id'],row['comparison_id'],row['execution_id'],row['decoder_id'])].append(row)
+    for key,rows in sorted(groups.items()):
+        rows=sorted(rows,key=lambda r:r['physical_p'])
+        fig,axes=plt.subplots(1,2,figsize=(13,5),layout='constrained')
+        for stage in ('zero_syndrome','search','guided_bp','osd','failed'):
+            axes[0].plot([r['physical_p'] for r in rows],[r['stages'][stage]['exit']['rate'] for r in rows],'o-',label=stage)
+        axes[0].plot([r['physical_p'] for r in rows],[r['osd_reach']['rate'] for r in rows],'x--',label='OSD entered')
+        axes[0].set(xlabel='Physical p',ylabel='Fraction of all shots',ylim=(-.02,1.02)); axes[0].legend(fontsize=8)
+        phases=('search','bp_transition','bp_iterations','prefix_other','osd','service_other')
+        for i,r in enumerate(rows):
+            bottom=0
+            for phase in phases:
+                value=r['disjoint_mean_cost_ns']['cpu'][phase]
+                if value is None: continue
+                axes[1].bar(i,value/1e6,bottom=bottom/1e6,label=phase if i==0 else None); bottom+=value
+        axes[1].set_xticks(range(len(rows)),[str(r['physical_p']) for r in rows]); axes[1].set(xlabel='Physical p',ylabel='Mean CPU service ms')
+        axes[1].legend(fontsize=8); fig.suptitle(f"{rows[0]['decoder_name']}; {rows[0]['family']} d={rows[0]['distance']}; smoke is not evidence of superiority")
+        paths.extend(_save(fig,Path(output),'hybrid_stages_'+content_hash(key)[:16])); plt.close(fig)
+    for row in pairs:
+        fig,axes=plt.subplots(1,2,figsize=(12,5),layout='constrained')
+        terms=('prefix','service_other','avoided_baseline','fallback_difference')
+        for clock,ax in zip(('cpu','wall'),axes):
+            values=[row['estimates'][f'{clock}_{term}_ns'] for term in terms]
+            if all(v is not None for v in values):
+                values[2]=-values[2]
+                ax.bar(range(4),np.array(values)/1e6)
+                ax.axhline(0,color='black',lw=.7)
+            else: ax.text(.1,.5,'Native phases unmeasured',transform=ax.transAxes)
+            ax.set_xticks(range(4),['prefix','service other','− avoided baseline','fallback difference'],rotation=25)
+            ax.set_ylabel(f'Mean {clock} difference terms (ms)')
+        fig.suptitle(f"{row['hybrid_profile']} vs {row['baseline_profile']}\nN={row['shots']}; paired four-term identity; no accuracy-equivalence claim")
+        key=(row['run_id'],row['instance_id'],row['hybrid_id'],row['baseline_id'])
+        paths.extend(_save(fig,Path(output),'paired_cost_'+content_hash(key)[:16])); plt.close(fig)
+    by_context=defaultdict(list)
+    timing_index={(r['run_id'],r['instance_id'],r['decoder_id']):r for r in timings if r['timer']=='cpu_ns' and r['stratum']=='all'}
+    for r in failures: by_context[(r['run_id'],r['instance_id'],r['execution_id'])].append(r)
+    for key,rows in sorted(by_context.items()):
+        if not any(r['decoder_profile'].startswith(('hybrid_','search_osd')) for r in rows): continue
+        fig,axes=plt.subplots(1,2,figsize=(12,5),layout='constrained')
+        for r in rows:
+            t=timing_index[(r['run_id'],r['instance_id'],r['decoder_id'])]; metric=r['block_failure']
+            for ax,field in zip(axes,('mean_ns','p99_ns')):
+                ax.errorbar(t[field]/1e6,metric['rate'],yerr=[[metric['rate']-metric['low']],[metric['high']-metric['rate']]],fmt='o',label=r['decoder_name'])
+                ax.set(xlabel=f'{field} CPU (ms)',ylabel='Block failure per shot (Wilson interval)')
+        axes[0].legend(fontsize=7); fig.suptitle('Configured profiles and ablations; p99 requires adequate tails; no automatic winner')
+        paths.extend(_save(fig,Path(output),'ablations_'+content_hash(key)[:16])); plt.close(fig)
     return paths

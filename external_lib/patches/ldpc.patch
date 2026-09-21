@@ -1,3 +1,25 @@
+diff --git a/setup_hybrid.py b/setup_hybrid.py
+new file mode 100644
+index 0000000..8610a16
+--- /dev/null
++++ b/setup_hybrid.py
+@@ -0,0 +1,16 @@
++"""Build opt-in hybrid interfaces without changing upstream or reference APIs."""
++from pathlib import Path
++import runpy
++import subprocess
++from setuptools import Extension, setup
++import pybind11
++
++ROOT = Path(__file__).resolve().parent
++sources = runpy.run_path(str(ROOT / 'src_python/ldpc/hybrid_bp/source_files.py'))
++digest = sources['source_digest'](ROOT)
++commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
++setup(package_dir={'': 'src_python'}, ext_modules=[Extension(
++    'ldpc.hybrid_bp._hybrid_bp', sources=['src_python/ldpc/hybrid_bp/bindings.cpp'],
++    depends=list(sources['SOURCE_FILES']), include_dirs=[pybind11.get_include(), 'src_cpp'], language='c++',
++    define_macros=[('HYBRID_UPSTREAM_COMMIT', '"' + commit + '"'), ('HYBRID_SOURCE_HASH', '"' + digest + '"')],
++    extra_compile_args=['-O3', '-std=c++17', '-fno-fast-math', '-ffp-contract=off', '-Wall', '-Wextra'])])
 diff --git a/setup_reference.py b/setup_reference.py
 new file mode 100644
 index 0000000..87eef15
@@ -42,6 +64,131 @@ index 0000000..1ddd6e3
 +This addition does not modify bp.hpp or ordinary BP-OSD. The benchmark's
 +README under the Python reference_bp binding and docs/reference_bp.md describe
 +numerics, shapes, test evidence and the explicit build. No search code lives here.
+diff --git a/src_cpp/hybrid_graph.hpp b/src_cpp/hybrid_graph.hpp
+new file mode 100644
+index 0000000..c452fd2
+--- /dev/null
++++ b/src_cpp/hybrid_graph.hpp
+@@ -0,0 +1,76 @@
++#ifndef LDPC_HYBRID_GRAPH_HPP
++#define LDPC_HYBRID_GRAPH_HPP
++#include "bp.hpp"
++#include <algorithm>
++#include <climits>
++#include <stdexcept>
++
++namespace ldpc::hybrid {
++using Bits = std::vector<uint8_t>;
++using Reals = std::vector<double>;
++using Rows = std::vector<std::vector<int>>;
++
++inline void binary(const Bits& v, size_t size) {
++    if (v.size()!=size || std::any_of(v.begin(),v.end(),[](uint8_t x){return x>1;}))
++        throw std::invalid_argument("expected binary vector with matching shape");
++}
++inline double finite(double x) {
++    if (!std::isfinite(x)) throw std::overflow_error("nonfinite hybrid arithmetic");
++    return x==0 ? 0.0 : x;
++}
++
++// Owned immutable-by-interface model. Flattened canonical edges are derived from
++// ldpc's graph infrastructure. No input buffer is borrowed. Sizes fit its int API.
++struct Graph {
++    int m,n;
++    std::vector<size_t> rp,cp;
++    std::vector<int> col,row;
++    std::vector<size_t> ce;
++    Reals probabilities,weights;
++    Graph(const Rows& rows, int columns, const Reals& p):m(0),n(columns),probabilities(p) {
++        if(n<0 || rows.size()>INT_MAX || p.size()!=size_t(n))
++            throw std::invalid_argument("invalid graph dimensions or prior shape");
++        m=int(rows.size());
++        size_t edges=0;
++        for(const auto& r:rows) {
++            if(!std::is_sorted(r.begin(),r.end()) || std::adjacent_find(r.begin(),r.end())!=r.end())
++                throw std::invalid_argument("rows must contain unique sorted indices");
++            for(int i:r) if(i<0 || i>=n) throw std::invalid_argument("column outside graph");
++            if(r.size()>size_t(INT_MAX)-edges) throw std::length_error("graph exceeds ldpc edge capacity");
++            edges+=r.size();
++        }
++        for(double x:p) {
++            if(!std::isfinite(x)||x<=0||x>.5) throw std::invalid_argument("priors must be finite in (0,0.5]");
++            weights.push_back(finite(std::log1p(-x)-std::log(x)));
++        }
++        rp.push_back(0); cp.assign(size_t(n)+1,0);
++        // Empty dimensions are handled algebraically, avoiding upstream allocation assumptions.
++        if(m && n) {
++            ldpc::bp::BpSparse pcm(m,n,int(edges));
++            for(int a=0;a<m;++a) for(int i:rows[a]) pcm.insert_entry(a,i);
++            for(int a=0;a<m;++a) {
++                for(auto& e:pcm.iterate_row(a)) { col.push_back(e.col_index); row.push_back(a); ++cp[e.col_index+1]; }
++                rp.push_back(col.size());
++            }
++        } else rp.resize(size_t(m)+1,0);
++        for(int i=0;i<n;++i) cp[i+1]+=cp[i];
++        ce.resize(edges); auto next=cp;
++        for(size_t e=0;e<col.size();++e) ce[next[col[e]]++]=e;
++    }
++    bool valid(const Bits& e,const Bits& s) const {
++        binary(e,n); binary(s,m);
++        for(int a=0;a<m;++a) { uint8_t x=0; for(size_t j=rp[a];j<rp[a+1];++j) x^=e[col[j]]; if(x!=s[a]) return false; }
++        return true;
++    }
++    uint64_t residual_weight(const Bits& e,const Bits& s) const {
++        uint64_t count=0;
++        for(int a=0;a<m;++a) { uint8_t x=s[a]; for(size_t j=rp[a];j<rp[a+1];++j) x^=e[col[j]]; count+=x; }
++        return count;
++    }
++    bool inconsistent_empty_row(const Bits& s) const {
++        for(int a=0;a<m;++a) if(s[a] && rp[a]==rp[a+1]) return true;
++        return false;
++    }
++};
++}
++#endif
+diff --git a/src_cpp/osd0_bridge.hpp b/src_cpp/osd0_bridge.hpp
+new file mode 100644
+index 0000000..b37a583
+--- /dev/null
++++ b/src_cpp/osd0_bridge.hpp
+@@ -0,0 +1,37 @@
++#ifndef LDPC_OSD0_BRIDGE_HPP
++#define LDPC_OSD0_BRIDGE_HPP
++#include "hybrid_graph.hpp"
++#include "osd.hpp"
++
++namespace ldpc::hybrid {
++struct OsdResult { Bits correction; bool valid=false; };
++// Own all vectors referenced by upstream OsdDecoder, in destruction-safe order.
++// Non-reentrant. No BP object or higher-order candidates exist on this path.
++class Osd0Bridge {
++    std::shared_ptr<const Graph> graph_;
++    Reals probabilities_;
++    std::unique_ptr<ldpc::bp::BpSparse> pcm_;
++    std::unique_ptr<ldpc::osd::OsdDecoder> osd_;
++public:
++    explicit Osd0Bridge(std::shared_ptr<const Graph> graph):graph_(std::move(graph)) {
++        if(!graph_) throw std::invalid_argument("graph required");
++        probabilities_=graph_->probabilities;
++        if(graph_->m && graph_->n) {
++            pcm_=std::make_unique<ldpc::bp::BpSparse>(graph_->m,graph_->n,int(graph_->col.size()));
++            for(size_t e=0;e<graph_->col.size();++e) pcm_->insert_entry(graph_->row[e],graph_->col[e]);
++            osd_=std::make_unique<ldpc::osd::OsdDecoder>(*pcm_,ldpc::osd::COMBINATION_SWEEP,0,probabilities_);
++        }
++    }
++    OsdResult decode(const Bits& syndrome,const Reals& llrs) {
++        binary(syndrome,graph_->m);
++        if(llrs.size()!=size_t(graph_->n)||std::any_of(llrs.begin(),llrs.end(),[](double x){return !std::isfinite(x);}))
++            throw std::invalid_argument("OSD LLRs must be finite with shape (n,)");
++        OsdResult out; out.correction.assign(graph_->n,0);
++        if(osd_) {auto s=syndrome; auto l=llrs; out.correction=osd_->decode(s,l);}
++        out.valid=graph_->valid(out.correction,syndrome);
++        return out;
++    }
++    size_t candidate_count() const {return osd_ ? osd_->osd_candidate_strings.size() : 0;}
++};
++}
++#endif
 diff --git a/src_cpp/reference_bp.hpp b/src_cpp/reference_bp.hpp
 new file mode 100644
 index 0000000..a98fec6
@@ -262,6 +409,227 @@ index 0000000..a98fec6
 +};
 +} // namespace ldpc::reference
 +#endif
+diff --git a/src_cpp/stateful_min_sum.hpp b/src_cpp/stateful_min_sum.hpp
+new file mode 100644
+index 0000000..08ffeea
+--- /dev/null
++++ b/src_cpp/stateful_min_sum.hpp
+@@ -0,0 +1,101 @@
++#ifndef LDPC_STATEFUL_MIN_SUM_HPP
++#define LDPC_STATEFUL_MIN_SUM_HPP
++#include "hybrid_graph.hpp"
++#include <functional>
++
++namespace ldpc::hybrid {
++struct Snapshot { Reals fields,sums,llrs,q,z; Bits decision; uint64_t iterations; };
++struct Advance { bool valid=false,cap_hit=false; uint64_t iterations=0; };
++
++// Mutable non-reentrant session; owned edge state, shared immutable graph.
++// reset(s[m]) invalidates previous state, including when input validation fails.
++// Fields/LLRs have n entries; q/z use row-major canonical edge IDs. Snapshot copies.
++class StatefulMinSumSession {
++    std::shared_ptr<const Graph> graph_;
++    double limit_,alpha_;
++    Bits syndrome_;
++    bool ready_=false,fields_ready_=false;
++    Snapshot state_;
++    double clip(double x) const { x=finite(x); return x==0 ? 0.0 : std::max(-limit_,std::min(limit_,x)); }
++    void variables() {
++        const auto& g=*graph_;
++        for(int i=0;i<g.n;++i) {
++            double sum=state_.fields[i];
++            for(size_t j=g.cp[i];j<g.cp[i+1];++j) sum=finite(sum+state_.z[g.ce[j]]);
++            state_.sums[i]=sum; state_.llrs[i]=clip(sum); state_.decision[i]=state_.llrs[i]<=0;
++            for(size_t j=g.cp[i];j<g.cp[i+1];++j) {size_t e=g.ce[j]; state_.q[e]=clip(finite(sum-state_.z[e]));}
++        }
++    }
++public:
++    StatefulMinSumSession(std::shared_ptr<const Graph> graph,double limit=25,double alpha=1):
++        graph_(std::move(graph)),limit_(limit),alpha_(alpha) {
++        if(!graph_ || !std::isfinite(limit)||limit<=0||!std::isfinite(alpha)||alpha<=0||alpha>1)
++            throw std::invalid_argument("finite positive clip and scaling in (0,1] required");
++        auto n=graph_->n; auto edges=graph_->col.size();
++        state_.fields.resize(n); state_.sums.resize(n); state_.llrs.resize(n); state_.decision.resize(n);
++        state_.q.resize(edges); state_.z.resize(edges); state_.iterations=0;
++    }
++    void reset(const Bits& s) {
++        ready_=fields_ready_=false; state_.iterations=0;
++        std::fill(state_.q.begin(),state_.q.end(),0); std::fill(state_.z.begin(),state_.z.end(),0);
++        binary(s,graph_->m); syndrome_=s; ready_=true;
++    }
++    bool replace_fields(const Reals& fields) {
++        if(!ready_) throw std::logic_error("reset required before fields");
++        fields_ready_=false;
++        if(fields.size()!=size_t(graph_->n)||std::any_of(fields.begin(),fields.end(),[](double x){return !std::isfinite(x);})) {
++            ready_=false; throw std::invalid_argument("fields must be finite with shape (n,)");
++        }
++        try { state_.fields=fields; variables(); fields_ready_=true; return valid(); }
++        catch(...) { ready_=false; throw; }
++    }
++    bool replace_hint(const std::vector<std::pair<int,uint8_t>>& pattern,double margin) {
++        try {
++        if(!std::isfinite(margin)||margin<=0) {ready_=false; throw std::invalid_argument("hint margin must be finite and positive");}
++        auto fields=graph_->weights;
++        int previous=-1;
++        for(auto [i,b]:pattern) {
++            if(i<=previous||i>=graph_->n||b>1) {ready_=false; throw std::invalid_argument("hint must be sorted unique in-range binary assignments");}
++            previous=i; fields[i]=finite((b ? -1.0 : 1.0)*finite(fields[i]+margin));
++        }
++        return replace_fields(fields);
++        } catch(...) {ready_=fields_ready_=false;throw;}
++    }
++    bool valid() const { return ready_ && fields_ready_ && graph_->valid(state_.decision,syndrome_); }
++    Advance advance(int count,const std::function<bool()>& cap={}) {
++        if(count<0) throw std::invalid_argument("iteration count must be nonnegative");
++        if(!ready_||!fields_ready_) throw std::logic_error("reset and fields required before iterations");
++        Advance out; out.valid=valid();
++        try {
++            for(int t=0;t<count && !out.valid;++t) {
++                if(cap && cap()) {out.cap_hit=true; break;}
++                const auto& g=*graph_;
++                // All checks read the old q; q is written only after this pass.
++                for(int a=0;a<g.m;++a) {
++                    auto begin=g.rp[a],end=g.rp[a+1];
++                    if(begin==end) continue;
++                    if(end-begin==1) {state_.z[begin]=syndrome_[a] ? -limit_ : limit_; continue;}
++                    double first=std::numeric_limits<double>::infinity(),second=first;
++                    bool sign=bool(syndrome_[a]); size_t min_edge=begin;
++                    for(size_t e=begin;e<end;++e) {
++                        double x=state_.q[e],v=std::abs(x); sign^=x<0;
++                        if(v<first) {second=first; first=v; min_edge=e;} else if(v<second) second=v;
++                    }
++                    for(size_t e=begin;e<end;++e) {
++                        double magnitude=alpha_*(e==min_edge ? second : first);
++                        state_.z[e]=clip((sign^(state_.q[e]<0)) ? -magnitude : magnitude);
++                    }
++                }
++                variables(); ++state_.iterations; ++out.iterations; out.valid=valid();
++            }
++        } catch(...) { ready_=fields_ready_=false; throw; }
++        return out;
++    }
++    uint64_t completed_iterations() const {return state_.iterations;} // completed full iterations, even after an exception
++    Snapshot snapshot() const { if(!ready_||!fields_ready_) throw std::logic_error("no active BP state"); return state_; }
++    const Reals& llrs() const {return state_.llrs;}
++    const Bits& decision() const {return state_.decision;}
++    const Bits& syndrome() const {return syndrome_;}
++};
++}
++#endif
+diff --git a/src_python/ldpc/hybrid_bp/__init__.py b/src_python/ldpc/hybrid_bp/__init__.py
+new file mode 100644
+index 0000000..ce907b7
+--- /dev/null
++++ b/src_python/ldpc/hybrid_bp/__init__.py
+@@ -0,0 +1,8 @@
++"""Opt-in HSBP-ALG-1.0 sessions; arrays are copied across the Python boundary.
++
++Sessions are mutable and non-reentrant. reset starts a new shot; replace_fields
++retains check messages. advance stops on validity. No sampled truth is accepted.
++C++ production consumers share the native graph and sessions without Python loops.
++"""
++from ._hybrid_bp import StatefulMinSumSession, Osd0Bridge, build_identity
++from .source_files import SOURCE_FILES, source_digest
+diff --git a/src_python/ldpc/hybrid_bp/__init__.pyi b/src_python/ldpc/hybrid_bp/__init__.pyi
+new file mode 100644
+index 0000000..cdcedbb
+--- /dev/null
++++ b/src_python/ldpc/hybrid_bp/__init__.pyi
+@@ -0,0 +1,29 @@
++from typing import Sequence
++class Snapshot:
++    fields: list[float]
++    sums: list[float]
++    llrs: list[float]
++    q: list[float]
++    z: list[float]
++    decision: list[int]
++    iterations: int
++class Advance:
++    valid: bool
++    cap_hit: bool
++    iterations: int
++class OsdResult:
++    correction: list[int]
++    valid: bool
++class StatefulMinSumSession:
++    def __init__(self, rows: Sequence[Sequence[int]], n: int, probabilities: Sequence[float], llr_clip: float = 25., scaling_factor: float = 1.) -> None: ...
++    def reset(self, syndrome: Sequence[int]) -> None: ...
++    def replace_fields(self, fields: Sequence[float]) -> bool: ...
++    def replace_hint(self, pattern: Sequence[tuple[int, int]], margin: float) -> bool: ...
++    def advance(self, iterations: int) -> Advance: ...
++    def snapshot(self) -> Snapshot: ...
++class Osd0Bridge:
++    def __init__(self, rows: Sequence[Sequence[int]], n: int, probabilities: Sequence[float]) -> None: ...
++    def decode(self, syndrome: Sequence[int], llrs: Sequence[float]) -> OsdResult: ...
++    @property
++    def candidate_count(self) -> int: ...
++def build_identity() -> dict[str, str]: ...
+diff --git a/src_python/ldpc/hybrid_bp/bindings.cpp b/src_python/ldpc/hybrid_bp/bindings.cpp
+new file mode 100644
+index 0000000..3f7972d
+--- /dev/null
++++ b/src_python/ldpc/hybrid_bp/bindings.cpp
+@@ -0,0 +1,32 @@
++#include <pybind11/pybind11.h>
++#include <pybind11/stl.h>
++#include "stateful_min_sum.hpp"
++#include "osd0_bridge.hpp"
++namespace py=pybind11;
++using namespace ldpc::hybrid;
++PYBIND11_MODULE(_hybrid_bp,m) {
++    m.doc()="Opt-in stateful flooding min-sum and direct pinned CS/order-zero OSD.";
++    m.def("build_identity",[](){py::dict d; d["profile"]="HSBP-ALG-1.0";
++        d["upstream_commit"]=HYBRID_UPSTREAM_COMMIT; d["source_sha256"]=HYBRID_SOURCE_HASH;
++        d["compiler"]=__VERSION__; d["flags"]="-O3 -std=c++17 -fno-fast-math -ffp-contract=off"; return d;});
++    py::class_<Snapshot>(m,"Snapshot")
++        .def_readonly("fields",&Snapshot::fields).def_readonly("sums",&Snapshot::sums)
++        .def_readonly("llrs",&Snapshot::llrs).def_readonly("q",&Snapshot::q).def_readonly("z",&Snapshot::z)
++        .def_readonly("decision",&Snapshot::decision).def_readonly("iterations",&Snapshot::iterations);
++    py::class_<Advance>(m,"Advance").def_readonly("valid",&Advance::valid)
++        .def_readonly("cap_hit",&Advance::cap_hit).def_readonly("iterations",&Advance::iterations);
++    py::class_<StatefulMinSumSession>(m,"StatefulMinSumSession")
++        .def(py::init([](const Rows& rows,int n,const Reals& p,double clip,double alpha){
++            return std::make_unique<StatefulMinSumSession>(std::make_shared<Graph>(rows,n,p),clip,alpha);}),
++            py::arg("rows"),py::arg("n"),py::arg("probabilities"),py::arg("llr_clip")=25.,py::arg("scaling_factor")=1.)
++        .def("reset",&StatefulMinSumSession::reset,py::call_guard<py::gil_scoped_release>())
++        .def("replace_fields",&StatefulMinSumSession::replace_fields,py::call_guard<py::gil_scoped_release>())
++        .def("replace_hint",&StatefulMinSumSession::replace_hint,py::call_guard<py::gil_scoped_release>())
++        .def("advance",[](StatefulMinSumSession& session,int count){return session.advance(count);},py::call_guard<py::gil_scoped_release>())
++        .def("snapshot",&StatefulMinSumSession::snapshot);
++    py::class_<OsdResult>(m,"OsdResult").def_readonly("valid",&OsdResult::valid).def_readonly("correction",&OsdResult::correction);
++    py::class_<Osd0Bridge>(m,"Osd0Bridge")
++        .def(py::init([](const Rows& rows,int n,const Reals& p){return std::make_unique<Osd0Bridge>(std::make_shared<Graph>(rows,n,p));}))
++        .def("decode",&Osd0Bridge::decode,py::call_guard<py::gil_scoped_release>())
++        .def_property_readonly("candidate_count",&Osd0Bridge::candidate_count);
++}
+diff --git a/src_python/ldpc/hybrid_bp/source_files.py b/src_python/ldpc/hybrid_bp/source_files.py
+new file mode 100644
+index 0000000..5c99f54
+--- /dev/null
++++ b/src_python/ldpc/hybrid_bp/source_files.py
+@@ -0,0 +1,21 @@
++"""Complete opt-in source/build digest, including pinned transitive native headers."""
++from pathlib import Path
++import hashlib
++
++SOURCE_FILES = tuple('src_cpp/' + name + '.hpp' for name in (
++    'hybrid_graph', 'stateful_min_sum', 'osd0_bridge', 'bp', 'osd', 'sort',
++    'util', 'gf2sparse', 'gf2sparse_linalg', 'sparse_matrix_base', 'sparse_matrix_util', 'rng',
++)) + ('src_python/ldpc/hybrid_bp/bindings.cpp', 'src_python/ldpc/hybrid_bp/__init__.py',
++     'src_python/ldpc/hybrid_bp/__init__.pyi', 'src_python/ldpc/hybrid_bp/source_files.py', 'setup_hybrid.py')
++
++
++def source_digest(root: Path) -> str:
++    """Hash ordered relative names and bytes; missing files raise OSError."""
++    digest = hashlib.sha256()
++    for name in SOURCE_FILES:
++        digest.update(name.encode() + b'\0' + (root / name).read_bytes())
++    return digest.hexdigest()
++
++
++if __name__ == '__main__':
++    print(source_digest(Path(__file__).resolve().parents[3]))
 diff --git a/src_python/ldpc/reference_bp/README.md b/src_python/ldpc/reference_bp/README.md
 new file mode 100644
 index 0000000..ec1f2fc

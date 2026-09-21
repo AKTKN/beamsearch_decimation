@@ -31,19 +31,19 @@ def atomic_json(path: Path, contents: dict, *, exclusive: bool=False) -> None:
     finally: temporary.unlink(missing_ok=True)
 
 
-def failure_labels(status: str, syndrome_valid: bool, prediction: Sequence[bool] | None, truth: Sequence[bool]) -> dict:
+def failure_labels(status: str, syndrome_valid: bool, prediction: Sequence[bool] | None, truth: Sequence[bool], *, version: int=1) -> dict:
     """Per-shot block/observable indicators; conditional mismatch excludes failures."""
     failure=status!='SUCCESS' or not syndrome_valid
     if not failure and (prediction is None or len(prediction)!=len(truth)):
         raise ValueError('successful decode must predict every observable')
     mismatch=None if failure else [bool(a!=b) for a,b in zip(prediction,truth)]
-    valid_mismatch=False if failure else any(mismatch)
+    valid_mismatch=(None if version==2 else False) if failure else any(mismatch)
     return {'decoding_failure':failure,'valid_logical_mismatch':valid_mismatch,
             'block_failure':failure or valid_mismatch,'observable_mismatch':mismatch,
             'observable_total_failure':[True]*len(truth) if failure else mismatch}
 
 
-def validate_pair(samples: list[dict], decodes: list[dict], decoder_ids: tuple[str,...]) -> None:
+def validate_pair(samples: list[dict], decodes: list[dict], decoder_ids: tuple[str,...], *, version: int=1) -> None:
     """Check exact pairing, semantic nulls, timing units and block failure labels."""
     from .schema import COMMON
     if not decoder_ids or len(set(decoder_ids))!=len(decoder_ids): raise ValueError('empty or duplicate decoder set')
@@ -63,7 +63,7 @@ def validate_pair(samples: list[dict], decodes: list[dict], decoder_ids: tuple[s
         for field in COMMON:
             if sample[field.name]!=row[field.name]: raise ValueError('incompatible paired identities')
         if row['status'] not in ('SUCCESS','DECLARED_FAILURE','INVALID_OUTPUT'): raise ValueError('unknown normalized status')
-        labels=failure_labels(row['status'],row['syndrome_valid'],row['prediction'],sample['actual_observables'])
+        labels=failure_labels(row['status'],row['syndrome_valid'],row['prediction'],sample['actual_observables'],version=version)
         if any(row[k]!=v for k,v in labels.items()): raise ValueError('inconsistent failure labels')
         if labels['decoding_failure']:
             if row['prediction'] is not None or row['cost'] is not None or row['correction_packed'] is not None: raise ValueError('failure requires null outputs')
@@ -73,17 +73,31 @@ def validate_pair(samples: list[dict], decodes: list[dict], decoder_ids: tuple[s
 
 
 def commit_batch(instance: Path, batch_id: int, samples: list[dict], decodes: list[dict],
-                 decoder_ids: tuple[str,...], compression: str, setup: dict) -> dict:
-    """Write two shards then commit marker, never overwriting a shard (even an orphan)."""
+                 decoder_ids: tuple[str,...], compression: str, setup: dict, *, version: int=1, profiling: str='none',
+                 hybrid_rounds: list[dict] | None=None, decoder_phases: list[dict] | None=None) -> dict:
+    """Publish every declared shard durably, then its marker; never overwrite.
+
+    Version 1 writes the historical pair. Version 2 requires matching profiling
+    policy and owned event lists, with typed empty events under phases. Invalid
+    pairing, schemas or telemetry raise before publication; IO errors may leave
+    orphans, never a marker for a partial batch. Only the parent calls this API.
+    """
     import pyarrow.parquet as pq
-    from .schema import SAMPLES,DECODES,table
-    validate_pair(samples,decodes,decoder_ids)
-    for sub in ('samples','decodes','batch_manifests'): (instance/sub).mkdir(exist_ok=True)
+    from .schema import SAMPLES,DECODES,table,V2_SCHEMAS,TABLE_VERSIONS
+    from .telemetry import validate_events
+    if version not in (1,2): raise ValueError('unsupported batch version')
+    validate_pair(samples,decodes,decoder_ids,version=version)
+    rows=dict(samples=samples,decodes=decodes)
+    schemas=dict(samples=SAMPLES,decodes=DECODES) if version==1 else V2_SCHEMAS
+    if version==2:
+        validate_events(decodes,hybrid_rounds or [],decoder_phases or [],profiling)
+        if profiling=='phases': rows.update(hybrid_rounds=hybrid_rounds or [],decoder_phases=decoder_phases or [])
+    for sub in (*rows,'batch_manifests'): (instance/sub).mkdir(exist_ok=True)
     name=f'part-{batch_id:08d}'
-    destinations=[instance/'samples'/f'{name}.parquet',instance/'decodes'/f'{name}.parquet']
+    destinations=[instance/sub/f'{name}.parquet' for sub in rows]
     marker=instance/'batch_manifests'/f'{name}.json'
     if any(p.exists() for p in [*destinations,marker]): raise FileExistsError(f'batch {batch_id} already has output')
-    tables=[table(samples,SAMPLES),table(decodes,DECODES)]
+    tables=[table(data,schemas[sub]) for sub,data in rows.items()]
     files={}
     for target,data in zip(destinations,tables):
         temp=target.with_name('.'+target.name+'.'+uuid.uuid4().hex+'.tmp')
@@ -94,9 +108,10 @@ def commit_batch(instance: Path, batch_id: int, samples: list[dict], decodes: li
             os.link(temp,target); temp.unlink(); _sync_dir(target.parent)
         finally: temp.unlink(missing_ok=True)
         files[str(target.relative_to(instance))]={'sha256':sha256(target),'rows':data.num_rows}
-    manifest={'schema_version':1,'status':'committed','batch_id':batch_id,'files':files,
+    manifest={'schema_version':version,'status':'committed','batch_id':batch_id,'files':files,
               'offset':samples[0]['shot_index'],'count':len(samples),'seed':samples[0]['batch_seed'],
               'sampling_id':samples[0]['sampling_id'],'decoder_ids':list(decoder_ids),'setup':setup}
+    if version==2: manifest.update(table_versions=TABLE_VERSIONS,event_tables='present' if profiling=='phases' else 'omitted',profiling=profiling)
     atomic_json(marker,manifest,exclusive=True)
     return manifest
 
@@ -104,11 +119,19 @@ def commit_batch(instance: Path, batch_id: int, samples: list[dict], decodes: li
 def committed_batches(instance: Path, *, verify: bool=True) -> Iterator[dict]:
     """Yield only committed pairs; ignore orphan files and validate each checksum/count."""
     import pyarrow.parquet as pq
-    from .schema import SAMPLES,DECODES
+    from .schema import SAMPLES,DECODES,V2_SCHEMAS,TABLE_VERSIONS
+    from .telemetry import validate_events
     for path in sorted((instance/'batch_manifests').glob('part-*.json')):
         batch=json.loads(path.read_text())
-        if batch.get('status')!='committed' or batch.get('schema_version')!=1: raise ValueError('invalid batch manifest')
-        expected={f'{sub}/part-{batch["batch_id"]:08d}.parquet' for sub in ('samples','decodes')}
+        if batch.get('status')!='committed' or batch.get('schema_version') not in (1,2): raise ValueError('invalid batch manifest')
+        version=batch['schema_version']
+        schemas=dict(samples=SAMPLES,decodes=DECODES) if version==1 else V2_SCHEMAS
+        subs=['samples','decodes']
+        if version==2:
+            if batch.get('table_versions')!=TABLE_VERSIONS or batch.get('profiling') not in ('none','phases'): raise ValueError('unsupported table policy')
+            if batch.get('event_tables')!=('present' if batch['profiling']=='phases' else 'omitted'): raise ValueError('invalid event policy')
+            if batch['profiling']=='phases': subs+=['hybrid_rounds','decoder_phases']
+        expected={f'{sub}/part-{batch["batch_id"]:08d}.parquet' for sub in subs}
         if set(batch['files'])!=expected: raise ValueError('invalid paired shard paths')
         if verify:
             values={}
@@ -116,8 +139,9 @@ def committed_batches(instance: Path, *, verify: bool=True) -> Iterator[dict]:
                 file=instance/name
                 if sha256(file)!=detail['sha256']: raise ValueError(f'checksum mismatch: {file}')
                 data=pq.read_table(file)
-                schema=SAMPLES if name.startswith('samples/') else DECODES
+                schema=schemas[name.split('/')[0]]
                 if not data.schema.equals(schema,check_metadata=True) or data.num_rows!=detail['rows']: raise ValueError('shard schema/count mismatch')
                 values[name.split('/')[0]]=data.to_pylist()
-            validate_pair(values['samples'],values['decodes'],tuple(batch['decoder_ids']))
+            validate_pair(values['samples'],values['decodes'],tuple(batch['decoder_ids']),version=version)
+            if version==2: validate_events(values['decodes'],values.get('hybrid_rounds',[]),values.get('decoder_phases',[]),batch['profiling'])
         yield batch

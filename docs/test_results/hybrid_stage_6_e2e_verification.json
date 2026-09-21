@@ -1,0 +1,148 @@
+{
+  "all_12_bb_labels": true,
+  "commands": [
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/single.yaml",
+      "--verbose"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/latency.yaml",
+      "--verbose"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/multi.yaml",
+      "--verbose"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/replay_samples.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/replay.yaml",
+      "--verbose"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/replay_samples.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/none.yaml",
+      "--verbose"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/ablations.yaml",
+      "--verbose"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/analyze_benchmark.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/ablations.yaml",
+      "--run",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050551.362434Z_d8439f5896d4"
+    ],
+    [
+      "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/execute_notebook.py",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/single.yaml",
+      "--run",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10",
+      "--notebook",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/notebook/benchmark_analysis.ipynb.example",
+      "--output",
+      "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/executed.ipynb"
+    ]
+  ],
+  "comparisons": {
+    "latency": {
+      "additional_decode_rows": 0,
+      "left_run_id": "a72543a31f74d9ef4e4e10c01d5ed95d596b7a5167b29602a6d79c75c58e0637",
+      "right_run_id": "8e69b5711fb6d4be374f0e8740484b9d295f983e97f1228f466cda837089c97b",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "status": "equal"
+    },
+    "multi": {
+      "additional_decode_rows": 0,
+      "left_run_id": "a72543a31f74d9ef4e4e10c01d5ed95d596b7a5167b29602a6d79c75c58e0637",
+      "right_run_id": "e888602293fdc5612972c35a015b619df0fedd8d84a1ddfd6b0e32e6efca5e35",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "status": "equal"
+    },
+    "none": {
+      "additional_decode_rows": 0,
+      "left_run_id": "a72543a31f74d9ef4e4e10c01d5ed95d596b7a5167b29602a6d79c75c58e0637",
+      "right_run_id": "cf71a1be10d92a6b3ae0bc4e8ee90e9a216bf85fefd6b5b87b6051d64573cc5b",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "status": "equal"
+    },
+    "replay": {
+      "additional_decode_rows": 0,
+      "left_run_id": "a72543a31f74d9ef4e4e10c01d5ed95d596b7a5167b29602a6d79c75c58e0637",
+      "right_run_id": "575fefc6a97a173a5dab09058632c69ac08d1732b70e7c75f838dcf618381fd5",
+      "samples_equal": 8,
+      "shared_decodes_equal": 24,
+      "status": "equal"
+    }
+  },
+  "counts": {
+    "ablations": {
+      "decodes": 32,
+      "phases": 77,
+      "rounds": 33,
+      "samples": 8
+    },
+    "latency": {
+      "decodes": 24,
+      "phases": 26,
+      "rounds": 9,
+      "samples": 8
+    },
+    "multi": {
+      "decodes": 24,
+      "phases": 26,
+      "rounds": 9,
+      "samples": 8
+    },
+    "none": {
+      "decodes": 24,
+      "phases": 0,
+      "rounds": 0,
+      "samples": 8
+    },
+    "replay": {
+      "decodes": 24,
+      "phases": 26,
+      "rounds": 9,
+      "samples": 8
+    },
+    "single": {
+      "decodes": 24,
+      "phases": 26,
+      "rounds": 9,
+      "samples": 8
+    }
+  },
+  "limits": "Bounded software checks in the existing environment; no scientific performance claim.",
+  "notebook": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/executed.ipynb",
+  "notebook_sha256": "42993345dfcc53d685f0674d5f7388ac706673acf2d203be1296fe428238c6d3",
+  "paired_groups": 12,
+  "report": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/reports/20260921T050555.941074Z_4588bbe349",
+  "report_files": 65,
+  "runs": {
+    "ablations": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050551.362434Z_d8439f5896d4",
+    "latency": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050530.270239Z_bae4c1253992",
+    "multi": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050534.614633Z_18ca06301496",
+    "none": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050547.861935Z_27ec2a9dfe0c",
+    "replay": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050541.815257Z_b81a6b7a0b22",
+    "single": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs/20260921T050525.793958Z_2ea2911f4a10"
+  },
+  "status": "passed"
+}

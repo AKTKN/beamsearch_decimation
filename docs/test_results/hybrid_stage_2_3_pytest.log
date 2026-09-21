@@ -1,0 +1,164 @@
+........................................................................ [ 35%]
+........................................................................ [ 71%]
+.....................................FF...................               [100%]
+=================================== FAILURES ===================================
+_______ test_verbose_cli_progress_and_scientific_equality[2-False-True] ________
+
+runs = (PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/paired0'), PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-2...cf8120b39'), PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/paired0/runs/20260921T034236.695593Z_d9ab2511ff0f'))
+tmp_path = PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/test_verbose_cli_progress_and_2')
+workers = 2, replay = False, verbose = True
+
+    @pytest.mark.parametrize('workers,replay,verbose',[(1,False,False),(1,False,True),(2,False,True),(2,True,True)])
+    def test_verbose_cli_progress_and_scientific_equality(runs,tmp_path,workers,replay,verbose):
+        import subprocess,sys
+        from analysis.io import load_run
+        from analysis.validation import compare_runs
+        _,source,_,_=runs
+        config=write_config(tmp_path/'verbose.yaml',tmp_path,execution={'workers':workers})
+        if replay:
+            data=yaml.safe_load(config.read_text())
+            data['sampling']['shots_per_point']=999
+            config.write_text(yaml.safe_dump(data))
+        root=Path(__file__).resolve().parents[1]
+        script='replay_samples.py' if replay else 'run_benchmark.py'
+        command=[sys.executable,str(root/'python_scripts'/script)]
+        if replay: command.append(str(source))
+>       result=subprocess.run([*command,str(config),*(['--verbose'] if verbose else [])],capture_output=True,text=True,check=True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_pipeline.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python', '/home/quantum_teresheys/workspace/beamsearch...enchmark.py', '/tmp/pytest-of-quantum_teresheys/pytest-24/test_verbose_cli_progress_and_2/verbose.yaml', '--verbose'],)
+kwargs = {'text': True, 'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python', '/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py', '/tmp/pytest-of-quantum_teresheys/pytest-24/test_verbose_cli_progress_and_2/verbose.yaml', '--verbose']' returned non-zero exit status 1.
+
+../../anaconda3/envs/search_decimation/lib/python3.12/subprocess.py:571: CalledProcessError
+________ test_verbose_cli_progress_and_scientific_equality[2-True-True] ________
+
+runs = (PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/paired0'), PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-2...cf8120b39'), PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/paired0/runs/20260921T034236.695593Z_d9ab2511ff0f'))
+tmp_path = PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/test_verbose_cli_progress_and_3')
+workers = 2, replay = True, verbose = True
+
+    @pytest.mark.parametrize('workers,replay,verbose',[(1,False,False),(1,False,True),(2,False,True),(2,True,True)])
+    def test_verbose_cli_progress_and_scientific_equality(runs,tmp_path,workers,replay,verbose):
+        import subprocess,sys
+        from analysis.io import load_run
+        from analysis.validation import compare_runs
+        _,source,_,_=runs
+        config=write_config(tmp_path/'verbose.yaml',tmp_path,execution={'workers':workers})
+        if replay:
+            data=yaml.safe_load(config.read_text())
+            data['sampling']['shots_per_point']=999
+            config.write_text(yaml.safe_dump(data))
+        root=Path(__file__).resolve().parents[1]
+        script='replay_samples.py' if replay else 'run_benchmark.py'
+        command=[sys.executable,str(root/'python_scripts'/script)]
+        if replay: command.append(str(source))
+        result=subprocess.run([*command,str(config),*(['--verbose'] if verbose else [])],capture_output=True,text=True,check=True)
+        assert len(result.stdout.strip().splitlines())==1
+        target=Path(result.stdout.strip())
+>       assert compare_runs(load_run(source),load_run(target))['shared_decodes_equal']==15
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_pipeline.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+left = RunData(path=PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/paired0/runs/20260921T034231.831654Z_c6e287a2ba0b')...ra measurement/reset waiting noise'}}, execution_id='25fea99dd477b0ba06f5e62b35bc717bdb701aeb5e83da81a9e50a5638b1c255')
+right = RunData(path=PosixPath('/tmp/pytest-of-quantum_teresheys/pytest-24/test_verbose_cli_progress_and_3/runs/20260921T03425...ra measurement/reset waiting noise'}}, execution_id='25fea99dd477b0ba06f5e62b35bc717bdb701aeb5e83da81a9e50a5638b1c255')
+allow_additional_decoders = False
+
+    def compare_runs(left: RunData, right: RunData, *, allow_additional_decoders: bool=False) -> dict:
+        """Require identical physical bits/truth and shared-decoder scientific outputs.
+    
+        Fails on differences instead of reporting an approximate agreement. Optional
+        traces/corrections and timing instrument details do not affect this scientific
+        equality check; validity, logical prediction, cost and all available counters do.
+        Both inputs must already pass load_run. Returns explicit tested row counts.
+        """
+        def samples(run):
+            return {r['shot_id']:{k:v for k,v in r.items() if k not in {'run_id','source_hash','config_hash'}}
+                    for r in run.samples.to_pylist()}
+        if samples(left)!=samples(right): raise ValueError('physical samples or truth differ')
+        def decodes(run):
+            return {(r['shot_id'],r['decoder_id']):{k:v for k,v in r.items() if k not in EXECUTION_ONLY}
+                    for r in run.decodes.to_pylist()}
+        a,b=decodes(left),decodes(right)
+        if (allow_additional_decoders and not a.keys()<=b.keys()) or (not allow_additional_decoders and a.keys()!=b.keys()):
+>           raise ValueError('decoder/shot sets differ')
+E           ValueError: decoder/shot sets differ
+
+analysis/validation.py:28: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_pipeline.py::test_verbose_cli_progress_and_scientific_equality[2-False-True]
+FAILED tests/test_pipeline.py::test_verbose_cli_progress_and_scientific_equality[2-True-True]
+2 failed, 200 passed in 49.62s

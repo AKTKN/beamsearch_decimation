@@ -94,6 +94,31 @@
   },
   {
    "cell_type": "markdown",
+   "id": "hybrid-contract",
+   "metadata": {},
+   "source": [
+    "## Hybrid stage and paired hypothesis accounting\n",
+    "The saved tables separate zero syndrome, guided BP, OSD reach and failed outputs.\n",
+    "The signed timing terms are prefix + service other \u2212 avoided baseline + fallback difference.\n",
+    "Replays remain dependent physical observations. Bootstrap seed, count and resampling unit are recorded.\n",
+    "Without a predeclared accuracy margin, no equivalence conclusion is made."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "id": "hybrid-tables",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "stages = json.loads((report / \"hybrid_stages.json\").read_text())[\"groups\"]\n",
+    "pairs = json.loads((report / \"paired.json\").read_text())[\"groups\"]\n",
+    "display(stages)\n",
+    "display(pairs)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
    "id": "5337509e",
    "metadata": {},
    "source": [

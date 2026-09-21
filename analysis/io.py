@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from qec_bp_benchmark.identity import content_hash
 from qec_bp_benchmark.storage import committed_batches,sha256
-from qec_bp_benchmark.storage.schema import SAMPLES,DECODES
+from qec_bp_benchmark.storage.schema import SAMPLES,DECODES,DECODES_V2,HYBRID_ROUNDS,DECODER_PHASES,HYBRID_FIELDS,TABLE_VERSIONS
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,8 @@ class RunData:
     decodes: pa.Table
     instances: dict[str,dict]
     execution_id: str
+    hybrid_rounds: pa.Table | None=None
+    decoder_phases: pa.Table | None=None
 
     def records(self) -> list[dict]:
         """Return detached decode records with analysis grouping/label metadata."""
@@ -33,20 +35,23 @@ class RunData:
             metadata=self.instances[row['instance_id']]
             comparison={k:v for k,v in metadata.items() if k not in ('p','hashes','scientific_instance_id')}
             output.append(dict(row,comparison_id=content_hash(comparison),execution_id=self.execution_id,
-                run_status=self.manifest['status'],decoder_parameters=profiles[row['decoder_id']]))
+                trial_id=self.manifest['run_id'],physical_trial_id=row['shot_id'],
+                replayed='replay' in self.manifest,run_status=self.manifest['status'],decoder_parameters=profiles[row['decoder_id']]))
         return output
 
 
 def read_manifest(path: str | Path) -> dict:
-    """Read version-1 run manifest, rejecting artifacts/unknown/inconsistent statuses."""
+    """Dispatch v1/v2 run manifests; reject unknown versions or inconsistent policies."""
     path=Path(path)
     if path.is_dir(): path=path/'manifest.json'
     value=json.loads(path.read_text())
     required={'run_id','instances','config','completed_batches','expected_batches','status','schema_version'}
-    if not required<=value.keys() or value['schema_version']!=1 or value['status'] not in ('complete','incomplete'):
+    if not required<=value.keys() or value['schema_version'] not in (1,2) or value['status'] not in ('complete','incomplete'):
         raise ValueError(f'unsupported run manifest: {path}')
     if value['status']=='complete' and value['completed_batches']!=value['expected_batches']:
         raise ValueError('complete run has inconsistent task counts')
+    if value['schema_version']==2:
+        if value.get('table_versions')!=TABLE_VERSIONS or value.get('event_tables')!=('present' if value['timing']['profiling']=='phases' else 'omitted'): raise ValueError('unsupported run table policy')
     return value
 
 
@@ -98,7 +103,7 @@ def load_run(path: str | Path, *, allow_incomplete: bool=False) -> RunData:
         'dependencies':environment['dependencies']})
     decoder_ids=tuple(d['id'] for d in manifest['decoders'])
     if not decoder_ids or len(set(decoder_ids))!=len(decoder_ids): raise ValueError('duplicate/empty manifest decoder IDs')
-    samples=[]; decodes=[]; instances={}; total_batches=0
+    samples=[]; decodes=[]; rounds=[]; phases=[]; instances={}; total_batches=0
     for entry in manifest['instances']:
         iid=entry['instance_id']; folder=_inside(path,entry['directory'])
         if iid in instances: raise ValueError('duplicate instance in manifest')
@@ -109,8 +114,16 @@ def load_run(path: str | Path, *, allow_incomplete: bool=False) -> RunData:
         for name,expected in artifact['files'].items():
             if sha256(_inside(folder,name))!=expected: raise ValueError(f'artifact checksum mismatch: {name}')
         metadata=json.loads((folder/'instance.json').read_text()); instances[iid]=metadata
+        if manifest['schema_version']==2:
+            import numpy as np
+            h=np.load(folder/'matrices/H_shape.npy',allow_pickle=False)
+            a=np.load(folder/'matrices/A_shape.npy',allow_pickle=False)
+            sizes=dict(num_detectors=int(h[0]),num_mechanisms=int(h[1]),num_observables=int(a[0]))
+            if any(entry.get(k)!=v for k,v in sizes.items()): raise ValueError('manifest model size mismatch')
         count=shots=0; previous_end=0; expected_batch=0
         for batch in committed_batches(folder):
+            if batch['schema_version']!=manifest['schema_version']: raise ValueError('batch/run version mismatch')
+            if batch['schema_version']==2 and batch['profiling']!=manifest['timing']['profiling']: raise ValueError('batch/run profiling mismatch')
             count+=1; shots+=batch['count']; total_batches+=1
             if batch['count']<=0 or batch['offset']<previous_end: raise ValueError('invalid/overlapping batch intervals')
             if manifest['status']=='complete' and 'replay' not in manifest:
@@ -134,16 +147,28 @@ def load_run(path: str | Path, *, allow_incomplete: bool=False) -> RunData:
                     'concurrent_load':manifest['timing']['concurrent_load'],
                     'oversubscribed':manifest['timing']['execution']['oversubscribed']}
                 if any(row[k]!=v for k,v in expected.items()): raise ValueError('timing row differs from manifest')
+            if manifest['schema_version']==1:
+                projected=[]
+                for row in dt.to_pylist():
+                    row.update({f.name:None for f in HYBRID_FIELDS})
+                    if row['decoding_failure']: row['valid_logical_mismatch']=None
+                    projected.append(row)
+                dt=pa.Table.from_pylist(projected,schema=DECODES_V2)
+            elif manifest['event_tables']=='present':
+                rounds.append(pq.read_table(folder/f'hybrid_rounds/part-{batch["batch_id"]:08d}.parquet'))
+                phases.append(pq.read_table(folder/f'decoder_phases/part-{batch["batch_id"]:08d}.parquet'))
             samples.append(st); decodes.append(dt)
         if manifest['status']=='complete' and (count!=entry['expected_batches'] or shots!=entry['expected_shots']):
             raise ValueError('complete run has missing instance batches/shots')
         if manifest['status']=='complete':
-            for sub in ('samples','decodes'):
+            for sub in (('samples','decodes','hybrid_rounds','decoder_phases') if manifest.get('event_tables')=='present' else ('samples','decodes')):
                 if len(list((folder/sub).glob('part-*.parquet')))!=count: raise ValueError('complete run has uncommitted shards')
     if manifest['status']=='complete' and total_batches!=manifest['completed_batches']:
         raise ValueError('complete manifest has missing committed batches')
     return RunData(path,manifest,pa.concat_tables(samples) if samples else pa.Table.from_pylist([],schema=SAMPLES),
-        pa.concat_tables(decodes) if decodes else pa.Table.from_pylist([],schema=DECODES),instances,execution_id)
+        pa.concat_tables(decodes) if decodes else pa.Table.from_pylist([],schema=DECODES_V2),instances,execution_id,
+        pa.concat_tables(rounds) if rounds else pa.Table.from_pylist([],schema=HYBRID_ROUNDS),
+        pa.concat_tables(phases) if phases else pa.Table.from_pylist([],schema=DECODER_PHASES))
 
 
 def select_records(runs: Iterable[RunData], *, families: Iterable[str] | None=None,

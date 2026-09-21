@@ -1,0 +1,445 @@
+{
+  "algorithm_contract": "HSBP-ALG-1.0",
+  "completed_batches": 4,
+  "completed_utc": "2026-09-21T05:05:28.509531+00:00",
+  "config": {
+    "analysis": {
+      "accuracy_margin_absolute": null,
+      "bootstrap_count": 2000,
+      "bootstrap_seed": 20260921,
+      "bootstrap_unit": "shot",
+      "confidence": 0.95,
+      "input": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs",
+      "min_expected_tail_count": 10,
+      "output": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/reports",
+      "plots": [
+        "failure_rate",
+        "cpu_ecdf",
+        "wall_ecdf",
+        "cpu_survival",
+        "wall_survival"
+      ],
+      "quantiles": [
+        0.5,
+        0.9,
+        0.95,
+        0.99,
+        0.999
+      ],
+      "stratify_timing": true
+    },
+    "circuit": {
+      "bb_provider": "qldpc",
+      "bb_schedule": "edge_coloring",
+      "boundary": "noisy_prepare_extract_readout",
+      "cache": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/fresh_circuits",
+      "edge_coloring_strategy": "smallest_last",
+      "surface_provider": "stim",
+      "surface_schedule": "rotated_memory_z"
+    },
+    "decoders": [
+      {
+        "algorithm_version": "HSBP-ALG-1.0",
+        "bp": {
+          "enabled": true,
+          "hard_decision_zero": "one",
+          "hint_margin_llr": 8.0,
+          "hint_policy": "signed_channel_magnitude_plus_margin",
+          "iterations_per_cycle": [
+            6,
+            6,
+            6
+          ],
+          "llr_clip": 25.0,
+          "method": "minimum_sum",
+          "replace_previous_hint": true,
+          "scaling_factor": 1.0,
+          "schedule": "parallel",
+          "warm_start": true
+        },
+        "enabled": true,
+        "fallback": {
+          "backend": "ldpc_osd_only",
+          "llr_source": "last_bp_else_clipped_channel",
+          "ordering": "pinned_ldpc_signed_llr",
+          "osd_method": "OSD_CS",
+          "osd_order": 0
+        },
+        "kind": "hybrid_search_soft_bp_osd0",
+        "name": "hybrid_search_soft_ms_osd0_v1",
+        "native_threads": 1,
+        "numerics": {
+          "dtype": "float64",
+          "fast_math": false,
+          "heuristic_reduction": "fixed_binary_tree"
+        },
+        "profile": "hybrid_search_soft_ms_osd0_v1",
+        "search": {
+          "branch_order": "physical_weight_then_index",
+          "detector_order": "canonical_index",
+          "expansions_per_cycle": [
+            8,
+            8,
+            8
+          ],
+          "goal_test": "on_generation",
+          "guidance_selection": "best_unused_generated_pattern",
+          "heuristic": "residual_fractional_cover",
+          "max_cycles": 3,
+          "max_depth": 2,
+          "max_generated_nodes": 4096,
+          "prefix_cpu_budget_ns": null
+        }
+      },
+      {
+        "bp_method": "minimum_sum",
+        "enabled": true,
+        "implementation_properties": {
+          "converge_flag": "BP stage only; validate correction after OSD",
+          "error_channel_type": "list",
+          "hard_decision": "upstream L<=0"
+        },
+        "max_iter": 30,
+        "ms_scaling_factor": 1.0,
+        "name": "bposd_ms30_cs0",
+        "omp_thread_count": 1,
+        "osd_method": "OSD_CS",
+        "osd_order": 0,
+        "profile": "bposd_ms30_cs0",
+        "schedule": "parallel"
+      },
+      {
+        "beam_width": 8,
+        "enabled": true,
+        "implementation_properties": {
+          "bp_method": "upstream_min_sum",
+          "branch_degree_filter": "skip columns with degree <=2",
+          "hard_decision": "L<=0",
+          "message_clip": "no configurable finite clip",
+          "native_threads": 1,
+          "tie_breaking": "upstream strict comparisons and (score,storage_index) priority queue"
+        },
+        "initial_iters": 30,
+        "iters_per_round": 20,
+        "max_rounds": 10,
+        "name": "beam8",
+        "num_results": 1,
+        "profile": "beam8"
+      }
+    ],
+    "dem": {
+      "allow_gauge_detectors": false,
+      "approximate_disjoint_errors": false,
+      "decompose_errors": false,
+      "merge": "none",
+      "normalization": "remove_zero_reject_above_half",
+      "sector_mapping": "measurement_provenance"
+    },
+    "execution": {
+      "affinity": null,
+      "blas_threads": 1,
+      "max_pending": 2,
+      "native_threads": 1,
+      "start_method": "spawn",
+      "worker_cache_size": 2,
+      "workers": 1
+    },
+    "experiment": {
+      "codes": [
+        {
+          "distances": [
+            3
+          ],
+          "family": "surface",
+          "rounds": null
+        },
+        {
+          "distances": [
+            6
+          ],
+          "family": "bb72",
+          "rounds": null
+        }
+      ],
+      "instances": [
+        {
+          "distance": 3,
+          "family": "surface",
+          "round_override": false,
+          "rounds": 3
+        },
+        {
+          "distance": 6,
+          "family": "bb72",
+          "round_override": false,
+          "rounds": 6
+        }
+      ],
+      "memory_basis": "Z",
+      "name": "hybrid_software_check",
+      "purpose": "Bounded software checks only; numeric defaults are not tuned physics settings",
+      "round_rule": "distance",
+      "sector": "Z_checks"
+    },
+    "noise": {
+      "expanded_rates": [
+        0.001
+      ],
+      "multipliers": {
+        "idle": 1.0,
+        "measurement": 1.0,
+        "one_qubit": 1.0,
+        "reset": 1.0,
+        "two_qubit": 1.0
+      },
+      "profile": "circuit_depolarizing",
+      "rates": [
+        0.001
+      ],
+      "sweep": null
+    },
+    "output": {
+      "compression": "zstd",
+      "retain_corrections": false,
+      "retain_traces": false,
+      "root": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/hybrid_stage_6_e2e/runs",
+      "shard_policy": "paired_atomic_batch"
+    },
+    "sampling": {
+      "batch_size": 2,
+      "master_seed": 20260921,
+      "shots_per_point": 4,
+      "store_raw_samples": true,
+      "warmup_count": 1,
+      "warmup_seed": 20260922
+    },
+    "timing": {
+      "decoder_order": "cyclic",
+      "mode": "throughput",
+      "profiling": "phases",
+      "timers": [
+        "process_time_ns",
+        "perf_counter_ns"
+      ]
+    }
+  },
+  "created_utc": "2026-09-21T05:05:25.793958+00:00",
+  "decoders": [
+    {
+      "config": {
+        "algorithm_version": "HSBP-ALG-1.0",
+        "bp": {
+          "enabled": true,
+          "hard_decision_zero": "one",
+          "hint_margin_llr": 8.0,
+          "hint_policy": "signed_channel_magnitude_plus_margin",
+          "iterations_per_cycle": [
+            6,
+            6,
+            6
+          ],
+          "llr_clip": 25.0,
+          "method": "minimum_sum",
+          "replace_previous_hint": true,
+          "scaling_factor": 1.0,
+          "schedule": "parallel",
+          "warm_start": true
+        },
+        "enabled": true,
+        "fallback": {
+          "backend": "ldpc_osd_only",
+          "llr_source": "last_bp_else_clipped_channel",
+          "ordering": "pinned_ldpc_signed_llr",
+          "osd_method": "OSD_CS",
+          "osd_order": 0
+        },
+        "kind": "hybrid_search_soft_bp_osd0",
+        "name": "hybrid_search_soft_ms_osd0_v1",
+        "native_threads": 1,
+        "numerics": {
+          "dtype": "float64",
+          "fast_math": false,
+          "heuristic_reduction": "fixed_binary_tree"
+        },
+        "profile": "hybrid_search_soft_ms_osd0_v1",
+        "search": {
+          "branch_order": "physical_weight_then_index",
+          "detector_order": "canonical_index",
+          "expansions_per_cycle": [
+            8,
+            8,
+            8
+          ],
+          "goal_test": "on_generation",
+          "guidance_selection": "best_unused_generated_pattern",
+          "heuristic": "residual_fractional_cover",
+          "max_cycles": 3,
+          "max_depth": 2,
+          "max_generated_nodes": 4096,
+          "prefix_cpu_budget_ns": null
+        }
+      },
+      "id": "1ca18218cade347b278df93d6fbc93f39d57e1f8305e49d947ab7077c9578151",
+      "implementation": {
+        "adapter_sha256": "a2be910319fba6733d87dc1246ba1f929ca18ec68cf0f3fc1b84f43f241d3c92",
+        "build": "qec-bp-benchmark/0.1.0;c++17;binary64;no-fast-math",
+        "fork_build": {
+          "compiler": "11.4.0",
+          "flags": "-O3 -std=c++17 -fno-fast-math -ffp-contract=off",
+          "profile": "HSBP-ALG-1.0",
+          "source_sha256": "1715d0e5019e3fa1a16d740cf2ab716695dbbf187fc68488a3f270a9c1358877",
+          "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40"
+        },
+        "fork_sha256": "1715d0e5019e3fa1a16d740cf2ab716695dbbf187fc68488a3f270a9c1358877",
+        "libc": [
+          "glibc",
+          "2.35"
+        ],
+        "native_sha256": "896679d778c5e943b25c1758895bc92c8f8979f87469628c043cad15a71e989d",
+        "project_sha256": "cfc309c72a136a76edacb1633dab66e66320bd8fec492d742361122dd099b832"
+      }
+    },
+    {
+      "config": {
+        "bp_method": "minimum_sum",
+        "enabled": true,
+        "max_iter": 30,
+        "ms_scaling_factor": 1.0,
+        "name": "bposd_ms30_cs0",
+        "omp_thread_count": 1,
+        "osd_method": "OSD_CS",
+        "osd_order": 0,
+        "profile": "bposd_ms30_cs0",
+        "schedule": "parallel"
+      },
+      "id": "7c06673c9866811c3a4dccad7865a3e6f995f08efd0c1715f25dc5ee5db7f348",
+      "implementation": {
+        "adapter_sha256": "a2be910319fba6733d87dc1246ba1f929ca18ec68cf0f3fc1b84f43f241d3c92",
+        "native_sha256": "1a16562c2d430f8ec610f59612a884ce266ddc5e8ef8dedc05f2a8abaecff8b6",
+        "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40"
+      }
+    },
+    {
+      "config": {
+        "beam_width": 8,
+        "enabled": true,
+        "initial_iters": 30,
+        "iters_per_round": 20,
+        "max_rounds": 10,
+        "name": "beam8",
+        "num_results": 1,
+        "profile": "beam8"
+      },
+      "id": "cdd272d496e3947c9ae080c4d05824fcc47bf316ab7ff4b2c5ce70fe16508c14",
+      "implementation": {
+        "adapter_sha256": "a2be910319fba6733d87dc1246ba1f929ca18ec68cf0f3fc1b84f43f241d3c92",
+        "native_sha256": "6d1e0bf68fb7f864e8dbde3e83c03606b81b310cc1609598e2d9688a0623143e",
+        "upstream_commit": "084a475b05fb64308103317a1ce5a0c4b0be58aa"
+      }
+    }
+  ],
+  "event_tables": "present",
+  "expected_batches": 4,
+  "experiment_contract": "HSBP-EXP-1.0",
+  "failure_convention": {
+    "block_failure": "decoding_failure OR any valid logical mismatch",
+    "component_denominator": "shots",
+    "conditional_mismatch_denominator": "valid_outputs",
+    "decoding_failure": "declared failure OR invalid correction",
+    "observable_total_failure": "decoding_failure OR observable mismatch; all 12 BB outcomes stay in one block"
+  },
+  "instances": [
+    {
+      "artifact_manifest_sha256": "a7b1cc823a6c2f53d377e21c3189fa950f339870f41f070457160c0eeb93c1bf",
+      "directory": "instances/surface_d3_r3_b2dbc32c9cd944c2863a03a48d927638324065c91d141f1e5bce8baf27400269",
+      "expected_batches": 2,
+      "expected_shots": 4,
+      "instance_id": "b2dbc32c9cd944c2863a03a48d927638324065c91d141f1e5bce8baf27400269",
+      "num_detectors": 16,
+      "num_mechanisms": 55,
+      "num_observables": 1
+    },
+    {
+      "artifact_manifest_sha256": "7b58094218969ce869b727f9133c2db9513341b288b8bcff33a2702dec713543",
+      "directory": "instances/bb72_d6_r6_6e0718f968edc0c9879327e06a520a0b608917bb25c582bafa3d9eca58cd7300",
+      "expected_batches": 2,
+      "expected_shots": 4,
+      "instance_id": "6e0718f968edc0c9879327e06a520a0b608917bb25c582bafa3d9eca58cd7300",
+      "num_detectors": 252,
+      "num_mechanisms": 2232,
+      "num_observables": 12
+    }
+  ],
+  "provenance": {
+    "archive_sha256": "c14c7fd9fcc0fcce7d20433b2d30834ac5124d47ab2528f6f48aeca913c7cad7",
+    "environment_sha256": "8bca7cadc468fd1ad02be003b22cd74267bd3d74dbfce4e6e5504da9c38c7ebd",
+    "source_files": 1225,
+    "source_hash": "900a591f2b4c205c1fdcb815b6391bc5ecd0a8a89fe88fb99d1080e53d069015"
+  },
+  "resume": "not implemented; committed batches remain readable; every attempt creates a new run",
+  "run_id": "a72543a31f74d9ef4e4e10c01d5ed95d596b7a5167b29602a6d79c75c58e0637",
+  "run_setup": {
+    "cpu_ns": 3042845071,
+    "includes": "imports, provenance, circuit/DEM preparation and artifact copies; worker decoder setup is per-batch metadata",
+    "wall_ns": 3219918319
+  },
+  "sampling": {
+    "batch_layout": "range(0, shots_per_point, batch_size), final batch may be short",
+    "bitwise_scope": "fixed Stim version, platform and batch layout; stored samples permit exact replay",
+    "recipe": "sha256-instance/SeedSequence/stream-tag/batch/v1",
+    "recipe_details": "SeedSequence([master, *LE uint32 SHA256(instance_id + NUL + stream), batch_id]).generate_state(1,uint64)",
+    "sample_call": "one compile_detector_sampler(seed).sample(shots=count,separate_observables=True) per physical batch",
+    "sampling_id": "2e0182fe02294b6f62f42d998ac3a5ca75833f0d27718dd46097d5726a6ee68b"
+  },
+  "schema_version": 2,
+  "status": "complete",
+  "table_versions": {
+    "decoder_phases": 1,
+    "decodes": 2,
+    "hybrid_rounds": 1,
+    "samples": 1
+  },
+  "timing": {
+    "boundary": "complete DecoderAdapter.decode; includes reset/adaptation/H validation/A prediction/cost",
+    "concurrent_load": false,
+    "execution": {
+      "affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "oversubscribed": false,
+      "thread_environment": {
+        "BLIS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1"
+      }
+    },
+    "mode": "throughput",
+    "order": "decoder IDs sorted, cyclic rotation by stable shot_index",
+    "prefix_cpu_limits_active": false,
+    "profiling": "phases",
+    "units": "integer nanoseconds",
+    "warmup": "separate warmup seed/stream each batch; excluded; published per-call reset before measured shots"
+  }
+}

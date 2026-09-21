@@ -1,0 +1,25 @@
+...............                                                          [100%]
+=============================== warnings summary ===============================
+external_lib/ldpc/python_test/test_bp_decoder.py::test_BpDecoder_init
+  /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/python_test/test_bp_decoder.py:97: UserWarning: The OpenMP functionality is not yet implemented
+    decoder = BpDecoder(
+
+external_lib/ldpc/python_test/test_bp_decoder.py::test_BpDecoder_init
+  /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/python_test/test_bp_decoder.py:116: UserWarning: The OpenMP functionality is not yet implemented
+    assert decoder.omp_thread_count == 4
+
+external_lib/ldpc/python_test/test_bp_decoder.py::test_vs_ldpc_v1
+  /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/python_test/test_bp_decoder.py:242: UserWarning: The OpenMP functionality is not yet implemented
+    bpd = BpDecoder(
+
+external_lib/ldpc/python_test/test_bp_decoder.py::test_vs_ldpc_v1
+external_lib/ldpc/python_test/test_bp_decoder_input.py::test_scipy_sparse_matrices
+  /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/_legacy_ldpc_v1/_legacy_bp_decoder.py:46: UserWarning: This is the old syntax for the `bp_decoder` from `ldpc v1`. Use the `BpDecoder` class from `ldpc v2` for additional features.
+    warnings.warn(
+
+external_lib/ldpc/python_test/test_bp_decoder_input.py::test_osd_scipy_sparse_matrices
+  /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/_legacy_ldpc_v1/_legacy_bposd_decoder.py:45: UserWarning: This is the old syntax for the `bposd_decoder` from `ldpc v1`. Use the `BpOsdDecoder` class from `ldpc v2` for additional features.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+15 passed, 6 warnings in 1.78s

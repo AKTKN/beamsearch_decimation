@@ -1,0 +1,458 @@
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Python: /home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python (found version "3.12.14") found components: Interpreter Development.Module 
+-- Performing Test HAS_FLTO
+-- Performing Test HAS_FLTO - Success
+-- Found pybind11: /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pybind11/include (found version "2.11.1")
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/quantum_teresheys/workspace/beamsearch_decimation/assets/build/hybrid-release
+[  8%] Building CXX object CMakeFiles/_native.dir/src/qec_bp_benchmark/native/module.cpp.o
+[ 16%] Building CXX object CMakeFiles/test_reference_bp.dir/tests/native/test_reference_bp.cpp.o
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_bindings.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/module.cpp:4:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In constructor ‘ldpc::bp::BpDecoder::BpDecoder(ldpc::bp::BpSparse&, std::vector<double>, int, ldpc::bp::BpMethod, ldpc::bp::BpSchedule, double, int, const std::vector<int>&, int, bool, ldpc::bp::BpInputType)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:106:56: warning: comparison of integer expressions of different signedness: ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  106 |                 if (this->channel_probabilities.size() != this->bit_count) {
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_bindings.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/module.cpp:4:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char> ldpc::bp::BpDecoder::decode(std::vector<unsigned char>&)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:162:73: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  162 |                 if ((this->bp_input_type == AUTO && input_vector.size() == this->bit_count) ||
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::bp_decode_single_scan(std::vector<unsigned char>&)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:429:25: warning: unused variable ‘loop_break’ [-Wunused-variable]
+  429 |                     int loop_break = 0;
+      |                         ^~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::soft_info_decode_serial(std::vector<double>&, double, double)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:647:40: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  647 |                     for (auto i = 0; i < soft_info_syndrome.size(); i++) {
+      |                                      ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:11,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_bindings.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/module.cpp:4:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/sort.hpp: In function ‘long long unsigned int ldpc::sort::ncr(int, int)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/sort.hpp:23:42: warning: comparison of integer expressions of different signedness: ‘long long unsigned int’ and ‘int’ [-Wsign-compare]
+   23 |         for (unsigned long long d = 1; d <= k; ++d) {
+      |                                        ~~^~~~
+[ 25%] Linking CXX executable test_reference_bp
+[ 25%] Built target test_reference_bp
+[ 33%] Building CXX object CMakeFiles/test_search.dir/tests/native/test_search.cpp.o
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:13,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_bindings.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/module.cpp:4:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:923:31: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  923 |             for (int i = 0; i < basis_rows.size(); i++) {
+      |                             ~~^~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:68:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::fast_solve(std::vector<unsigned char>, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:115:95:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:359:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  359 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::lu_solve(std::vector<unsigned char>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:123:82:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:239:30: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  239 |                 if (y.size() != this->U.m) {
+      |                     ~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:68:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+[ 41%] Linking CXX executable test_search
+[ 41%] Built target test_search
+[ 50%] Building CXX object CMakeFiles/test_hybrid_bp.dir/tests/native/test_hybrid_bp.cpp.o
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/stateful_min_sum.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid_bp.cpp:1:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In constructor ‘ldpc::bp::BpDecoder::BpDecoder(ldpc::bp::BpSparse&, std::vector<double>, int, ldpc::bp::BpMethod, ldpc::bp::BpSchedule, double, int, const std::vector<int>&, int, bool, ldpc::bp::BpInputType)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:106:56: warning: comparison of integer expressions of different signedness: ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  106 |                 if (this->channel_probabilities.size() != this->bit_count) {
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/stateful_min_sum.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid_bp.cpp:1:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char> ldpc::bp::BpDecoder::decode(std::vector<unsigned char>&)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:162:73: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  162 |                 if ((this->bp_input_type == AUTO && input_vector.size() == this->bit_count) ||
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::bp_decode_single_scan(std::vector<unsigned char>&)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:429:25: warning: unused variable ‘loop_break’ [-Wunused-variable]
+  429 |                     int loop_break = 0;
+      |                         ^~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::soft_info_decode_serial(std::vector<double>&, double, double)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:647:40: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  647 |                     for (auto i = 0; i < soft_info_syndrome.size(); i++) {
+      |                                      ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:11,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid_bp.cpp:2:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/sort.hpp: In function ‘long long unsigned int ldpc::sort::ncr(int, int)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/sort.hpp:23:42: warning: comparison of integer expressions of different signedness: ‘long long unsigned int’ and ‘int’ [-Wsign-compare]
+   23 |         for (unsigned long long d = 1; d <= k; ++d) {
+      |                                        ~~^~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:13,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid_bp.cpp:2:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:923:31: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  923 |             for (int i = 0; i < basis_rows.size(); i++) {
+      |                             ~~^~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:68:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::fast_solve(std::vector<unsigned char>, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:115:95:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:359:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  359 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::lu_solve(std::vector<unsigned char>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:123:82:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:239:30: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  239 |                 if (y.size() != this->U.m) {
+      |                     ~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:68:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+[ 58%] Linking CXX shared module _native.cpython-312-x86_64-linux-gnu.so
+lto-wrapper: warning: using serial compilation of 8 LTRANS jobs
+[ 66%] Linking CXX executable test_hybrid_bp
+[ 66%] Built target test_hybrid_bp
+[ 75%] Building CXX object CMakeFiles/test_hybrid.dir/tests/native/test_hybrid.cpp.o
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In constructor ‘ldpc::bp::BpDecoder::BpDecoder(ldpc::bp::BpSparse&, std::vector<double>, int, ldpc::bp::BpMethod, ldpc::bp::BpSchedule, double, int, const std::vector<int>&, int, bool, ldpc::bp::BpInputType)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:106:56: warning: comparison of integer expressions of different signedness: ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  106 |                 if (this->channel_probabilities.size() != this->bit_count) {
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char> ldpc::bp::BpDecoder::decode(std::vector<unsigned char>&)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:162:73: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  162 |                 if ((this->bp_input_type == AUTO && input_vector.size() == this->bit_count) ||
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::bp_decode_single_scan(std::vector<unsigned char>&)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:429:25: warning: unused variable ‘loop_break’ [-Wunused-variable]
+  429 |                     int loop_break = 0;
+      |                         ^~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::soft_info_decode_serial(std::vector<double>&, double, double)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:647:40: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  647 |                     for (auto i = 0; i < soft_info_syndrome.size(); i++) {
+      |                                      ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:11,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/sort.hpp: In function ‘long long unsigned int ldpc::sort::ncr(int, int)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/sort.hpp:23:42: warning: comparison of integer expressions of different signedness: ‘long long unsigned int’ and ‘int’ [-Wsign-compare]
+   23 |         for (unsigned long long d = 1; d <= k; ++d) {
+      |                                        ~~^~~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:13,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:923:31: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  923 |             for (int i = 0; i < basis_rows.size(); i++) {
+      |                             ~~^~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:68:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::fast_solve(std::vector<unsigned char>, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:115:95:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:359:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  359 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::lu_solve(std::vector<unsigned char>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:123:82:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:239:30: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  239 |                 if (y.size() != this->U.m) {
+      |                     ~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:68:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘void __gnu_cxx::new_allocator<_Tp>::deallocate(_Tp*, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = std::_Sp_counted_ptr_inplace<ldpc::hybrid::Graph, std::allocator<ldpc::hybrid::Graph>, __gnu_cxx::_S_atomic>]’ at /usr/include/c++/11/ext/new_allocator.h:145:19,
+    inlined from ‘static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::_Sp_counted_ptr_inplace<ldpc::hybrid::Graph, std::allocator<ldpc::hybrid::Graph>, __gnu_cxx::_S_atomic>]’ at /usr/include/c++/11/bits/alloc_traits.h:496:23,
+    inlined from ‘std::__allocated_ptr<_Alloc>::~__allocated_ptr() [with _Alloc = std::allocator<std::_Sp_counted_ptr_inplace<ldpc::hybrid::Graph, std::allocator<ldpc::hybrid::Graph>, __gnu_cxx::_S_atomic> >]’ at /usr/include/c++/11/bits/allocated_ptr.h:74:45,
+    inlined from ‘std::__shared_count<_Lp>::__shared_count(_Tp*&, std::_Sp_alloc_shared_tag<_Alloc>, _Args&& ...) [with _Tp = ldpc::hybrid::Graph; _Alloc = std::allocator<ldpc::hybrid::Graph>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&}; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’ at /usr/include/c++/11/bits/shared_ptr_base.h:655:2,
+    inlined from ‘std::__shared_ptr<_Tp, _Lp>::__shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<ldpc::hybrid::Graph>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&}; _Tp = ldpc::hybrid::Graph; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’ at /usr/include/c++/11/bits/shared_ptr_base.h:1342:14,
+    inlined from ‘std::shared_ptr<_Tp>::shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<ldpc::hybrid::Graph>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&}; _Tp = ldpc::hybrid::Graph]’ at /usr/include/c++/11/bits/shared_ptr.h:409:59,
+    inlined from ‘std::shared_ptr<_Tp> std::allocate_shared(const _Alloc&, _Args&& ...) [with _Tp = ldpc::hybrid::Graph; _Alloc = std::allocator<ldpc::hybrid::Graph>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&}]’ at /usr/include/c++/11/bits/shared_ptr.h:863:39,
+    inlined from ‘std::shared_ptr<_Tp> std::make_shared(_Args&& ...) [with _Tp = ldpc::hybrid::Graph; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&}]’ at /usr/include/c++/11/bits/shared_ptr.h:879:42,
+    inlined from ‘qec::hybrid::Model::Model(const Rows&, int, const Reals&, const Rows&)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:17:38:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /usr/include/x86_64-linux-gnu/c++/11/bits/c++allocator.h:33,
+                 from /usr/include/c++/11/bits/allocator.h:46,
+                 from /usr/include/c++/11/vector:64,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/usr/include/c++/11/ext/new_allocator.h: In constructor ‘qec::hybrid::Model::Model(const Rows&, int, const Reals&, const Rows&)’:
+/usr/include/c++/11/ext/new_allocator.h:127:48: note: returned from ‘void* operator new(std::size_t)’
+  127 |         return static_cast<_Tp*>(::operator new(__n * sizeof(_Tp)));
+      |                                  ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘void __gnu_cxx::new_allocator<_Tp>::deallocate(_Tp*, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = int]’ at /usr/include/c++/11/ext/new_allocator.h:145:19,
+    inlined from ‘static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = int]’ at /usr/include/c++/11/bits/alloc_traits.h:496:23,
+    inlined from ‘void std::_Vector_base<_Tp, _Alloc>::_M_deallocate(std::_Vector_base<_Tp, _Alloc>::pointer, std::size_t) [with _Tp = int; _Alloc = std::allocator<int>]’ at /usr/include/c++/11/bits/stl_vector.h:354:19,
+    inlined from ‘std::_Vector_base<_Tp, _Alloc>::~_Vector_base() [with _Tp = int; _Alloc = std::allocator<int>]’ at /usr/include/c++/11/bits/stl_vector.h:335:15,
+    inlined from ‘std::vector<_Tp, _Alloc>::~vector() [with _Tp = int; _Alloc = std::allocator<int>]’ at /usr/include/c++/11/bits/stl_vector.h:683:7,
+    inlined from ‘void ldpc::gf2sparse::GF2Sparse<ENTRY_OBJ>::csr_insert(std::vector<std::vector<int> >&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse.hpp:156:13,
+    inlined from ‘GF2MATRIX ldpc::gf2sparse_linalg::kernel(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:879:27,
+    inlined from ‘ldpc::sparse_matrix_base::CsrMatrix ldpc::gf2sparse_linalg::cy_kernel(ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>*)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/gf2sparse_linalg.hpp:887:26:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /usr/include/x86_64-linux-gnu/c++/11/bits/c++allocator.h:33,
+                 from /usr/include/c++/11/bits/allocator.h:46,
+                 from /usr/include/c++/11/vector:64,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/usr/include/c++/11/ext/new_allocator.h: In function ‘ldpc::sparse_matrix_base::CsrMatrix ldpc::gf2sparse_linalg::cy_kernel(ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>*)’:
+/usr/include/c++/11/ext/new_allocator.h:127:48: note: returned from ‘void* operator new(std::size_t)’
+  127 |         return static_cast<_Tp*>(::operator new(__n * sizeof(_Tp)));
+      |                                  ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘void __gnu_cxx::new_allocator<_Tp>::deallocate(_Tp*, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = std::_Sp_counted_ptr_inplace<qec::hybrid::Model, std::allocator<qec::hybrid::Model>, __gnu_cxx::_S_atomic>]’ at /usr/include/c++/11/ext/new_allocator.h:145:19,
+    inlined from ‘static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::_Sp_counted_ptr_inplace<qec::hybrid::Model, std::allocator<qec::hybrid::Model>, __gnu_cxx::_S_atomic>]’ at /usr/include/c++/11/bits/alloc_traits.h:496:23,
+    inlined from ‘std::__allocated_ptr<_Alloc>::~__allocated_ptr() [with _Alloc = std::allocator<std::_Sp_counted_ptr_inplace<qec::hybrid::Model, std::allocator<qec::hybrid::Model>, __gnu_cxx::_S_atomic> >]’ at /usr/include/c++/11/bits/allocated_ptr.h:74:45,
+    inlined from ‘std::__shared_count<_Lp>::__shared_count(_Tp*&, std::_Sp_alloc_shared_tag<_Alloc>, _Args&& ...) [with _Tp = qec::hybrid::Model; _Alloc = std::allocator<qec::hybrid::Model>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&, const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&}; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’ at /usr/include/c++/11/bits/shared_ptr_base.h:655:2,
+    inlined from ‘std::__shared_ptr<_Tp, _Lp>::__shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<qec::hybrid::Model>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&, const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&}; _Tp = qec::hybrid::Model; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’ at /usr/include/c++/11/bits/shared_ptr_base.h:1342:14,
+    inlined from ‘std::shared_ptr<_Tp>::shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<qec::hybrid::Model>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&, const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&}; _Tp = qec::hybrid::Model]’ at /usr/include/c++/11/bits/shared_ptr.h:409:59,
+    inlined from ‘std::shared_ptr<_Tp> std::allocate_shared(const _Alloc&, _Args&& ...) [with _Tp = qec::hybrid::Model; _Alloc = std::allocator<qec::hybrid::Model>; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&, const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&}]’ at /usr/include/c++/11/bits/shared_ptr.h:863:39,
+    inlined from ‘std::shared_ptr<_Tp> std::make_shared(_Args&& ...) [with _Tp = qec::hybrid::Model; _Args = {const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, int&, const std::vector<double, std::allocator<double> >&, const std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&}]’ at /usr/include/c++/11/bits/shared_ptr.h:879:42,
+    inlined from ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:80:39:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /usr/include/x86_64-linux-gnu/c++/11/bits/c++allocator.h:33,
+                 from /usr/include/c++/11/bits/allocator.h:46,
+                 from /usr/include/c++/11/vector:64,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/usr/include/c++/11/ext/new_allocator.h: In constructor ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’:
+/usr/include/c++/11/ext/new_allocator.h:127:48: note: returned from ‘void* operator new(std::size_t)’
+  127 |         return static_cast<_Tp*>(::operator new(__n * sizeof(_Tp)));
+      |                                  ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘typename std::_MakeUniq<_Tp>::__single_object std::make_unique(_Args&& ...) [with _Tp = ldpc::gf2sparse::GF2Sparse<ldpc::bp::BpEntry>; _Args = {const int&, const int&, int}]’ at /usr/include/c++/11/bits/unique_ptr.h:962:30,
+    inlined from ‘ldpc::hybrid::Osd0Bridge::Osd0Bridge(std::shared_ptr<const ldpc::hybrid::Graph>)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:20:54,
+    inlined from ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:81:95:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /usr/include/c++/11/memory:76,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:6,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/usr/include/c++/11/bits/unique_ptr.h: In constructor ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’:
+/usr/include/c++/11/bits/unique_ptr.h:962:30: note: returned from ‘void* operator new(std::size_t)’
+  962 |     { return unique_ptr<_Tp>(new _Tp(std::forward<_Args>(__args)...)); }
+      |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘int ldpc::osd::OsdDecoder::osd_setup()’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:65:103,
+    inlined from ‘ldpc::osd::OsdDecoder::OsdDecoder(ldpc::bp::BpSparse&, ldpc::osd::OsdMethod, int, std::vector<double>&)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:54:28,
+    inlined from ‘typename std::_MakeUniq<_Tp>::__single_object std::make_unique(_Args&& ...) [with _Tp = ldpc::osd::OsdDecoder; _Args = {ldpc::gf2sparse::GF2Sparse<ldpc::bp::BpEntry>&, ldpc::osd::OsdMethod, int, std::vector<double, std::allocator<double> >&}]’ at /usr/include/c++/11/bits/unique_ptr.h:962:30,
+    inlined from ‘ldpc::hybrid::Osd0Bridge::Osd0Bridge(std::shared_ptr<const ldpc::hybrid::Graph>)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:22:57,
+    inlined from ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:81:95:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:4,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp: In constructor ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’:
+/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd.hpp:65:103: note: returned from ‘void* operator new(std::size_t)’
+   65 |             this->LuDecomposition = new ldpc::gf2sparse_linalg::RowReduce<ldpc::bp::BpEntry>(this->pcm);
+      |                                                                                                       ^
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘typename std::_MakeUniq<_Tp>::__single_object std::make_unique(_Args&& ...) [with _Tp = ldpc::osd::OsdDecoder; _Args = {ldpc::gf2sparse::GF2Sparse<ldpc::bp::BpEntry>&, ldpc::osd::OsdMethod, int, std::vector<double, std::allocator<double> >&}]’ at /usr/include/c++/11/bits/unique_ptr.h:962:30,
+    inlined from ‘ldpc::hybrid::Osd0Bridge::Osd0Bridge(std::shared_ptr<const ldpc::hybrid::Graph>)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/osd0_bridge.hpp:22:57,
+    inlined from ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’ at /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:81:95:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /usr/include/c++/11/memory:76,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:6,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/usr/include/c++/11/bits/unique_ptr.h: In constructor ‘qec::hybrid::Decoder::Decoder(const Rows&, int, const Reals&, const Rows&, qec::hybrid::Settings, bool)’:
+/usr/include/c++/11/bits/unique_ptr.h:962:30: note: returned from ‘void* operator new(std::size_t)’
+  962 |     { return unique_ptr<_Tp>(new _Tp(std::forward<_Args>(__args)...)); }
+      |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function ‘void operator delete(void*, std::size_t)’,
+    inlined from ‘void __gnu_cxx::new_allocator<_Tp>::deallocate(_Tp*, __gnu_cxx::new_allocator<_Tp>::size_type) [with _Tp = std::_Sp_counted_ptr_inplace<qec::hybrid::Model, std::allocator<qec::hybrid::Model>, __gnu_cxx::_S_atomic>]’ at /usr/include/c++/11/ext/new_allocator.h:145:19,
+    inlined from ‘static void std::allocator_traits<std::allocator<_Tp1> >::deallocate(std::allocator_traits<std::allocator<_Tp1> >::allocator_type&, std::allocator_traits<std::allocator<_Tp1> >::pointer, std::allocator_traits<std::allocator<_Tp1> >::size_type) [with _Tp = std::_Sp_counted_ptr_inplace<qec::hybrid::Model, std::allocator<qec::hybrid::Model>, __gnu_cxx::_S_atomic>]’ at /usr/include/c++/11/bits/alloc_traits.h:496:23,
+    inlined from ‘std::__allocated_ptr<_Alloc>::~__allocated_ptr() [with _Alloc = std::allocator<std::_Sp_counted_ptr_inplace<qec::hybrid::Model, std::allocator<qec::hybrid::Model>, __gnu_cxx::_S_atomic> >]’ at /usr/include/c++/11/bits/allocated_ptr.h:74:45,
+    inlined from ‘std::__shared_count<_Lp>::__shared_count(_Tp*&, std::_Sp_alloc_shared_tag<_Alloc>, _Args&& ...) [with _Tp = qec::hybrid::Model; _Alloc = std::allocator<qec::hybrid::Model>; _Args = {std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >, int, std::vector<double, std::allocator<double> >, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >}; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’ at /usr/include/c++/11/bits/shared_ptr_base.h:655:2,
+    inlined from ‘std::__shared_ptr<_Tp, _Lp>::__shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<qec::hybrid::Model>; _Args = {std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >, int, std::vector<double, std::allocator<double> >, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >}; _Tp = qec::hybrid::Model; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’ at /usr/include/c++/11/bits/shared_ptr_base.h:1342:14,
+    inlined from ‘std::shared_ptr<_Tp>::shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<qec::hybrid::Model>; _Args = {std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >, int, std::vector<double, std::allocator<double> >, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >}; _Tp = qec::hybrid::Model]’ at /usr/include/c++/11/bits/shared_ptr.h:409:59,
+    inlined from ‘std::shared_ptr<_Tp> std::allocate_shared(const _Alloc&, _Args&& ...) [with _Tp = qec::hybrid::Model; _Alloc = std::allocator<qec::hybrid::Model>; _Args = {std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >, int, std::vector<double, std::allocator<double> >, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >}]’ at /usr/include/c++/11/bits/shared_ptr.h:863:39,
+    inlined from ‘std::shared_ptr<_Tp> std::make_shared(_Args&& ...) [with _Tp = qec::hybrid::Model; _Args = {std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >, int, std::vector<double, std::allocator<double> >, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >}]’ at /usr/include/c++/11/bits/shared_ptr.h:879:42,
+    inlined from ‘int main()’ at /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:38:79:
+/home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:11:62: warning: ‘void free(void*)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+   11 | void operator delete(void* p,std::size_t) noexcept {std::free(p);}
+      |                                                     ~~~~~~~~~^~~
+In file included from /usr/include/x86_64-linux-gnu/c++/11/bits/c++allocator.h:33,
+                 from /usr/include/c++/11/bits/allocator.h:46,
+                 from /usr/include/c++/11/vector:64,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/bp.hpp:5,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_cpp/hybrid_graph.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_model.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_search.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid_telemetry.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/native/hybrid.hpp:3,
+                 from /home/quantum_teresheys/workspace/beamsearch_decimation/tests/native/test_hybrid.cpp:12:
+/usr/include/c++/11/ext/new_allocator.h: In function ‘int main()’:
+/usr/include/c++/11/ext/new_allocator.h:127:48: note: returned from ‘void* operator new(std::size_t)’
+  127 |         return static_cast<_Tp*>(::operator new(__n * sizeof(_Tp)));
+      |                                  ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+[ 83%] Linking CXX executable test_hybrid
+[ 83%] Built target test_hybrid
+[ 91%] Building CXX object CMakeFiles/benchmark_hybrid_search.dir/tests/native/benchmark_hybrid_search.cpp.o
+[100%] Linking CXX executable benchmark_hybrid_search
+[100%] Built target benchmark_hybrid_search
+[100%] Built target _native
+Internal ctest changing into directory: /home/quantum_teresheys/workspace/beamsearch_decimation/assets/build/hybrid-release
+Test project /home/quantum_teresheys/workspace/beamsearch_decimation/assets/build/hybrid-release
+    Start 1: reference_bp
+1/4 Test #1: reference_bp .....................   Passed    0.01 sec
+    Start 2: search
+2/4 Test #2: search ...........................   Passed    0.00 sec
+    Start 3: hybrid_bp
+3/4 Test #3: hybrid_bp ........................   Passed    0.01 sec
+    Start 4: hybrid
+4/4 Test #4: hybrid ...........................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.03 sec

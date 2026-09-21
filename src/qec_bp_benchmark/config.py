@@ -160,6 +160,155 @@ class Bposd(StrictModel):
     omp_thread_count: Literal[1] = 1
 
 
+class Bposd0(Bposd):
+    """Actual upstream BP followed by CS0; not the hybrid's OSD-only bridge."""
+
+    profile: Literal["bposd_ms30_cs0"] = "bposd_ms30_cs0"
+    name: str = "bposd_ms30_cs0"
+    osd_order: Annotated[int, Field(strict=True, ge=0, le=0)] = 0
+
+
+# Checked native boundary sizes; cycle lists also bound configuration allocation.
+NativeCount = Annotated[int, Field(strict=True, ge=0, le=2**31 - 1)]
+WorkCount = Annotated[int, Field(strict=True, ge=0, le=2**64 - 1)]
+CycleBudget = WorkCount | tuple[WorkCount, ...]
+HYBRID_PROFILES = (
+    "hybrid_search_soft_ms_osd0_v1",
+    "search_osd0_v1",
+    "hybrid_search_soft_ms_osd0_cold_v1",
+)
+
+
+class HybridSearch(StrictModel):
+    """Global shot limits and expansion budgets (counts, except CPU nanoseconds).
+
+    Scalars are broadcast by Hybrid to max_cycles entries. The node cap includes
+    the root; it triggers fallback before constructing a child beyond capacity.
+    The optional process-CPU cap covers only the prefix, not OSD or full service.
+    """
+
+    max_depth: NativeCount = 2
+    max_cycles: Annotated[int, Field(strict=True, ge=0, le=65536)] = 3
+    expansions_per_cycle: CycleBudget = 8
+    max_generated_nodes: Annotated[int, Field(strict=True, ge=1, le=2**64 - 1)] = 4096
+    detector_order: Literal["canonical_index"] = "canonical_index"
+    branch_order: Literal["physical_weight_then_index"] = "physical_weight_then_index"
+    heuristic: Literal["residual_fractional_cover"] = "residual_fractional_cover"
+    goal_test: Literal["on_generation"] = "on_generation"
+    guidance_selection: Literal["best_unused_generated_pattern"] = "best_unused_generated_pattern"
+    prefix_cpu_budget_ns: Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)] | None = None
+
+
+class HybridBP(StrictModel):
+    """Finite replacement fields and within-shot parallel min-sum continuation.
+
+    LLR parameters are dimensionless finite binary64 values. Posterior beliefs
+    are never channel priors. Disabled BP requires zero resolved iteration work.
+    """
+
+    enabled: Annotated[bool, Field(strict=True)] = True
+    method: Literal["minimum_sum"] = "minimum_sum"
+    schedule: Literal["parallel"] = "parallel"
+    iterations_per_cycle: NativeCount | tuple[NativeCount, ...] = 6
+    scaling_factor: Annotated[float, Field(strict=True, gt=0, le=1)] = 1.0
+    llr_clip: Annotated[float, Field(strict=True, gt=0)] = 25.0
+    hard_decision_zero: Literal["one"] = "one"
+    warm_start: Annotated[bool, Field(strict=True)] = True
+    hint_policy: Literal["signed_channel_magnitude_plus_margin"] = "signed_channel_magnitude_plus_margin"
+    hint_margin_llr: Annotated[float, Field(strict=True, gt=0)] = 8.0
+    replace_previous_hint: Literal[True] = True
+
+
+class HybridFallback(StrictModel):
+    """Direct pinned native OSD on original H/s; no hidden BP or hard hints."""
+
+    backend: Literal["ldpc_osd_only"] = "ldpc_osd_only"
+    osd_method: Literal["OSD_CS"] = "OSD_CS"
+    osd_order: Annotated[int, Field(strict=True, ge=0, le=0)] = 0
+    llr_source: Literal["last_bp_else_clipped_channel"] = "last_bp_else_clipped_channel"
+    ordering: Literal["pinned_ldpc_signed_llr"] = "pinned_ldpc_signed_llr"
+
+
+class HybridNumerics(StrictModel):
+    """Deterministic reductions; no contraction or fast-math in future kernels."""
+
+    dtype: Literal["float64"] = "float64"
+    heuristic_reduction: Literal["fixed_binary_tree"] = "fixed_binary_tree"
+    fast_math: Literal[False] = False
+
+
+def _cycle_budgets(value: int | tuple[int, ...], cycles: int, field: str) -> tuple[int, ...]:
+    """Resolve bounded scalars/lists without mutation; reject length/uint64 overflow."""
+    result = (value,) * cycles if isinstance(value, int) else value
+    if len(result) != cycles:
+        raise ValueError(f"{field} must have exactly max_cycles entries")
+    if sum(result) > 2**64 - 1:
+        raise ValueError(f"{field} total exceeds uint64")
+    return result
+
+
+class Hybrid(StrictModel):
+    """HSBP-ALG-1.0 configuration for the native hybrid decoder.
+
+    Budgets are normalized into immutable tuples during validation and JSON lists
+    on serialization, so scalar and equivalent list inputs have the same identity.
+    max_cycles=0 resolves scalar budgets to empty lists and means direct OSD0.
+    Profile-specific defaults never override explicitly supplied conflicting flags.
+    """
+
+    kind: Literal["hybrid_search_soft_bp_osd0"] = "hybrid_search_soft_bp_osd0"
+    profile: Literal["hybrid_search_soft_ms_osd0_v1", "search_osd0_v1",
+                     "hybrid_search_soft_ms_osd0_cold_v1"] = "hybrid_search_soft_ms_osd0_v1"
+    name: str = "hybrid_search_soft_ms_osd0_v1"
+    enabled: Annotated[bool, Field(strict=True)] = True
+    algorithm_version: Literal["HSBP-ALG-1.0"] = "HSBP-ALG-1.0"
+    search: HybridSearch = HybridSearch()
+    bp: HybridBP = HybridBP()
+    fallback: HybridFallback = HybridFallback()
+    numerics: HybridNumerics = HybridNumerics()
+    native_threads: Annotated[int, Field(strict=True, ge=1, le=1)] = 1
+
+    @model_validator(mode="before")
+    @classmethod
+    def profile_defaults(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        profile = data.get("profile", HYBRID_PROFILES[0])
+        data.setdefault("name", profile)
+        defaults = ({"enabled": False, "warm_start": False, "iterations_per_cycle": 0}
+                    if profile == "search_osd0_v1" else
+                    {"warm_start": False} if profile == "hybrid_search_soft_ms_osd0_cold_v1" else {})
+        if isinstance(data.get("bp", {}), dict):
+            data["bp"] = {**defaults, **data.get("bp", {})}
+        return data
+
+    @model_validator(mode="after")
+    def resolve(self) -> Self:
+        cycles = self.search.max_cycles
+        expansions = _cycle_budgets(self.search.expansions_per_cycle, cycles, "expansions_per_cycle")
+        iterations = _cycle_budgets(self.bp.iterations_per_cycle, cycles, "iterations_per_cycle")
+        expected = {HYBRID_PROFILES[0]: (True, True), "search_osd0_v1": (False, False),
+                    "hybrid_search_soft_ms_osd0_cold_v1": (True, False)}[self.profile]
+        if (self.bp.enabled, self.bp.warm_start) != expected:
+            raise ValueError("BP enabled/warm_start flags conflict with the explicit hybrid profile")
+        if self.bp.enabled and any(t == 0 for t in iterations):
+            raise ValueError("enabled BP requires positive iterations_per_cycle")
+        if not self.bp.enabled and any(iterations):
+            raise ValueError("disabled BP requires zero iterations_per_cycle")
+        object.__setattr__(self, "search", self.search.model_copy(update={"expansions_per_cycle": expansions}))
+        object.__setattr__(self, "bp", self.bp.model_copy(update={"iterations_per_cycle": iterations}))
+        return self
+
+
+def require_available_decoder(profile: str) -> None:
+    """Reject unknown profiles without numerical imports or mutation (ValueError)."""
+    if profile in HYBRID_PROFILES:
+        return
+    if profile not in ("screened_reference", "bposd_ms30_cs10", "bposd_ms30_cs0", "beam8", "beam32"):
+        raise ValueError(f"unsupported decoder profile: {profile}")
+
+
 class Beam(StrictModel):
     profile: Literal["beam8", "beam32"] = "beam8"
     name: str = "beam8"
@@ -179,7 +328,7 @@ class Beam(StrictModel):
         return value
 
 
-Decoder = Annotated[Screened | Bposd | Beam, Field(discriminator="profile")]
+Decoder = Annotated[Screened | Bposd | Bposd0 | Beam | Hybrid, Field(discriminator="profile")]
 
 
 class Sampling(StrictModel):
@@ -231,6 +380,10 @@ class Output(StrictModel):
 
 
 class Analysis(StrictModel):
+    bootstrap_seed: Nonnegative = 20260921
+    bootstrap_count: Positive = 2000
+    bootstrap_unit: Literal['shot','batch'] = 'shot'
+    accuracy_margin_absolute: Annotated[float,Field(ge=0,le=1)] | None = None
     confidence: Annotated[float, Field(gt=0, lt=1)] = 0.95
     quantiles: tuple[Annotated[float, Field(ge=0, le=1)], ...] = (.5, .9, .95, .99, .999)
     plots: tuple[Literal["failure_rate", "cpu_ecdf", "wall_ecdf", "cpu_survival", "wall_survival"], ...] = ("failure_rate", "cpu_ecdf", "wall_ecdf")
@@ -284,7 +437,7 @@ class Config(StrictModel):
                     "tie_breaking": "upstream strict comparisons and (score,storage_index) priority queue",
                     "native_threads": 1,
                 }
-            elif decoder["profile"] == "bposd_ms30_cs10":
+            elif decoder["profile"] in ("bposd_ms30_cs10", "bposd_ms30_cs0"):
                 decoder["implementation_properties"] = {
                     "hard_decision": "upstream L<=0", "error_channel_type": "list",
                     "converge_flag": "BP stage only; validate correction after OSD",

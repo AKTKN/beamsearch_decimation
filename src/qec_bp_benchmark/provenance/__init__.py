@@ -15,7 +15,7 @@ from ..storage import atomic_json,sha256
 from ..identity import content_hash
 
 ROOT=Path(__file__).resolve().parents[3]
-SOURCE_SUFFIXES={'.py','.pyx','.pxd','.pxi','.hpp','.h','.c','.cc','.cpp','.cmake','.toml','.txt','.md','.yaml','.yml','.json','.sh','.ipynb'}
+SOURCE_SUFFIXES={'.pyi','.py','.pyx','.pxd','.pxi','.hpp','.h','.c','.cc','.cpp','.cmake','.toml','.txt','.md','.yaml','.yml','.json','.sh','.ipynb'}
 
 
 def repository_state(path: Path) -> dict:
@@ -37,6 +37,10 @@ def timer_diagnostics() -> dict:
         info=time.get_clock_info(name)
         results[name]={'resolution_seconds':info.resolution,'implementation':info.implementation,
             'monotonic':info.monotonic,'adjustable':info.adjustable,'empty_call_ns':values}
+    results['native']={'cpu':'CLOCK_PROCESS_CPUTIME_ID','wall':'CLOCK_MONOTONIC',
+        'cpu_resolution_seconds':time.clock_getres(time.CLOCK_PROCESS_CPUTIME_ID),
+        'wall_resolution_seconds':time.clock_getres(time.CLOCK_MONOTONIC),'residual_tolerance_ns':0,
+        'libc':platform.libc_ver()}
     return results
 
 
@@ -51,7 +55,8 @@ def capture(destination: Path, execution: dict) -> dict:
     files=set()
     for directory in ('src','analysis','notebook','python_scripts','scripts','config','docs','prompts','tests','reference_modules'):
         for path in (ROOT/directory).rglob('*'):
-            if path.is_file() and path.suffix in SOURCE_SUFFIXES and not any(x in path.parts for x in ('__pycache__','test_results')):
+            source_name = path.with_suffix('') if path.suffix == '.example' else path
+            if path.is_file() and source_name.suffix in SOURCE_SUFFIXES and not any(x in path.parts for x in ('__pycache__','test_results')):
                 files.add(path)
     for name in ('CMakeLists.txt','pyproject.toml','requirements.lock.txt','environment.conda.lock.txt','README.md','AGENTS.md','STATUS.md','external_lib/manifest.lock.json'):
         files.add(ROOT/name)
@@ -85,7 +90,7 @@ def capture(destination: Path, execution: dict) -> dict:
     atomic_json(destination/'source_hashes.json',hashes,exclusive=True)
     modules={}
     for name in ('qec_bp_benchmark._native','ldpc','ldpc.reference_bp._reference_bp',
-                 'ldpc.bposd_decoder._bposd_decoder','beam_search_decoder._beam_search_decoder','qldpc','stim','pyarrow'):
+                 'ldpc.hybrid_bp._hybrid_bp','ldpc.bposd_decoder._bposd_decoder','beam_search_decoder._beam_search_decoder','qldpc','stim','pyarrow'):
         module=importlib.import_module(name); path=Path(module.__file__).resolve()
         modules[name]={'path':str(path),'sha256':sha256(path)}
     compiler=subprocess.check_output(['c++','--version'],text=True).splitlines()[0]

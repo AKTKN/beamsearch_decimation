@@ -33,3 +33,19 @@ schemas and pairing, independent of the enclosing run's complete/incomplete stat
 No resume or partial-batch recovery is claimed. Interrupted readable batches can be
 replayed into a new run. Parent completion requires every planned batch/decoder,
 correct per-instance shot counts and non-overlapping intervals.
+
+## Current hybrid migration
+
+The v1 descriptions above are retained for historical files. New runner output
+uses run/batch v2 and decodes/2: invalid valid_logical_mismatch is null. samples/1
+is unchanged. `schema.py` retains both exact versions and declares hybrid_rounds/1
+and decoder_phases/1. `telemetry.py` labels owned post-service events and validates
+foreign keys, terminal/candidate labels, counters, durations and signed residuals.
+Under phases, commit_batch(version=2) publishes four typed shards (including empty
+events) before its marker. Under none it explicitly omits events. Existing callers
+may still explicitly write v1. See docs/hybrid_data.md for all fields and units.
+
+Final acceptance also checks the enumerated phase result, the successful terminal
+phase's kind/position, OSD reach versus terminal stage, and separation of prefix
+phase intervals from the OSD interval. Corrupt event metadata is rejected even
+when its foreign keys, row counts and arithmetic duration sums are consistent.

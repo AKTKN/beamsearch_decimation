@@ -5,6 +5,7 @@ from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
+from types import ModuleType
 import numpy as np
 from numpy.typing import NDArray
 from scipy import sparse
@@ -116,3 +117,25 @@ class FloodingBP:
                         np.asarray(r.history,dtype=float).reshape((len(r.history),len(free))),
                         np.asarray(r.mean_llr),np.asarray(r.reliability),np.asarray(r.flips,dtype=np.int64),
                         tuple(r.trace))
+
+
+@lru_cache(maxsize=1)
+def verified_hybrid_backend() -> ModuleType:
+    """Load the opt-in stateful/OSD bridge, checking every source/build byte.
+
+    Returns the native ldpc.hybrid_bp module. Raises RuntimeError on unintended
+    imports, wrong pins or stale binaries; missing source files raise OSError.
+    Sessions own their arrays, are non-reentrant, and reset between shots.
+    """
+    from ldpc import hybrid_bp
+    from ldpc.hybrid_bp import _hybrid_bp
+    root = Path(__file__).resolve().parents[2]
+    fork = root / 'external_lib/ldpc'
+    for module in (hybrid_bp, _hybrid_bp):
+        if fork.resolve() not in Path(module.__file__).resolve().parents:
+            raise RuntimeError('unintended ldpc hybrid interface import')
+    expected = json.loads((root / 'external_lib/manifest.lock.json').read_text())['dependencies']['ldpc']['commit']
+    identity = hybrid_bp.build_identity()
+    if identity['upstream_commit'] != expected or identity['source_sha256'] != hybrid_bp.source_digest(fork):
+        raise RuntimeError('ldpc hybrid build/source identity mismatch; rebuild setup_hybrid.py')
+    return hybrid_bp

@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import stim
 import pytest
-from qec_bp_benchmark.config import Bposd,Beam,Screened
+from qec_bp_benchmark.config import Bposd,Bposd0,Beam,Screened
 from qec_bp_benchmark.dem.model import convert_dem
 from qec_bp_benchmark.decoders import DecoderAdapter
 
@@ -18,7 +18,7 @@ error(0.12) D2
 error(0.13) D3'''))
 
 
-@pytest.mark.parametrize('cfg',[Bposd(max_iter=2,osd_order=2),Beam(initial_iters=2,iters_per_round=3,max_rounds=2),Screened(T0=2,Tpost=3,M=4,q=2,K=4)])
+@pytest.mark.parametrize('cfg',[Bposd0(max_iter=2),Bposd(max_iter=2,osd_order=2),Beam(initial_iters=2,iters_per_round=3,max_rounds=2),Screened(T0=2,Tpost=3,M=4,q=2,K=4)])
 def test_adapters_native_and_shot_reset(cfg):
     p=problem(); a=DecoderAdapter(p,cfg)
     snapshots=[x.copy() for x in (p.H.data,p.A.data,p.probabilities)]
@@ -52,12 +52,13 @@ def test_adapters_native_and_shot_reset(cfg):
     for original,now in zip(snapshots,(p.H.data,p.A.data,p.probabilities)): assert np.array_equal(original,now)
 
 
-def test_osd_valid_despite_bp_failure_and_empty_model():
+@pytest.mark.parametrize('config', [Bposd(max_iter=1,osd_order=1), Bposd0(max_iter=1)])
+def test_osd_valid_despite_bp_failure_and_empty_model(config):
     p=convert_dem(stim.DetectorErrorModel('error(0.1) D0 L0\nerror(0.1) D0'))
-    r=DecoderAdapter(p,Bposd(max_iter=1,osd_order=1)).decode(np.array([1]))
+    r=DecoderAdapter(p,config).decode(np.array([1]))
     assert r.status=='SUCCESS' and r.native_status=='OSD_AFTER_BP_NONCONVERGENCE'
     empty=convert_dem(stim.DetectorErrorModel('detector D0\nlogical_observable L11'))
-    for cfg in [Screened(),Bposd(),Beam()]:
+    for cfg in [Screened(),Bposd(),Bposd0(),Beam()]:
         d=DecoderAdapter(empty,cfg)
         r=d.decode(np.array([0])); assert r.prediction.tolist()==[0]*12
         r=d.decode(np.array([1])); assert r.status=='DECLARED_FAILURE' and r.cost is None

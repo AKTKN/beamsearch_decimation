@@ -9,7 +9,8 @@ from qec_bp_benchmark.identity import content_hash
 from qec_bp_benchmark.storage import atomic_json,sha256
 from .io import load_run,select_records
 from .statistics import aggregate_failures,aggregate_timings
-from .plots import plot_failure_rates,plot_timings
+from .plots import plot_failure_rates,plot_timings,plot_hybrid
+from .hybrid import stage_statistics,paired_statistics
 
 
 def create_report(run_paths: Sequence[str | Path], output_root: str | Path, *, settings: Analysis | None=None,
@@ -20,7 +21,7 @@ def create_report(run_paths: Sequence[str | Path], output_root: str | Path, *, s
 
     Creates an exclusive timestamped output folder; failures leave status incomplete.
     All run/scientific/decoder/execution groups remain separate. Source runs are read
-    only. No decoder execution, circuit sampling or statistical resampling occurs.
+    only. No decoder execution or circuit sampling occurs. Bootstrap resamples saved pairs.
     """
     settings=settings or Analysis(); stamp=datetime.now(timezone.utc)
     output=Path(output_root).resolve()/(stamp.strftime('%Y%m%dT%H%M%S.%fZ')+'_'+uuid.uuid4().hex[:10])
@@ -44,14 +45,25 @@ def create_report(run_paths: Sequence[str | Path], output_root: str | Path, *, s
         atomic_json(output/'failures.json',{'schema_version':1,'groups':failures},exclusive=True)
         atomic_json(output/'timings.json',{'schema_version':1,'groups':timings},exclusive=True)
         atomic_json(output/'decoder_profiles.json',{d['id']:d for run in runs for d in run.manifest['decoders']},exclusive=True)
-        figures=[]
+        rounds=[r for run in runs for r in run.hybrid_rounds.to_pylist()]
+        stages=stage_statistics(records,rounds,confidence=settings.confidence)
+        pairs=paired_statistics(records,settings=settings)
+        atomic_json(output/'hybrid_stages.json',{'schema_version':1,'groups':stages},exclusive=True)
+        atomic_json(output/'paired.json',{'schema_version':1,'groups':pairs},exclusive=True)
+        physical={}
+        for r in records: physical.setdefault((r['shot_id'],r['decoder_id']),set()).add(r['run_id'])
+        manifest['physical_trial_policy']={'pooling':'none; separate intervals for each timing trial',
+            'unique_shot_decoder_observations':len(physical),
+            'repeated_trial_observations':sum(len(v)-1 for v in physical.values()),
+            'warning':'Repeated replay intervals are dependent and must not be combined as independent LER evidence.'}
+        figures=plot_hybrid(stages,pairs,timings,failures,output/'figures')
         for plot in settings.plots:
             if plot=='failure_rate': figures.extend(plot_failure_rates(failures,output/'figures'))
             else:
                 field='cpu_ns' if plot.startswith('cpu_') else 'wall_ns'
                 figures.extend(plot_timings(records,output/'figures',timer=field,survival=plot.endswith('survival'),
                     stratify=settings.stratify_timing,min_expected_tail_count=settings.min_expected_tail_count))
-        for path in [output/'failures.json',output/'timings.json',output/'decoder_profiles.json',*figures]:
+        for path in [output/'failures.json',output/'timings.json',output/'decoder_profiles.json',output/'hybrid_stages.json',output/'paired.json',*figures]:
             manifest['files'][str(path.relative_to(output))]=sha256(path)
         manifest.update(status='complete',decode_rows=len(records),failure_groups=len(failures),timing_groups=len(timings),
                         completed_utc=datetime.now(timezone.utc).isoformat())

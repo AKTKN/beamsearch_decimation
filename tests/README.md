@@ -33,3 +33,33 @@ Verbose CLI regressions cover quiet default output, serial/spawn progress, repla
 totals independent of YAML shot count, and exact scientific equality with quiet runs.
 The interrupted-run test checks that verbose failure output never reports unsaved
 batches or successful completion.
+
+
+Hybrid Stage 1 tests live in test_hybrid_config.py: strict configuration/budgets,
+ablation/CS0 identities, explicit unavailable/unknown dispatch, all templates,
+local edit/symlink preservation and numerical-import bootstrap. test_decoders.py
+compares actual CS0 with direct upstream results across every 4-bit syndrome and
+reused/fresh sessions. Hybrid numerical kernels are now covered by the Stage 2-3 suites below.
+
+Hybrid Stages 2-3 add test_hybrid_bp.py and independent min_sum_oracle.py,
+test_hybrid_search.py and independent hybrid_oracle.py, plus bounded physical
+service integration in test_hybrid_circuit_integration.py. Manual
+check_hybrid_restoration.py compiles a new opt-in binding from pin + tracked patch.
+Source mutation/identity and every fork-file restoration are checked. Native
+release/Debug/sanitizer tests cover actual OSD comparisons, search partitions,
+reference equality and injected allocation failure recovery.
+
+Hybrid Stages 4–5: test_hybrid_storage.py covers deterministic native terminal paths,
+nulls, signed residuals, cycle/phase validation, multi-table interruption/corruption,
+v1 projection and physical surface/BB worker/replay equality with all ablations.
+test_hybrid_analysis.py uses hand-checkable speed/accuracy counterexamples, exact
+paired identities, conditional denominators, bootstrap reproducibility, incompatible
+contexts and replay independence. Historical v1 writer tests explicitly project v2
+runner rows into the unchanged v1 schema to keep exercising that boundary.
+
+Final restoration: `python tests/check_hybrid_restoration.py` restores the locked
+ldpc patch into a temporary worktree, checks every source hash, rebuilds both opt-in
+bindings plus a clean project extension, checks compiled/source identities and runs
+all four native tests. It reuses the existing conda dependencies and cleans up its
+own temporary worktree. `python python_scripts/accept_hybrid.py --output NEW_DIR`
+is the bounded command-line E2E acceptance harness (including report/notebook).

@@ -31,9 +31,9 @@ def main() -> None:
         if commit!=record['commit']:
             raise RuntimeError(f'Checkout {name} differs from pinned commit; preserve changes before restoring it')
     if args.check:
-        from qec_bp_benchmark.bp import verified_backend
+        from qec_bp_benchmark.bp import verified_backend, verified_hybrid_backend
         import beam_search_decoder,stim,qldpc,ldpc
-        print(json.dumps({'reference_bp':verified_backend().build_identity(),'ldpc':ldpc.__file__,
+        print(json.dumps({'reference_bp':verified_backend().build_identity(),'hybrid_bp':verified_hybrid_backend().build_identity(),'ldpc':ldpc.__file__,
               'beam':beam_search_decoder.__file__,'stim':stim.__version__,'qldpc':qldpc.__file__},indent=2))
         return
     pip=[sys.executable,'-m','pip']
@@ -56,7 +56,10 @@ def main() -> None:
     # Restore each missing opt-in file independently, preserving existing user
     # edits and recovering incomplete patch installations without overwriting.
     for name in ('src_cpp/reference_bp.hpp','src_python/ldpc/reference_bp/bindings.cpp',
-                 'src_python/ldpc/reference_bp/__init__.py','setup_reference.py'):
+                 'src_python/ldpc/reference_bp/__init__.py','setup_reference.py',
+                 'src_cpp/hybrid_graph.hpp','src_cpp/stateful_min_sum.hpp','src_cpp/osd0_bridge.hpp',
+                 'src_python/ldpc/hybrid_bp/bindings.cpp','src_python/ldpc/hybrid_bp/__init__.py',
+                 'src_python/ldpc/hybrid_bp/__init__.pyi','src_python/ldpc/hybrid_bp/source_files.py','setup_hybrid.py'):
         if not (fork/name).exists():
             run('git','apply','--include='+name,str(ROOT/'external_lib/patches/ldpc.patch'),cwd=fork)
             if not (fork/name).is_file(): raise RuntimeError(f'Locked patch does not restore {name}')
@@ -74,6 +77,7 @@ def main() -> None:
             run('git','checkout','-b','screened-decimation-bp',cwd=fork)
     run(*pip,'install','--no-build-isolation','--no-deps','-e',str(fork))
     run(sys.executable,'setup_reference.py','build_ext','--inplace',cwd=fork)
+    run(sys.executable,'setup_hybrid.py','build_ext','--inplace',cwd=fork)
     run(*pip,'install','--no-build-isolation','--no-deps','-e','external_lib/qLDPC')
     beam=ROOT/'external_lib/BeamSearchDecoder/decoder'
     run(sys.executable,'setup.py','build_ext','--inplace',cwd=beam)

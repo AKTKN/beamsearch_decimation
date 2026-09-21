@@ -1,0 +1,14 @@
+[qec 0.0s] Loading backends; config=/home/quantum_teresheys/workspace/beamsearch_decimation/config/hybrid_latency.yaml.example
+[qec 1.0s] Run directory: /home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044637.532370Z_3e257ad8aaf3
+[qec 1.2s] Enabled decoders: hybrid_search_soft_ms_osd0_v1, bposd_ms30_cs0, beam8
+[qec 1.2s] Capturing source and environment provenance
+[qec 2.3s] Preparing surface d=3, R=3, p=0.001
+[qec 2.3s] Preparing bb72 d=6, R=6, p=0.001
+[qec 3.0s] Plan: 2 instances, 8 physical shots, 24 decode rows, 4 batches; workers=1, timing=isolated_latency
+[qec 3.0s] Starting decoding; progress updates after each batch is committed
+[qec 3.1s] Committed batch 1/4 (25.0%); shots=2/8; surface d=3, p=0.001, batch_id=0
+[qec 3.2s] Committed batch 2/4 (50.0%); shots=4/8; surface d=3, p=0.001, batch_id=1
+[qec 3.4s] Committed batch 3/4 (75.0%); shots=6/8; bb72 d=6, p=0.001, batch_id=0
+[qec 3.6s] Committed batch 4/4 (100.0%); shots=8/8; bb72 d=6, p=0.001, batch_id=1
+[qec 3.6s] Verifying committed shards and writing summaries
+[qec 3.7s] Complete: 8 physical shots, 24 decode rows; /home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260921T044637.532370Z_3e257ad8aaf3

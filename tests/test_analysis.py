@@ -75,7 +75,8 @@ def test_exact_quantiles_ecdf_and_tail_support():
     stats=timing_statistics([0,10,20,30],quantiles=[.25])
     assert stats['mean_ns']==15 and stats['median_ns']==15 and stats['max_ns']==30
     assert stats['p90_ns']==pytest.approx(27) and stats['p95_ns']==pytest.approx(28.5)
-    assert stats['p99_ns']==pytest.approx(29.7) and stats['p99_9_ns']==pytest.approx(29.97)
+    assert stats['p99_ns']==pytest.approx(29.7) and stats['p99_9_ns'] is None
+    assert timing_statistics(range(10001))['p99_9_ns']==pytest.approx(9990)
     q99=next(q for q in stats['quantiles'] if q['q']==.99)
     assert q99['expected_tail_count']==pytest.approx(.04) and q99['insufficient_for_performance_claim']
     x,y=empirical_distribution([10,0,10,20]); assert x.tolist()==[0,10,20]
@@ -204,3 +205,34 @@ def test_saved_run_comparison_ignores_only_execution_fields(saved_run):
     rows[0]['prediction']=[not rows[0]['prediction'][0]]
     changed=replace(run,decodes=pa.Table.from_pylist(rows,schema=run.decodes.schema))
     with pytest.raises(ValueError,match='non-timing'): compare_runs(run,changed)
+
+
+def test_v1_exact_reader_projection_from_independent_fixture(saved_run,tmp_path):
+    """Build a v1-format fixture in a new directory; never rewrite historical data."""
+    import pyarrow.parquet as pq
+    from qec_bp_benchmark.storage.schema import DECODES,table
+    from qec_bp_benchmark.storage import sha256
+    target=tmp_path/'v1_fixture';shutil.copytree(saved_run,target)
+    manifest=json.loads((target/'manifest.json').read_text());manifest['schema_version']=1
+    for key in ('table_versions','event_tables','algorithm_contract','experiment_contract'): manifest.pop(key,None)
+    for entry in manifest['instances']:
+        folder=target/entry['directory']
+        for marker in (folder/'batch_manifests').glob('*.json'):
+            batch=json.loads(marker.read_text());batch['schema_version']=1
+            for key in ('table_versions','event_tables','profiling'): batch.pop(key,None)
+            name=f'decodes/part-{batch["batch_id"]:08d}.parquet'
+            rows=pq.read_table(folder/name).to_pylist()
+            rows=[{field.name:row[field.name] for field in DECODES} for row in rows]
+            # Include a declared failure to verify the historical false -> null projection.
+            row=rows[0];row.update(status='DECLARED_FAILURE',native_status='FIXTURE_FAILURE',
+                syndrome_valid=False,prediction=None,cost=None,correction_packed=None)
+            row.update(failure_labels(row['status'],False,None,[False]*row['k_Z']))
+            pq.write_table(table(rows,DECODES),folder/name)
+            batch['files'][name]['sha256']=sha256(folder/name)
+            atomic_json(marker,batch)
+    atomic_json(target/'manifest.json',manifest)
+    run=load_run(target)
+    assert run.manifest['schema_version']==1
+    assert all(r['algorithm_version'] is None for r in run.decodes.to_pylist())
+    assert all(r['valid_logical_mismatch'] is None for r in run.decodes.to_pylist() if r['decoding_failure'])
+    assert run.decoder_phases.num_rows==run.hybrid_rounds.num_rows==0

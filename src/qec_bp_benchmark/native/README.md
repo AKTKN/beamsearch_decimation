@@ -23,3 +23,22 @@ required native history statistics are always computed. Optional phase clocks us
 steady_clock and are separately labeled; normal decoding has no phase clock calls.
 Pattern counts exceeding uint64 are rejected before enumeration, without changing
 requested budgets. Compile with C++17, no fast-math and no FP contraction.
+
+
+The above contracts describe historical `screened_reference` only. The authorized
+hybrid uses persistent bounded correction search and stateful finite-hint min-sum
+with direct OSD0. Stages 2-3 now implement this kernel in hybrid_model.hpp, hybrid_search.hpp,
+hybrid_telemetry.hpp and hybrid.hpp, sharing the fork sessions directly. The
+reference path uses full recomputation/linear queue scans; production uses cached
+active-column counts, reusable reduction buffers and two exact heaps. Packed
+residuals, parent deltas and canonical keys preserve decisions. hybrid_bindings.hpp
+formats summaries and exported records natively. The complete decode releases the
+GIL and rejects concurrent calls on one session. CMake watches source inputs and
+embeds aggregate project/fork hashes verified at runtime. See docs/hybrid_native.md
+for interfaces, counter definitions, clocks, limitations and validation.
+
+Final hybrid acceptance builds all four standalone native tests in Release, Debug
+and ASan/UBSan configurations. The isolated restoration check additionally builds
+a fresh project extension against the patched source-only ldpc tree and verifies
+its embedded project/fork digests before executing the service. See
+docs/hybrid_acceptance.md (from the repository root) for scope and reproducible commands.

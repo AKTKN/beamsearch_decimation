@@ -75,3 +75,13 @@ and empirical CDF examples, dependent BB observable fixtures, missing diagnostic
 duplicate/incompatible groups, incomplete/corrupt runs and real saved native output.
 Small smoke data establish software behavior only; they cannot support decoder
 superiority or reliable extreme-tail estimates.
+
+## Hybrid paired hypothesis analysis
+
+See [hybrid_data.md](hybrid_data.md) for the Stage 5 public APIs, bootstrap controls,
+physical-trial/replay policy, four-term CPU/wall accounting and output inventory.
+The report exports hybrid_stages.json and paired.json in addition to the existing
+count/timing outputs. Noninferiority requires a supplied absolute margin; the
+bootstrap criterion is reported explicitly. P99.9 is null below the configured
+tail support threshold. Failed shots stay in timing distributions. Warm/cold/no-BP
+ablations are compared using their distinct recorded decoder identities.

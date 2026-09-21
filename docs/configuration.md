@@ -36,3 +36,30 @@ adds observed initial-BP/postprocessing/failure/unclassified-success strata.
 N(1-q) below that value. Neither passing the heuristic nor a smoke plot establishes
 a performance advantage. Analysis input/output paths remain YAML-relative. Select
 saved runs with --run; source experiment/noise fields do not trigger new simulations.
+
+
+## Hybrid migration Stage 1
+
+The complete new decoder field reference, budget resolution, ablation profiles,
+numeric/resource limits and profiling scope are in [hybrid_migration.md](hybrid_migration.md).
+The normative fragment is in HSBP-ALG-1.0 section 10. `kind` is distinct for hybrid;
+legacy entries remain profile-discriminated and parse unchanged. The upstream
+`bposd_ms30_cs0` profile fixes order zero; historical CS10 remains independently
+configurable. Hybrid configurations now execute through DecoderAdapter. Runner/replay integration
+requires Stage 4; see hybrid_native.md for the available service and event API.
+
+## Hybrid analysis controls
+
+`analysis.bootstrap_seed` is a nonnegative integer (default 20260921),
+`bootstrap_count` a positive integer (default 2000), and `bootstrap_unit` is `shot`
+or `batch`. The bootstrap keeps decoder outcomes paired and whole batches intact
+when requested. `accuracy_margin_absolute` defaults to null, or accepts a finite
+value in [0,1]. Its one-sided confidence bound criterion is documented in
+hybrid_data.md. Existing `confidence` applies to rate and paired intervals.
+`hybrid_latency.yaml.example` supplies a separate bounded isolated-latency check.
+
+A complete, actual resolved smoke-run manifest is preserved in
+[examples/hybrid_manifest.json](examples/hybrid_manifest.json). It includes explicit
+cycle lists, all settings/seeds, independent model dimensions, table/event policy,
+execution metadata, native identities and provenance hashes. Paths/identities refer
+to that acceptance run and are illustrative for a different checkout.

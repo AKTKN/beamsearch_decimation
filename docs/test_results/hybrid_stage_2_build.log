@@ -1,0 +1,98 @@
+/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        By 2027-Feb-18, you need to update your project and remove deprecated calls
+        or your builds will no longer be supported.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+running build_ext
+building 'ldpc.hybrid_bp._hybrid_bp' extension
+creating build/temp.linux-x86_64-cpython-312/src_python/ldpc/hybrid_bp
+g++ -pthread -B /home/quantum_teresheys/anaconda3/envs/search_decimation/compiler_compat -fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -DHYBRID_UPSTREAM_COMMIT=\"d3429964cd4ffe1abfc041c6ec8b8425cb174f40\" -DHYBRID_SOURCE_HASH=\"7481e92c4e228c5d711d1f544af23bf55a391fd02363d78b4883b80030a27ade\" -I/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pybind11/include -Isrc_cpp -I/home/quantum_teresheys/anaconda3/envs/search_decimation/include/python3.12 -c src_python/ldpc/hybrid_bp/bindings.cpp -o build/temp.linux-x86_64-cpython-312/src_python/ldpc/hybrid_bp/bindings.o -O3 -std=c++17 -fno-fast-math -ffp-contract=off -Wall -Wextra
+In file included from src_cpp/hybrid_graph.hpp:3,
+                 from src_cpp/stateful_min_sum.hpp:3,
+                 from src_python/ldpc/hybrid_bp/bindings.cpp:3:
+src_cpp/bp.hpp: In constructor ‘ldpc::bp::BpDecoder::BpDecoder(ldpc::bp::BpSparse&, std::vector<double>, int, ldpc::bp::BpMethod, ldpc::bp::BpSchedule, double, int, const std::vector<int>&, int, bool, ldpc::bp::BpInputType)’:
+src_cpp/bp.hpp:106:56: warning: comparison of integer expressions of different signedness: ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  106 |                 if (this->channel_probabilities.size() != this->bit_count) {
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from src_cpp/hybrid_graph.hpp:3,
+                 from src_cpp/stateful_min_sum.hpp:3,
+                 from src_python/ldpc/hybrid_bp/bindings.cpp:3:
+src_cpp/bp.hpp: In member function ‘std::vector<unsigned char> ldpc::bp::BpDecoder::decode(std::vector<unsigned char>&)’:
+src_cpp/bp.hpp:162:73: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  162 |                 if ((this->bp_input_type == AUTO && input_vector.size() == this->bit_count) ||
+      |                                                     ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::bp_decode_single_scan(std::vector<unsigned char>&)’:
+src_cpp/bp.hpp:429:25: warning: unused variable ‘loop_break’ [-Wunused-variable]
+  429 |                     int loop_break = 0;
+      |                         ^~~~~~~~~~
+src_cpp/bp.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BpDecoder::soft_info_decode_serial(std::vector<double>&, double, double)’:
+src_cpp/bp.hpp:647:40: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  647 |                     for (auto i = 0; i < soft_info_syndrome.size(); i++) {
+      |                                      ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from src_cpp/osd.hpp:11,
+                 from src_cpp/osd0_bridge.hpp:4,
+                 from src_python/ldpc/hybrid_bp/bindings.cpp:4:
+src_cpp/sort.hpp: In function ‘long long unsigned int ldpc::sort::ncr(int, int)’:
+src_cpp/sort.hpp:23:42: warning: comparison of integer expressions of different signedness: ‘long long unsigned int’ and ‘int’ [-Wsign-compare]
+   23 |         for (unsigned long long d = 1; d <= k; ++d) {
+      |                                        ~~^~~~
+In file included from src_cpp/osd.hpp:13,
+                 from src_cpp/osd0_bridge.hpp:4,
+                 from src_python/ldpc/hybrid_bp/bindings.cpp:4:
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’:
+src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+src_cpp/gf2sparse_linalg.hpp:923:31: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  923 |             for (int i = 0; i < basis_rows.size(); i++) {
+      |                             ~~^~~~~~~~~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+src_cpp/osd.hpp:68:40:   required from here
+src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::fast_solve(std::vector<unsigned char>, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+src_cpp/osd.hpp:115:95:   required from here
+src_cpp/gf2sparse_linalg.hpp:359:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  359 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘std::vector<unsigned char>& ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::lu_solve(std::vector<unsigned char>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+src_cpp/osd.hpp:123:82:   required from here
+src_cpp/gf2sparse_linalg.hpp:239:30: warning: comparison of integer expressions of different signedness: ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  239 |                 if (y.size() != this->U.m) {
+      |                     ~~~~~~~~~^~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+src_cpp/gf2sparse_linalg.hpp:188:78: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+  188 |                         if (row_index > this->rank || row_index < this->rank && static_cast<bool>(this->FULL_REDUCE)) {
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’:
+src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::bp::BpEntry]’
+src_cpp/osd.hpp:68:40:   required from here
+src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp: In instantiation of ‘void ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::set_column_row_orderings(std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’:
+src_cpp/gf2sparse_linalg.hpp:137:23:   required from ‘int ldpc::gf2sparse_linalg::RowReduce<ENTRY_OBJ>::rref(bool, bool, std::vector<int>&, std::vector<int>&) [with ENTRY_OBJ = ldpc::gf2sparse::GF2Entry]’
+src_cpp/gf2sparse_linalg.hpp:912:20:   required from ‘GF2MATRIX ldpc::gf2sparse_linalg::row_complement_basis(GF2MATRIX&) [with GF2MATRIX = ldpc::gf2sparse::GF2Sparse<ldpc::gf2sparse::GF2Entry>]’
+src_cpp/gf2sparse_linalg.hpp:938:40:   required from here
+src_cpp/gf2sparse_linalg.hpp:97:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   97 |                     if (cols.size() != this->A.n) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+src_cpp/gf2sparse_linalg.hpp:116:37: warning: comparison of integer expressions of different signedness: ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  116 |                     if (rows.size() != this->A.m) {
+      |                         ~~~~~~~~~~~~^~~~~~~~~~~~
+creating build/lib.linux-x86_64-cpython-312/ldpc/hybrid_bp
+g++ -pthread -B /home/quantum_teresheys/anaconda3/envs/search_decimation/compiler_compat -fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -shared -Wl,-rpath,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath-link,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -L/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath-link,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -L/home/quantum_teresheys/anaconda3/envs/search_decimation/lib build/temp.linux-x86_64-cpython-312/src_python/ldpc/hybrid_bp/bindings.o -o build/lib.linux-x86_64-cpython-312/ldpc/hybrid_bp/_hybrid_bp.cpython-312-x86_64-linux-gnu.so
+copying build/lib.linux-x86_64-cpython-312/ldpc/hybrid_bp/_hybrid_bp.cpython-312-x86_64-linux-gnu.so -> src_python/ldpc/hybrid_bp

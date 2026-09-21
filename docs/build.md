@@ -87,3 +87,25 @@ build, while leaving all ordinary upstream algorithms unchanged.
 Notebook dependencies are pinned in requirements.lock.txt and in the `notebook`
 optional project extra. Headless tests/exports use MPLBACKEND=Agg. Entry points for
 analysis, notebook execution and verification are documented in analysis.md.
+
+## Hybrid Stages 2-3 builds
+
+Activate search_decimation. Build the opt-in fork with `(cd external_lib/ldpc &&
+python setup_hybrid.py build_ext --inplace)`, regenerate audit/patch/manifest with
+`python python_scripts/audit_dependencies.py`, then rebuild the editable project.
+`python tests/check_hybrid_restoration.py` restores the pin/patch in an independent
+temporary worktree and compiles its binding without existing native binaries.
+CMake QEC_BUILD_TESTS now includes test_hybrid_bp and test_hybrid; QEC_SANITIZE applies
+ASan/UBSan to these too. Hybrid build hashes use absolute paths and watched inputs
+so automatic reconfiguration works from the build directory. See hybrid_native.md
+and STATUS.md for exact commands/results; no full fresh-environment claim is made.
+
+## Hybrid final restoration and E2E
+
+The expanded `python tests/check_hybrid_restoration.py` now builds both reference_bp
+and hybrid_bp from the locked patch and a new project Release extension against that
+restored fork, then runs all four native tests and checks compiled/source digests.
+No previous native binaries are copied. Other installed conda dependencies remain
+in use. `python python_scripts/accept_hybrid.py --output NEW_DIRECTORY` performs the
+bounded fresh-circuit E2E workflow, including saved-data consumers. See
+[hybrid_acceptance.md](hybrid_acceptance.md) for commands, scope and limitations.

@@ -48,3 +48,17 @@ are saved. Replay totals use the committed source dataset. These messages stay o
 per-shot decode timers; elapsed run time includes setup and I/O. There is no per-shot
 logging or heartbeat during a running batch. The CLI exposes -v/--verbose; stdout
 remains the final run path. Verbosity is presentation only, not a YAML experiment setting.
+
+
+## Hybrid Stages 4–5
+
+Hybrid run/replay is enabled. Each worker exports owned native telemetry immediately
+after the outer decode timers stop, labels it from the sampled truth, and returns
+rounds/phases to the parent. Every enabled baseline still runs on every shot.
+New output uses v2 manifests and decodes, with event policy and independent model
+sizes recorded. Replays accept verified v1 or v2 sources and always create v2 in a
+new directory. There is no in-place resume. See docs/hybrid_data.md.
+
+Final acceptance is reproducible through python_scripts/accept_hybrid.py. It uses
+fresh surface/BB circuit caches and new output directories for all worker/timing/
+replay cases, with prefix CPU limits disabled for scientific equality checks.

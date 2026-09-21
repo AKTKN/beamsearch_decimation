@@ -61,3 +61,12 @@ run manifest/config. Sample bits do not need to be resimulated for decoder compa
 Analysis outputs have separate version-1 JSON manifests, failures.json, timings.json,
 decoder_profiles.json and checksummed PNG/PDF files. They retain grouping keys and
 source-run manifest hashes. See docs/analysis.md for denominator and uncertainty rules.
+
+## Hybrid v2 migration
+
+New runs now use version-2 run/batch manifests and decodes/2 while samples/1 stays
+unchanged. The v1 descriptions above remain the historical contract. In particular,
+v1 false-on-invalid valid_logical_mismatch becomes nullable in decodes/2. See
+[hybrid_data.md](hybrid_data.md) for exact Arrow field tables, native events,
+nullability, clock/accounting conventions, atomic four-table commits and v1
+in-memory projection. Historical Parquet bytes are never rewritten.

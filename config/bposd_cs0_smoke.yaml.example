@@ -1,0 +1,31 @@
+# Runnable in Stage 1 with historical v1 tables/timing; smoke settings are software checks only.
+experiment:
+  name: cs0_software_check
+  purpose: Bounded software checks only; numeric defaults are not tuned physics settings
+  codes:
+  - family: surface
+    distances:
+    - 3
+  - family: bb72
+    distances:
+    - 6
+noise:
+  rates:
+  - 0.001
+sampling:
+  shots_per_point: 4
+  batch_size: 2
+  master_seed: 20260921
+  warmup_seed: 20260922
+  warmup_count: 1
+execution:
+  workers: 1
+timing:
+  mode: isolated_latency
+  profiling: phases
+output:
+  root: ../assets/runs
+decoders:
+- profile: bposd_ms30_cs0
+- profile: bposd_ms30_cs10
+- profile: beam8

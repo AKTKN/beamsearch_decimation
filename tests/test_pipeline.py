@@ -125,6 +125,7 @@ def test_parquet_nulls_seeds_and_duplicate_guard(runs,tmp_path,compression):
     decodes=[copy.deepcopy(d) for d in decodes if d['batch_id']==0]
     for row in samples+decodes: row['batch_seed']=2**64-1
     ids=tuple(sorted({r['decoder_id'] for r in decodes}))
+    decodes=[{f.name:(False if f.name=='valid_logical_mismatch' and r[f.name] is None else r[f.name]) for f in DECODES} for r in decodes]
     for row in decodes:
         row.update(status='DECLARED_FAILURE',native_status='TEST_EXHAUSTED',syndrome_valid=False,prediction=None,cost=None)
         row.update(failure_labels(row['status'],False,None,[False]))
@@ -255,6 +256,7 @@ def test_atomic_second_shard_failure_leaves_no_commit(runs,tmp_path,monkeypatch)
     _,one,_,_=runs; samples,decodes=rows(one)
     samples=[r for r in samples if r['batch_id']==0]; decodes=[r for r in decodes if r['batch_id']==0]
     ids=tuple(sorted({r['decoder_id'] for r in decodes}))
+    decodes=[{f.name:(False if f.name=='valid_logical_mismatch' and r[f.name] is None else r[f.name]) for f in DECODES} for r in decodes]
     instance=tmp_path/'atomic'; instance.mkdir()
     real=storage.os.link
     def fail_second(source,destination):
@@ -280,6 +282,10 @@ def test_preserved_source_bytes_and_dirty_patch(runs):
         assert 'notebook/benchmark_analysis.ipynb' in archive.namelist()
         assert 'src/qec_bp_benchmark/native/search.hpp' in archive.namelist()
         assert 'src/qec_bp_benchmark/runner/pipeline.py' in archive.namelist()
+        for name in ('config/hybrid_smoke.yaml.example', 'notebook/benchmark_analysis.ipynb.example',
+                     'docs/hybrid_search_soft_bp_osd0_specification.md',
+                     'docs/hybrid_benchmark_data_and_hypothesis_specification.md'):
+            assert name in archive.namelist()
         assert len(archive.read('external_lib/patches/ldpc.patch'))>0
     # The opt-in extension is untracked: git diff HEAD can correctly be empty.
     # Both its source bytes and the audited patch including new files are retained.
