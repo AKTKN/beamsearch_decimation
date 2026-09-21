@@ -1,0 +1,9 @@
+Processing ./.
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: stim
+  Building wheel for stim (pyproject.toml): started
+  Building wheel for stim (pyproject.toml): finished with status 'done'
+  Created wheel for stim: filename=stim-1.16.0-cp312-cp312-linux_x86_64.whl size=5061065 sha256=00128874cdc1cc985b33c1b4d3d0dad20f6c0564642215cef729e6c4a648a835
+  Stored in directory: /tmp/pip-ephem-wheel-cache-sby_69xp/wheels/db/d9/2d/eed9041165351ebec67de6e545ad36b8ecfbab67d816bda6b7
+Successfully built stim

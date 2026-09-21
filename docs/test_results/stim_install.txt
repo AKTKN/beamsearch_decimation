@@ -1,0 +1,7 @@
+Processing ./external_lib/wheels/stim-1.16.0-cp312-cp312-linux_x86_64.whl
+Installing collected packages: stim
+  Attempting uninstall: stim
+    Found existing installation: stim 1.16.0
+    Uninstalling stim-1.16.0:
+      Successfully uninstalled stim-1.16.0
+Successfully installed stim-1.16.0

@@ -1,0 +1,8 @@
+# Compact example: each enabled instance receives the same physical records in Stage 5.
+noise: {sweep: {kind: log, start: 0.0005, stop: 0.001, count: 2}}
+decoders:
+  - {profile: screened_reference, name: screened_k4, K: 4}
+  - {profile: screened_reference, name: screened_k8, K: 8}
+  - {profile: bposd_ms30_cs10}
+  - {profile: beam8}
+  - {profile: beam32, enabled: false}

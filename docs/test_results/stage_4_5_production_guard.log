@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py", line 13, in <module>
+    if __name__=='__main__': main()
+                             ^^^^^^
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/run_benchmark.py", line 10, in main
+    print(run_benchmark(args.config),flush=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/runner/pipeline.py", line 85, in run_benchmark
+    config_path=Path(config_path).resolve(); config=load_config(config_path)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/config.py", line 315, in load_config
+    config = Config.model_validate(yaml.load(path.read_text(), Loader=_UniqueLoader))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pydantic/main.py", line 732, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Config
+noise
+  Value error, physical-rate grid must be nonempty and contain no duplicates [type=value_error, input_value={'rates': [], 'multiplier....0, 'measurement': 1.0}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/value_error

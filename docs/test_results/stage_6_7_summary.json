@@ -1,0 +1,982 @@
+{
+  "analysis": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/analysis/20260920T230140.239323Z_42d33c5ead",
+  "analysis_manifest": {
+    "allow_incomplete": false,
+    "completed_utc": "2026-09-20T23:01:59.871305+00:00",
+    "created_utc": "2026-09-20T23:01:40.239323+00:00",
+    "decode_rows": 768,
+    "failure_groups": 24,
+    "files": {
+      "decoder_profiles.json": "2c78528da3da73cc6593c61ebf298814b31cc85e1b26739bf48b3bc249135408",
+      "failures.json": "1f976463b21c0a20cbec0cf813de2937b3e819bdd5df1f1fda1745cd1c5fbd7f",
+      "figures/cpu_ns_ecdf_1249c1412c9697d8.pdf": "c72dcca63ffe19edf9655f016e988e03756157ab3e974af11c96521d991c4596",
+      "figures/cpu_ns_ecdf_1249c1412c9697d8.png": "a29bcfb106c6037dc15289fbce084ee9d931854cadd4c35a9fa83c19e6c65b47",
+      "figures/cpu_ns_ecdf_1a55d30ae620ddb2.pdf": "d31428fcef293d95a81f037bc513d0d6d1dbbaf36c1671b9f92fec8551a106ad",
+      "figures/cpu_ns_ecdf_1a55d30ae620ddb2.png": "f3ae07d345351687c695cde91ed9ecc2787e51fcfbf6ea3e5e6f61304623416e",
+      "figures/cpu_ns_ecdf_276613c3a2b701d7.pdf": "765c4da338513bfdb5e47f2d5f6d99e51d9818c3ab77db011457e31022a2ee6a",
+      "figures/cpu_ns_ecdf_276613c3a2b701d7.png": "41f0309e1d32d071a6ed9e7d6b174a043fd6c2bd6ffde1a53ad85bf6d7620b6a",
+      "figures/cpu_ns_ecdf_3e3b628ca406015a.pdf": "444d59d5a8bacfd9adc02ee52447a6fcf081809b4eb6421371386eb6e11c6144",
+      "figures/cpu_ns_ecdf_3e3b628ca406015a.png": "063ca824af2cc85e59d55d573b92d4818f02c5fee23751c1c13d9bf67496f76c",
+      "figures/cpu_ns_ecdf_48ea265e6d5ed83d.pdf": "9a11280cd485db6c5d2d382ed5dce079af0689c1a96169950c69c9c3378b078b",
+      "figures/cpu_ns_ecdf_48ea265e6d5ed83d.png": "5abbfec6ab423e668f5355e7e5491a74c69e66c3ddd3ae95431091e7e3c4b143",
+      "figures/cpu_ns_ecdf_a106cc9aed0ee41e.pdf": "6d6acabae4e813163f9490ebf11669b999a244f606804450492072b2909b9c69",
+      "figures/cpu_ns_ecdf_a106cc9aed0ee41e.png": "38041b3ecf04af2b7a334bcb81ddcb45d62f29ed078b940b45399a4e837550c8",
+      "figures/cpu_ns_ecdf_dd5f0dd8872bf613.pdf": "f36aba11935223fc87268307fa15af4b3f2577debcbfcebbe1e45de04a98a4cd",
+      "figures/cpu_ns_ecdf_dd5f0dd8872bf613.png": "840ff017e71c0c508a3e95c0165d17a2e88e4a35b38838a459f1d4e97a7ab931",
+      "figures/cpu_ns_ecdf_f00a9f83ec32b3e7.pdf": "37f081ede2202456595a077692d35be4a0915c193ac33496d9c3c6734439d4cb",
+      "figures/cpu_ns_ecdf_f00a9f83ec32b3e7.png": "1e55cdc7bf0740c33ede565c488c5b04b111eb57ff175e4bbf1ee177a1245cd5",
+      "figures/failure_20d61dc99220aff3.pdf": "f54b2da3765f4e50d4406fb25b68f228762dba0e655ab4fe67941284d44181a9",
+      "figures/failure_20d61dc99220aff3.png": "473f183a9a6594564b7ea243b0ca757d03d3450361494a17c7118ff9410bc0c5",
+      "figures/failure_261682fb708febdf.pdf": "69ab698b00b471309ea53cf740d3e64b917c5bf7c9112ba756f9eb0c0dcb3b86",
+      "figures/failure_261682fb708febdf.png": "3885f7f219cd8fe208fb692b025f6055f7e497cb829a682c5800c919296bfe1c",
+      "figures/failure_32ac3d04d196a069.pdf": "dcf527552a53887f66a20f94f76a146ee497e6af914b5990f1a551dc6ba2c449",
+      "figures/failure_32ac3d04d196a069.png": "323c06130bd2cf39be08c2a2351e91cf53b7ff6f553dd5e260c330bb34cb45ed",
+      "figures/failure_548da0bd5e554f6d.pdf": "66bea51eb87cb764cac134bf0011b7a43ab71df9fb9eee75d6d3a3cd9909094e",
+      "figures/failure_548da0bd5e554f6d.png": "9a0f7fb33c48a764aa482ae465b3098042d0aec5446541aa63e812fd86f8c52f",
+      "figures/failure_64e6e86770e9e262.pdf": "83a4bcf3f6954ec5835214da11d34a0581246dadf756bf8ed9878adf74067a4c",
+      "figures/failure_64e6e86770e9e262.png": "75e11acb6e85ffab7c6f11c500f178d0ddd19124d30bb10522df3159084497e8",
+      "figures/failure_a6ac4911c999d17e.pdf": "e9c747ac4c42bbda9df9cdf0150c21553560c4409e7779bbdda7bb112c8dd838",
+      "figures/failure_a6ac4911c999d17e.png": "622a7eeffe304fb19543c7ebf75ac95370100e95c7e6ae9034e331edbd93997e",
+      "figures/failure_b001d3b44ae26bda.pdf": "0b87e6ac3b5f02795e42d2dcbac08ed57ffb951ce24ca1dd54ab06b946e6597c",
+      "figures/failure_b001d3b44ae26bda.png": "539e589d4176d3ac9321ca0fdd92551016891d49eb22471418ee482db83c2dd9",
+      "figures/failure_ec36924149b862bf.pdf": "9f646d3aac742aeb4ed8919148d7a4a2b73690d78d91c2c25db319b41e491874",
+      "figures/failure_ec36924149b862bf.png": "9670ee340a09ada1a2774970bd6ef7a7640937d456c3de3a1b1218f54abc295a",
+      "figures/wall_ns_ecdf_1249c1412c9697d8.pdf": "47b0d557126b7edababfc59c424f3359042206e99975fd47a23820f1a9f6e28d",
+      "figures/wall_ns_ecdf_1249c1412c9697d8.png": "73efce60c6f19e6ecddd001c5a056dae04920e539d8d0adaceaa1ac240e7d8cd",
+      "figures/wall_ns_ecdf_1a55d30ae620ddb2.pdf": "973b54417a2acca8b2e8fc035d7f47e7b774a976aeeea6df31f4249cb4321c92",
+      "figures/wall_ns_ecdf_1a55d30ae620ddb2.png": "fed95be498b170bbb7a087cd0e2fdb1248ae93e83c094b30da8ed65e4cc5c3a2",
+      "figures/wall_ns_ecdf_276613c3a2b701d7.pdf": "635532f1e80a2c7457b2e952e153eba14154636c7a87b5d7c8bfa8932df8999c",
+      "figures/wall_ns_ecdf_276613c3a2b701d7.png": "0a0994f7352183d231f3a13c1caf7e8b37c3d92e973091991b9d3c71f36c6254",
+      "figures/wall_ns_ecdf_3e3b628ca406015a.pdf": "cd777bf3b0e4c14b2de272bf3f6a98f43c17820c12b57d107e9f4dbce8c9638d",
+      "figures/wall_ns_ecdf_3e3b628ca406015a.png": "b9c9d1c347ac1218a57842a656dde548439c2d062ab0e0fabfb57adaaa2b0ede",
+      "figures/wall_ns_ecdf_48ea265e6d5ed83d.pdf": "41fe089d61b47665f91da922fdb0f32bde009b81548a07a8b216ae9d467315b5",
+      "figures/wall_ns_ecdf_48ea265e6d5ed83d.png": "cd6fe89f3d9af8abb9ea8a3e5ff01d4b12e90b63da00951c0ce5c7ad3b526530",
+      "figures/wall_ns_ecdf_a106cc9aed0ee41e.pdf": "fe423d9e1102721c72e95686f09aaf6e8a5008bb4f298e189b8c4a6341ebc4b4",
+      "figures/wall_ns_ecdf_a106cc9aed0ee41e.png": "4d90db83e23397a6533f3b5ac2cc1d4edce50245ff719ffd6e7949833dfcac91",
+      "figures/wall_ns_ecdf_dd5f0dd8872bf613.pdf": "628b19f46168a3e65a3e424509e74a910de1305fc665daeb6dcb8e73039bf503",
+      "figures/wall_ns_ecdf_dd5f0dd8872bf613.png": "a6018691746f3dcf6193d192106cdf053b4a146f1e5f0278ae1838e96e40a483",
+      "figures/wall_ns_ecdf_f00a9f83ec32b3e7.pdf": "49c6331d06b4bf2ea70c8ed7148b1aa7c2b9b8783544d68a0c84be3a66489dfe",
+      "figures/wall_ns_ecdf_f00a9f83ec32b3e7.png": "b124b092d65615d67b49a0f4d69723fe6b6412d17cc99d5b55d52bfcf7074a05",
+      "timings.json": "ee39ba16df269a87dd9f588041b796e2414e7957fc88eebfd2cc31182adef1fc"
+    },
+    "pooling": "none across runs, scientific instances, sampling plans, decoder IDs or execution contexts",
+    "purpose": "Descriptive software validation; smoke sample sizes do not establish decoder superiority",
+    "schema_version": 1,
+    "selection": {
+      "decoder_ids": null,
+      "distances": null,
+      "families": null,
+      "timing_modes": null
+    },
+    "settings": {
+      "confidence": 0.95,
+      "input": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs",
+      "min_expected_tail_count": 10,
+      "output": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/analysis",
+      "plots": [
+        "failure_rate",
+        "cpu_ecdf",
+        "wall_ecdf"
+      ],
+      "quantiles": [
+        0.5,
+        0.9,
+        0.95,
+        0.99,
+        0.999
+      ],
+      "stratify_timing": false
+    },
+    "sources": [
+      {
+        "manifest_sha256": "4e9efecf313ac765d67122ac425877d52b9c5db7618cd1f54d0eb35f2c03a7b1",
+        "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+        "status": "complete"
+      },
+      {
+        "manifest_sha256": "a6d97ac7071d2ea09ce578aff3d621fa0c9c8869f939552716381c4fc5f09386",
+        "path": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230120.596574Z_02d2c682f226",
+        "run_id": "187dc764fe4ea8ef005a59829ce5f2a2887b358966b1904374de7b2034ebf0c4",
+        "status": "complete"
+      }
+    ],
+    "status": "complete",
+    "timing_groups": 48
+  },
+  "base": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644",
+  "commands": [
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "python_scripts/audit_dependencies.py"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "audit",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/audit.log",
+      "returncode": 0,
+      "seconds": 2.4993732399962028
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "pip_check",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/pip_check.log",
+      "returncode": 0,
+      "seconds": 0.2836450419999892
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "project_tests",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/project_tests.log",
+      "returncode": 0,
+      "seconds": 29.47788532300183
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "external_lib/ldpc/python_test/test_bp_decoder.py",
+        "external_lib/ldpc/python_test/test_bp_decoder_input.py",
+        "external_lib/ldpc/python_test/test_bp_serial.py",
+        "external_lib/qLDPC/src/qldpc/circuits/memory/memory_test.py::test_memory_experiment",
+        "external_lib/qLDPC/src/qldpc/circuits/memory/memory_test.py::test_errors",
+        "external_lib/qLDPC/src/qldpc/circuits/memory/syndrome_measurement_test.py::test_syndrome_measurement_scheduling"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "upstream_tests",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/upstream_tests.log",
+      "returncode": 0,
+      "seconds": 3.2690924940034165
+    },
+    {
+      "argv": [
+        "cmake",
+        "-S",
+        ".",
+        "-B",
+        "build/debug",
+        "-DQEC_BUILD_TESTS=ON",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-Dpybind11_DIR=/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/lib/python3.12/site-packages/pybind11/share/cmake/pybind11"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "debug_configure",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/debug_configure.log",
+      "returncode": 0,
+      "seconds": 1.6067392180048046
+    },
+    {
+      "argv": [
+        "cmake",
+        "--build",
+        "build/debug",
+        "--target",
+        "test_reference_bp",
+        "test_search",
+        "-j2"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "debug_build",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/debug_build.log",
+      "returncode": 0,
+      "seconds": 2.648270115998457
+    },
+    {
+      "argv": [
+        "ctest",
+        "--test-dir",
+        "build/debug",
+        "--output-on-failure"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "debug_test",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/debug_test.log",
+      "returncode": 0,
+      "seconds": 0.039668711004196666
+    },
+    {
+      "argv": [
+        "cmake",
+        "-S",
+        ".",
+        "-B",
+        "build/sanitize",
+        "-DQEC_BUILD_TESTS=ON",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-Dpybind11_DIR=/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/lib/python3.12/site-packages/pybind11/share/cmake/pybind11",
+        "-DQEC_SANITIZE=ON"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "sanitize_configure",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/sanitize_configure.log",
+      "returncode": 0,
+      "seconds": 1.4559440879966132
+    },
+    {
+      "argv": [
+        "cmake",
+        "--build",
+        "build/sanitize",
+        "--target",
+        "test_reference_bp",
+        "test_search",
+        "-j2"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "sanitize_build",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/sanitize_build.log",
+      "returncode": 0,
+      "seconds": 4.414396337000653
+    },
+    {
+      "argv": [
+        "ctest",
+        "--test-dir",
+        "build/sanitize",
+        "--output-on-failure"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "sanitize_test",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/sanitize_test.log",
+      "returncode": 0,
+      "seconds": 0.04916254700219724
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/run_benchmark.sh",
+        "config/smoke.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "smoke_four_workers",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/smoke_four_workers.log",
+      "returncode": 0,
+      "seconds": 8.65695138299634
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/run_benchmark.sh",
+        "config/smoke_serial.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "smoke_one_worker",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/smoke_one_worker.log",
+      "returncode": 0,
+      "seconds": 9.039865131002443
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/run_benchmark.sh",
+        "config/smoke_two_workers.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "smoke_two_workers",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/smoke_two_workers.log",
+      "returncode": 0,
+      "seconds": 8.421412092000537
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/run_benchmark.sh",
+        "config/latency_smoke.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "smoke_isolated",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/smoke_isolated.log",
+      "returncode": 0,
+      "seconds": 9.541672180006572
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "python_scripts/verify_benchmark.py",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "--compare",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230103.246777Z_2d7be50dfa48"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "compare_one_worker",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/compare_one_worker.log",
+      "returncode": 0,
+      "seconds": 0.5374985680027748
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "python_scripts/verify_benchmark.py",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "--compare",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230112.149284Z_34f815f5c98b"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "compare_two_workers",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/compare_two_workers.log",
+      "returncode": 0,
+      "seconds": 0.6013610689988127
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "python_scripts/verify_benchmark.py",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "--compare",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230120.596574Z_02d2c682f226"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "compare_isolated",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/compare_isolated.log",
+      "returncode": 0,
+      "seconds": 0.535366834999877
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/replay_samples.sh",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "config/decoder_sweep.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "replay",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/replay.log",
+      "returncode": 0,
+      "seconds": 8.634529231996567
+    },
+    {
+      "argv": [
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/bin/python",
+        "python_scripts/verify_benchmark.py",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "--compare",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230131.887982Z_b289575349b7",
+        "--allow-additional-decoders"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "compare_replay",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/compare_replay.log",
+      "returncode": 0,
+      "seconds": 0.5171472150032059
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/analyze_benchmark.sh",
+        "config/smoke.yaml",
+        "--run",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "--run",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230120.596574Z_02d2c682f226"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "analysis",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/analysis.log",
+      "returncode": 0,
+      "seconds": 20.24131154800125
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/execute_notebook.sh",
+        "config/smoke.yaml",
+        "--run",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+        "--output",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/notebook/acceptance_smoke_executed.ipynb"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "notebook",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/notebook.log",
+      "returncode": 0,
+      "seconds": 11.585804597001697
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/run_benchmark.sh",
+        "config/production_template.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "production_guard",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/production_guard.log",
+      "returncode": 1,
+      "seconds": 0.18399238199344836
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/clean_build.sh",
+        "--help"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "clean_build_help",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/clean_build_help.log",
+      "returncode": 0,
+      "seconds": 0.060647079000773374
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/build_dependencies.sh",
+        "--check"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "build_check",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/build_check.log",
+      "returncode": 0,
+      "seconds": 1.9705278260007617
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/prepare_circuits.sh",
+        "config/smoke.yaml"
+      ],
+      "cwd": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace",
+      "label": "prepare_check",
+      "log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/logs/prepare_check.log",
+      "returncode": 0,
+      "seconds": 2.9047493980033323
+    }
+  ],
+  "comparisons": {
+    "compare_isolated": {
+      "comparison": {
+        "additional_decode_rows": 0,
+        "left_run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+        "right_run_id": "187dc764fe4ea8ef005a59829ce5f2a2887b358966b1904374de7b2034ebf0c4",
+        "samples_equal": 128,
+        "shared_decodes_equal": 384,
+        "status": "equal"
+      },
+      "decodes": 384,
+      "run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+      "samples": 128,
+      "status": "complete"
+    },
+    "compare_one_worker": {
+      "comparison": {
+        "additional_decode_rows": 0,
+        "left_run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+        "right_run_id": "3b4ec7fb788c3dfd6a07643da4224b12d9372fede7b93e325dc0deaf11e128cb",
+        "samples_equal": 128,
+        "shared_decodes_equal": 384,
+        "status": "equal"
+      },
+      "decodes": 384,
+      "run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+      "samples": 128,
+      "status": "complete"
+    },
+    "compare_replay": {
+      "comparison": {
+        "additional_decode_rows": 128,
+        "left_run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+        "right_run_id": "fdbff9f5defcfb5c0ac2b2afdda822088498c8c9e3103697ace295bbe67907f3",
+        "samples_equal": 128,
+        "shared_decodes_equal": 384,
+        "status": "equal"
+      },
+      "decodes": 384,
+      "run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+      "samples": 128,
+      "status": "complete"
+    },
+    "compare_two_workers": {
+      "comparison": {
+        "additional_decode_rows": 0,
+        "left_run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+        "right_run_id": "dcb9628d28863e2a203c22ab1314bba2757f7aafcf6efc2bf249cf5a5ec16206",
+        "samples_equal": 128,
+        "shared_decodes_equal": 384,
+        "status": "equal"
+      },
+      "decodes": 384,
+      "run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+      "samples": 128,
+      "status": "complete"
+    }
+  },
+  "logs_sha256": {
+    "analysis.log": "75d5328ef6599bd73acc3d91524e37a340cf3781c2cef2d881d4017d95e1de60",
+    "audit.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build_check.log": "640d1cc1ef94367c76cfd8b1985296c3bd006b83eaa33f465c8483360396664d",
+    "clean_build_help.log": "925fdb45a32a9d30eb755d8c319890e89417edc0621c4bd98c47a7904e2720eb",
+    "compare_isolated.log": "36b70492b033ab8f63c78a51aa5be160bd28ba057c601069bf07b148fd57ac14",
+    "compare_one_worker.log": "d3eb310c3cdb5b44734a17c3579461ff69dd9cca5d508aa132d6c80751083840",
+    "compare_replay.log": "c1eaa2ce5db7a6ab9811ee06e3524eafc0f2eb07579b606e6aaa4f94d3104122",
+    "compare_two_workers.log": "39750c0042fd5fcd33b35014f8b053d4020353331da2763429a4d43a1448222b",
+    "debug_build.log": "2a25407da1a1c29aa614ad4a5361993de800677899d92314f66c05baddc86780",
+    "debug_configure.log": "6117ef6366e67003a2c3512cf4f30e920b5ae758a7a725c37c8a65089d752008",
+    "debug_test.log": "8f4095ba05c049eb5fd510948324e002cc954b4aba631570116bf354cb09e5a5",
+    "notebook.log": "457945ec88a55d459461445bd41f3228475dea31f42287064408d3822c2f120c",
+    "pip_check.log": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+    "prepare_check.log": "ce96030c78d99ff3320f294e90839026b3b02c906faa7e37a13343281002bb2e",
+    "production_guard.log": "b9070736775f6712cb70d8774ea1f47443b3ea7c838bec76d6f5768670686d4c",
+    "project_tests.log": "1dfb35cdd68f3ed9be1aa1de56c7a6e1c1a0660b0b6b9cf1af5fa50349107d07",
+    "replay.log": "3b06a01499c9b25f868d20f1d9e8537e20969d82623e64278dc16c73ca4525cd",
+    "sanitize_build.log": "2a25407da1a1c29aa614ad4a5361993de800677899d92314f66c05baddc86780",
+    "sanitize_configure.log": "19661712a4b57424dbab06434dc8ae6ee7264f57cbd139aeedb93afb7b7ab671",
+    "sanitize_test.log": "4d451e4439664be391d50434365a1effee3588b96c35d70637cf3954ed8ee540",
+    "smoke_four_workers.log": "0b4dfc6d0eca2678ee759dec8ac75518b3c3751d3b0cf1f8f1aeed986a8dbdb2",
+    "smoke_isolated.log": "f740998a0b589e1dd4a9fa788399e204014da2565d3d6181e94d29a523242544",
+    "smoke_one_worker.log": "c9931cfcd1b42c31e1d88adb4a0dbff9fc80b6364b59de5566cd08e979ac338d",
+    "smoke_two_workers.log": "9415f0090aa5ce2198f6ee4aeadaf2af3e658c81579e13aa9c5dc514fd88e536",
+    "upstream_tests.log": "f219a25145a7d4bbdc24ec106ac99e52fc60f6215f12abc23967eaee55749d07"
+  },
+  "native_implementations": {
+    "beam8": {
+      "adapter_sha256": "108982260154e91a91ca10f9b0b57a76086c0a80e47d038501adbbba86fa6cef",
+      "native_sha256": "f01ac8bfd656472ad0fdf04b2effa4a4ce8cef0cef248e8d2e19fc972a7f86c1",
+      "upstream_commit": "084a475b05fb64308103317a1ce5a0c4b0be58aa"
+    },
+    "bposd_ms30_cs10": {
+      "adapter_sha256": "108982260154e91a91ca10f9b0b57a76086c0a80e47d038501adbbba86fa6cef",
+      "native_sha256": "80be911e1c1c87da851218d85d5b8365802617f8c246f148376091775010b7e3",
+      "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40"
+    },
+    "screened_reference": {
+      "adapter_sha256": "108982260154e91a91ca10f9b0b57a76086c0a80e47d038501adbbba86fa6cef",
+      "binding_sha256": "ace920db59f3fdf3143e2b6e23fbdc9dc88f9e8cd26a6f9c18ce79ab6e16aa3b",
+      "bp_header_sha256": "2652fa2b84e484014c88b271c329ba8716e5cd1c4f797d35468931ed0747be6a",
+      "build": "qec-bp-benchmark/0.1.0;c++17;binary64;no-fast-math",
+      "cmake_sha256": "449d41d1cb0add49f88ec108bd7b2dbcd1f848d38218ca87677cfc177f957190",
+      "native_sha256": "73dc073e2a269c0ee00a01f17c9ff32b3b56886e7cc20371b16370bb8cb12d7b",
+      "search_sha256": "b1fd858c90cb15ca97527e3f10c0a10ef2eb64a55d054452e6f958fcdf4b64d3"
+    }
+  },
+  "native_imports": {
+    "beam": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/__init__.py",
+    "ldpc": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/ldpc/src_python/ldpc/__init__.py",
+    "project": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/lib/python3.12/site-packages/qec_bp_benchmark/_native.cpython-312-x86_64-linux-gnu.so",
+    "qldpc": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/qLDPC/src/qldpc/__init__.py",
+    "reference": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/ldpc/src_python/ldpc/reference_bp/_reference_bp.cpython-312-x86_64-linux-gnu.so",
+    "stim": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation/lib/python3.12/site-packages/stim/__init__.py"
+  },
+  "notebook": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/notebook/acceptance_smoke_executed.ipynb",
+  "notebook_executed_code_cells": 5,
+  "pins": {
+    "BeamSearchDecoder": "084a475b05fb64308103317a1ce5a0c4b0be58aa",
+    "BivariateBicycleCodes": "fa77e3333d3ec44c79d8f914dd24c040d1da471b",
+    "Stim": "e2fc1eca7fd21684d433aa5f10f4504ea4860d07",
+    "ldpc": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40",
+    "qLDPC": "53909112b25cff8d67d1a7528501d72c5a4a34e7",
+    "stimbposd": "5ed95e415be245f93d5326c4898bd0182fe8f3bd"
+  },
+  "prefix": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/envs/search_decimation",
+  "project_build_identity": "qec-bp-benchmark/0.1.0;c++17;binary64;no-fast-math",
+  "project_source_identity": {
+    "binding_sha256": "ace920db59f3fdf3143e2b6e23fbdc9dc88f9e8cd26a6f9c18ce79ab6e16aa3b",
+    "bp_header_sha256": "2652fa2b84e484014c88b271c329ba8716e5cd1c4f797d35468931ed0747be6a",
+    "cmake_sha256": "449d41d1cb0add49f88ec108bd7b2dbcd1f848d38218ca87677cfc177f957190",
+    "search_sha256": "b1fd858c90cb15ca97527e3f10c0a10ef2eb64a55d054452e6f958fcdf4b64d3"
+  },
+  "python": "3.12.14 | packaged by Anaconda, Inc. | (main, Aug 27 2026, 14:46:43) [GCC 14.3.0]",
+  "run_details": {
+    "four_workers": {
+      "batches": 8,
+      "block_counts": [
+        {
+          "decoder_id": "7aa7a46637eedb789a8f4618ff84f3fd46405f0493918c45da3bc7aa47f8bb70",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "6b7aa5b35d31c0fdd359c9941baf740ef8e96a56d4cee3d4f0b38ae46f45c481",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "5a6f8b380e572a8e07a9ec72f25909ddc8140de24185152253d2f7fe3ce1d808",
+          "failures": 1,
+          "shots": 128
+        }
+      ],
+      "decodes": 384,
+      "instances": [
+        {
+          "distance": 5,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 5,
+          "shots": 32
+        },
+        {
+          "distance": 7,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 7,
+          "shots": 32
+        },
+        {
+          "distance": 9,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 9,
+          "shots": 32
+        },
+        {
+          "distance": 6,
+          "family": "bb72",
+          "k_Z": 12,
+          "rounds": 6,
+          "shots": 32
+        }
+      ],
+      "samples": 128,
+      "timing_mode": "throughput",
+      "workers": 4
+    },
+    "isolated": {
+      "batches": 8,
+      "block_counts": [
+        {
+          "decoder_id": "7aa7a46637eedb789a8f4618ff84f3fd46405f0493918c45da3bc7aa47f8bb70",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "6b7aa5b35d31c0fdd359c9941baf740ef8e96a56d4cee3d4f0b38ae46f45c481",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "5a6f8b380e572a8e07a9ec72f25909ddc8140de24185152253d2f7fe3ce1d808",
+          "failures": 1,
+          "shots": 128
+        }
+      ],
+      "decodes": 384,
+      "instances": [
+        {
+          "distance": 5,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 5,
+          "shots": 32
+        },
+        {
+          "distance": 7,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 7,
+          "shots": 32
+        },
+        {
+          "distance": 9,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 9,
+          "shots": 32
+        },
+        {
+          "distance": 6,
+          "family": "bb72",
+          "k_Z": 12,
+          "rounds": 6,
+          "shots": 32
+        }
+      ],
+      "samples": 128,
+      "timing_mode": "isolated_latency",
+      "workers": 1
+    },
+    "one_worker": {
+      "batches": 8,
+      "block_counts": [
+        {
+          "decoder_id": "7aa7a46637eedb789a8f4618ff84f3fd46405f0493918c45da3bc7aa47f8bb70",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "6b7aa5b35d31c0fdd359c9941baf740ef8e96a56d4cee3d4f0b38ae46f45c481",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "5a6f8b380e572a8e07a9ec72f25909ddc8140de24185152253d2f7fe3ce1d808",
+          "failures": 1,
+          "shots": 128
+        }
+      ],
+      "decodes": 384,
+      "instances": [
+        {
+          "distance": 5,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 5,
+          "shots": 32
+        },
+        {
+          "distance": 7,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 7,
+          "shots": 32
+        },
+        {
+          "distance": 9,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 9,
+          "shots": 32
+        },
+        {
+          "distance": 6,
+          "family": "bb72",
+          "k_Z": 12,
+          "rounds": 6,
+          "shots": 32
+        }
+      ],
+      "samples": 128,
+      "timing_mode": "throughput",
+      "workers": 1
+    },
+    "replay": {
+      "batches": 8,
+      "block_counts": [
+        {
+          "decoder_id": "7aa7a46637eedb789a8f4618ff84f3fd46405f0493918c45da3bc7aa47f8bb70",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "6b7aa5b35d31c0fdd359c9941baf740ef8e96a56d4cee3d4f0b38ae46f45c481",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "5a6f8b380e572a8e07a9ec72f25909ddc8140de24185152253d2f7fe3ce1d808",
+          "failures": 1,
+          "shots": 128
+        },
+        {
+          "decoder_id": "38b1344bb23b4f036435f9026fd6a17a52a352bec55ead35b67c4fd77ce5a486",
+          "failures": 1,
+          "shots": 128
+        }
+      ],
+      "decodes": 512,
+      "instances": [
+        {
+          "distance": 5,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 5,
+          "shots": 32
+        },
+        {
+          "distance": 7,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 7,
+          "shots": 32
+        },
+        {
+          "distance": 9,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 9,
+          "shots": 32
+        },
+        {
+          "distance": 6,
+          "family": "bb72",
+          "k_Z": 12,
+          "rounds": 6,
+          "shots": 32
+        }
+      ],
+      "samples": 128,
+      "timing_mode": "throughput",
+      "workers": 4
+    },
+    "two_workers": {
+      "batches": 8,
+      "block_counts": [
+        {
+          "decoder_id": "7aa7a46637eedb789a8f4618ff84f3fd46405f0493918c45da3bc7aa47f8bb70",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "6b7aa5b35d31c0fdd359c9941baf740ef8e96a56d4cee3d4f0b38ae46f45c481",
+          "failures": 0,
+          "shots": 128
+        },
+        {
+          "decoder_id": "5a6f8b380e572a8e07a9ec72f25909ddc8140de24185152253d2f7fe3ce1d808",
+          "failures": 1,
+          "shots": 128
+        }
+      ],
+      "decodes": 384,
+      "instances": [
+        {
+          "distance": 5,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 5,
+          "shots": 32
+        },
+        {
+          "distance": 7,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 7,
+          "shots": 32
+        },
+        {
+          "distance": 9,
+          "family": "surface",
+          "k_Z": 1,
+          "rounds": 9,
+          "shots": 32
+        },
+        {
+          "distance": 6,
+          "family": "bb72",
+          "k_Z": 12,
+          "rounds": 6,
+          "shots": 32
+        }
+      ],
+      "samples": 128,
+      "timing_mode": "throughput",
+      "workers": 2
+    }
+  },
+  "runs": {
+    "four_workers": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230054.456150Z_3404e1f3a42e",
+    "isolated": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230120.596574Z_02d2c682f226",
+    "one_worker": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230103.246777Z_2d7be50dfa48",
+    "replay": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230131.887982Z_b289575349b7",
+    "two_workers": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/assets/runs/20260920T230112.149284Z_34f815f5c98b"
+  },
+  "source_build_log": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/build_fixed.log",
+  "source_clones": "new Git checkouts at locked commits, no copied native binaries, build trees, wheels or circuit cache",
+  "status": "complete",
+  "verification": {
+    "full_search_oracle_comparisons": 560,
+    "native_debug_passed": 2,
+    "native_sanitizer_passed": 2,
+    "pristine_bposd_comparisons": 288,
+    "production_guard": "expected rejection before run creation",
+    "project_tests": 117,
+    "upstream_tests": 15,
+    "upstream_warnings": 6
+  },
+  "versions": {
+    "Cython": "3.3.0",
+    "Jinja2": "3.1.6",
+    "MarkupSafe": "3.0.3",
+    "PyMatching": "2.4.0",
+    "PyYAML": "6.0.3",
+    "Pygments": "2.21.0",
+    "annotated-types": "0.8.0",
+    "asttokens": "3.0.2",
+    "attrs": "26.1.0",
+    "cffi": "2.1.1",
+    "clarabel": "0.11.1",
+    "cloudpickle": "3.1.2",
+    "comm": "0.2.3",
+    "contourpy": "1.4.0",
+    "cvxpy": "1.9.3",
+    "cycler": "0.12.1",
+    "debugpy": "1.8.22",
+    "diskcache": "5.6.3",
+    "executing": "2.2.1",
+    "fastjsonschema": "2.22.2",
+    "fonttools": "4.65.0",
+    "galois": "0.4.11",
+    "highspy": "1.15.1",
+    "iniconfig": "2.3.0",
+    "ipykernel": "7.3.0",
+    "ipython": "9.17.1",
+    "ipython_pygments_lexers": "1.1.1",
+    "jedi": "0.20.0",
+    "joblib": "1.6.0",
+    "jsonschema": "4.26.0",
+    "jsonschema-specifications": "2025.9.1",
+    "jupyter_client": "8.10.0",
+    "jupyter_core": "5.9.1",
+    "kiwisolver": "1.5.1",
+    "ldpc": "2.4.1",
+    "llvmlite": "0.49.0",
+    "matplotlib": "3.11.2",
+    "matplotlib-inline": "0.2.2",
+    "mpmath": "1.3.0",
+    "nbclient": "0.11.0",
+    "nbformat": "5.11.1",
+    "nest-asyncio2": "1.7.2",
+    "networkx": "3.6.1",
+    "numba": "0.67.0",
+    "numpy": "2.5.3",
+    "osqp": "1.1.3",
+    "packaging": "26.3",
+    "parso": "0.8.7",
+    "pathspec": "1.1.1",
+    "pexpect": "4.9.0",
+    "pillow": "12.3.0",
+    "pip": "26.2.1",
+    "platformdirs": "4.11.11",
+    "pluggy": "1.6.0",
+    "prompt_toolkit": "3.0.53",
+    "psutil": "7.2.2",
+    "ptyprocess": "0.7.0",
+    "pure_eval": "0.2.4",
+    "pyarrow": "25.0.1",
+    "pybind11": "2.11.1",
+    "pycparser": "3.0",
+    "pydantic": "2.13.5",
+    "pydantic_core": "2.46.5",
+    "pyparsing": "3.3.2",
+    "pyperclip": "1.11.0",
+    "pytest": "9.1.1",
+    "python-dateutil": "2.9.0.post0",
+    "pyzmq": "27.2.0",
+    "qdldl": "0.1.9.post1",
+    "qec-bp-benchmark": "0.1.0",
+    "qldpc": "0.3.3",
+    "referencing": "0.37.0",
+    "rpds-py": "2026.6.3",
+    "scikit_build_core": "1.0.3",
+    "scipy": "1.18.1",
+    "scs": "3.3.1",
+    "setuptools": "83.0.0",
+    "sinter": "1.16.0",
+    "six": "1.17.0",
+    "sparsediffpy": "0.6.1",
+    "stack-data": "0.6.3",
+    "stim": "1.16.0",
+    "sympy": "1.14.0",
+    "threadpoolctl": "3.7.0",
+    "tornado": "6.5.10",
+    "tqdm": "4.70.1",
+    "traitlets": "5.16.1",
+    "typing-inspection": "0.4.4",
+    "typing_extensions": "4.16.0",
+    "uv-build": "0.9.30",
+    "wcwidth": "0.8.4",
+    "wheel": "0.47.0"
+  },
+  "workspace": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace"
+}

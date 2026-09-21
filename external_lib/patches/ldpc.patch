@@ -1,0 +1,350 @@
+diff --git a/setup_reference.py b/setup_reference.py
+new file mode 100644
+index 0000000..87eef15
+--- /dev/null
++++ b/setup_reference.py
+@@ -0,0 +1,22 @@
++"""Explicit opt-in build; ordinary upstream setup.py and APIs remain unchanged."""
++from pathlib import Path
++import hashlib
++import subprocess
++from setuptools import Extension, setup
++import pybind11
++
++ROOT = Path(__file__).resolve().parent
++SOURCES = ('src_cpp/reference_bp.hpp', 'src_python/ldpc/reference_bp/bindings.cpp',
++           'src_python/ldpc/reference_bp/__init__.py', 'setup_reference.py')
++digest = hashlib.sha256()
++for name in SOURCES:
++    digest.update(name.encode() + b'\0' + (ROOT / name).read_bytes())
++commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
++setup(
++    package_dir={'': 'src_python'},
++    ext_modules=[Extension('ldpc.reference_bp._reference_bp',
++        sources=['src_python/ldpc/reference_bp/bindings.cpp'],
++        include_dirs=[pybind11.get_include(), 'src_cpp'], language='c++',
++        define_macros=[('REFERENCE_UPSTREAM_COMMIT', '"' + commit + '"'),
++                       ('REFERENCE_SOURCE_HASH', '"' + digest.hexdigest() + '"')],
++        extra_compile_args=['-O3', '-std=c++17', '-fno-fast-math', '-ffp-contract=off', '-Wall', '-Wextra'])])
+diff --git a/src_cpp/README.reference_bp.md b/src_cpp/README.reference_bp.md
+new file mode 100644
+index 0000000..1ddd6e3
+--- /dev/null
++++ b/src_cpp/README.reference_bp.md
+@@ -0,0 +1,10 @@
++# Opt-in reference_bp.hpp addition
++
++ReferenceBp owns sorted graph/prior copies and has a const decode API. Per-call
++active adjacency removes fixed zeros and ones; original IDs are retained. Two
++message buffers enforce flooding barriers. Returned Result/Trace objects own their
++vectors and have no borrowed lifetimes. Concurrent calls do not share mutable state.
++
++This addition does not modify bp.hpp or ordinary BP-OSD. The benchmark's
++README under the Python reference_bp binding and docs/reference_bp.md describe
++numerics, shapes, test evidence and the explicit build. No search code lives here.
+diff --git a/src_cpp/reference_bp.hpp b/src_cpp/reference_bp.hpp
+new file mode 100644
+index 0000000..a98fec6
+--- /dev/null
++++ b/src_cpp/reference_bp.hpp
+@@ -0,0 +1,214 @@
++#ifndef LDPC_REFERENCE_BP_HPP
++#define LDPC_REFERENCE_BP_HPP
++// Opt-in reference flooding sum-product profile. Ordinary ldpc BP is unchanged.
++// Owns graph and priors. decode() is const with per-call buffers: concurrent calls
++// are safe, provided callers do not modify their arguments during a call.
++// Every returned vector owns its memory; no borrowed buffers survive the call.
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++#include <deque>
++#include <limits>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace ldpc::reference {
++static_assert(sizeof(double) == 8 && std::numeric_limits<double>::is_iec559 &&
++              std::numeric_limits<double>::digits == 53, "reference BP requires IEEE binary64");
++using Bits = std::vector<int>;
++using Beliefs = std::vector<double>;
++
++enum class Status { CONVERGED, NONCONVERGENCE, LOCAL_CONTRADICTION };
++
++struct Trace {
++    Beliefs beliefs;                  // ascending free-variable IDs
++    Beliefs variable_to_check;        // active edges ordered by (check, variable)
++    Beliefs check_to_variable;
++    Bits decision;                    // complete original vector, fixed bits restored
++};
++
++struct Result {
++    Status status = Status::NONCONVERGENCE;
++    int iterations = 0;               // completed flooding iterations, excludes initialization
++    Bits last_decision;               // not a valid correction unless status is CONVERGED
++    Bits free_ids;
++    Beliefs beliefs;
++    std::vector<Beliefs> history;      // oldest to newest, completed iterations only
++    Beliefs mean_llr;
++    Beliefs reliability;              // abs(mean), not mean(abs)
++    Bits flips;                       // L<0 transitions within retained window only
++    std::vector<Trace> trace;          // optional; includes iteration zero
++};
++
++class ReferenceBp {
++    int n_;
++    std::vector<Bits> rows_;
++    Beliefs weights_;
++
++    static double clip(double v, double limit) {
++        return std::max(-limit, std::min(limit, v));
++    }
++
++public:
++    // rows must be canonical strictly ascending original column IDs; empty rows
++    // and isolated variables are allowed. Priors are finite and in (0, 1/2].
++    ReferenceBp(std::vector<Bits> rows, int n, const Beliefs &probabilities)
++        : n_(n), rows_(std::move(rows)) {
++        if (n < 0 || probabilities.size() != static_cast<std::size_t>(n))
++            throw std::invalid_argument("prior length must equal nonnegative n");
++        if (rows_.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
++            throw std::invalid_argument("too many checks");
++        for (const auto &row : rows_) {
++            int previous = -1;
++            for (int i : row) {
++                if (i < 0 || i >= n || i <= previous)
++                    throw std::invalid_argument("rows require sorted unique in-range column IDs");
++                previous = i;
++            }
++        }
++        for (double p : probabilities) {
++            if (!std::isfinite(p) || p <= 0 || p > 0.5)
++                throw std::invalid_argument("priors must be finite in (0,0.5]");
++            weights_.push_back(std::log1p(-p) - std::log(p));
++        }
++    }
++
++    const Beliefs &physical_weights() const { return weights_; }
++    int num_variables() const { return n_; }
++    int num_checks() const { return static_cast<int>(rows_.size()); }
++
++    // Fixed is empty (all free) or n entries: -1 free, 0/1 structurally fixed.
++    // Both fixed values remove edges; fixed ones XOR the residual syndrome.
++    // max_iterations >=1, history_window >=0, 0<llr_max<=30. Cold-start every call.
++    // Results contain beliefs/history only for free_ids; fixed bits have no LLR.
++    Result decode(const Bits &syndrome, int max_iterations = 30,
++                  double llr_max = 25, int history_window = 8,
++                  const Bits &fixed = {}, bool diagnostics = false) const {
++        const int m = num_checks();
++        if (syndrome.size() != rows_.size() || max_iterations < 1 || history_window < 0 ||
++            !std::isfinite(llr_max) || llr_max <= 0 || llr_max > 30)
++            throw std::invalid_argument("invalid syndrome shape or BP numerical settings");
++        for (int bit : syndrome)
++            if (bit != 0 && bit != 1) throw std::invalid_argument("syndrome must be binary");
++        if (!fixed.empty() && fixed.size() != static_cast<std::size_t>(n_))
++            throw std::invalid_argument("fixed mask must have length n");
++        Bits mask = fixed.empty() ? Bits(n_, -1) : fixed;
++        for (int bit : mask)
++            if (bit < -1 || bit > 1) throw std::invalid_argument("fixed values must be -1,0,1");
++        Bits residual = syndrome;
++        Result result;
++        result.last_decision.assign(n_, 0);
++        Bits original_to_free(n_, -1);
++        for (int i = 0; i < n_; ++i) {
++            if (mask[i] < 0) {
++                original_to_free[i] = static_cast<int>(result.free_ids.size());
++                result.free_ids.push_back(i);
++            } else {
++                result.last_decision[i] = mask[i];
++            }
++        }
++        // Edge construction preserves ascending original variable and check order.
++        std::vector<Bits> row_edges(m), column_edges(result.free_ids.size());
++        Bits edge_free;
++        for (int a = 0; a < m; ++a) {
++            for (int i : rows_[a]) {
++                if (mask[i] >= 0) {
++                    residual[a] ^= mask[i];
++                    continue;
++                }
++                if (edge_free.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max()))
++                    throw std::invalid_argument("too many active edges");
++                const int edge = static_cast<int>(edge_free.size());
++                const int free = original_to_free[i];
++                edge_free.push_back(free);
++                row_edges[a].push_back(edge);
++                column_edges[free].push_back(edge);
++            }
++        }
++        Beliefs prior;
++        for (int i : result.free_ids) prior.push_back(clip(weights_[i], llr_max));
++        result.beliefs = prior;
++        Beliefs v_old(edge_free.size()), v_new(edge_free.size()), c_new(edge_free.size(), 0);
++        for (std::size_t edge = 0; edge < edge_free.size(); ++edge) v_old[edge] = prior[edge_free[edge]];
++        if (diagnostics) result.trace.push_back({result.beliefs, v_old, c_new, result.last_decision});
++        for (int a = 0; a < m; ++a) {
++            if (row_edges[a].empty() && residual[a]) {
++                result.status = Status::LOCAL_CONTRADICTION;
++                return result;
++            }
++        }
++        auto valid = [&]() {
++            for (int a = 0; a < m; ++a) {
++                int parity = 0;
++                for (int i : rows_[a]) parity ^= result.last_decision[i];
++                if (parity != syndrome[a]) return false;
++            }
++            return true;
++        };
++        if (valid()) {
++            result.status = Status::CONVERGED;
++            return result;
++        }
++        std::deque<Beliefs> history;
++        const double z_max = std::tanh(llr_max / 2);
++        for (int t = 1; t <= max_iterations; ++t) {
++            // Complete check half-step reads only the previous v buffer.
++            for (int a = 0; a < m; ++a) {
++                const auto &edges = row_edges[a];
++                for (int edge : edges) {
++                    if (edges.size() == 1) {
++                        c_new[edge] = residual[a] ? -llr_max : llr_max;
++                    } else {
++                        double z = residual[a] ? -1.0 : 1.0;
++                        for (int other : edges)
++                            if (other != edge) z *= std::tanh(v_old[other] / 2);
++                        z = clip(z, z_max);
++                        c_new[edge] = clip(2 * std::atanh(z), llr_max);
++                    }
++                }
++            }
++            // Completed c buffer is the only message source for this half-step.
++            for (std::size_t free = 0; free < prior.size(); ++free) {
++                double total = 0;
++                for (int edge : column_edges[free]) total += c_new[edge];
++                result.beliefs[free] = clip(prior[free] + total, llr_max);
++                result.last_decision[result.free_ids[free]] = result.beliefs[free] < 0 ? 1 : 0;
++                for (int edge : column_edges[free]) {
++                    double extrinsic = 0;
++                    for (int other : column_edges[free])
++                        if (other != edge) extrinsic += c_new[other];
++                    v_new[edge] = clip(prior[free] + extrinsic, llr_max);
++                }
++            }
++            result.iterations = t;
++            if (history_window > 0) {
++                if (history.size() == static_cast<std::size_t>(history_window)) history.pop_front();
++                history.push_back(result.beliefs);
++            }
++            if (diagnostics) result.trace.push_back({result.beliefs, v_new, c_new, result.last_decision});
++            if (valid()) {
++                result.status = Status::CONVERGED;
++                break;
++            }
++            v_old.swap(v_new);
++        }
++        result.history.assign(history.begin(), history.end());
++        if (!history.empty()) {
++            result.mean_llr.assign(prior.size(), 0);
++            result.flips.assign(prior.size(), 0);
++            result.reliability.resize(prior.size());
++            for (std::size_t free = 0; free < prior.size(); ++free) {
++                for (std::size_t t = 0; t < history.size(); ++t) {
++                    result.mean_llr[free] += history[t][free];
++                    if (t > 0 && (history[t][free] < 0) != (history[t-1][free] < 0)) ++result.flips[free];
++                }
++                result.mean_llr[free] /= static_cast<double>(history.size());
++                result.reliability[free] = std::abs(result.mean_llr[free]);
++            }
++        }
++        return result;
++    }
++};
++} // namespace ldpc::reference
++#endif
+diff --git a/src_python/ldpc/reference_bp/README.md b/src_python/ldpc/reference_bp/README.md
+new file mode 100644
+index 0000000..ec1f2fc
+--- /dev/null
++++ b/src_python/ldpc/reference_bp/README.md
+@@ -0,0 +1,11 @@
++# Reference flooding binding
++
++Explicit opt-in API: ReferenceBp(rows,n,probabilities), decode(syndrome,
++max_iterations,llr_max,history_window,fixed,diagnostics), build_identity(). See
++__init__.py and docs/reference_bp.md in the benchmark for shapes and statuses.
++
++Owned native vectors, no borrowed buffers, const/reentrant decoder, per-call cold
++starts, GIL released during native execution, no Python iteration callbacks.
++The last decision is valid only for CONVERGED. Both fixed values remove edges;
++LLRs/history contain only free_ids. Build from fork root with
++python setup_reference.py build_ext --inplace. Tests live in benchmark tests/.
+diff --git a/src_python/ldpc/reference_bp/__init__.py b/src_python/ldpc/reference_bp/__init__.py
+new file mode 100644
+index 0000000..0aeacf5
+--- /dev/null
++++ b/src_python/ldpc/reference_bp/__init__.py
+@@ -0,0 +1,11 @@
++"""Opt-in flooding BP. Build with python setup_reference.py build_ext --inplace.
++
++ReferenceBp owns canonical graph/prior copies. Its const decode method cold-starts
++on each call, releases the GIL and supports concurrent calls. Returned native
++results own all buffers; Python property accesses return copies. The native sparse
++constructor takes rows as sorted unique column IDs, n, and length-n probabilities.
++Both fixed zero and fixed one remove edges. Beliefs/history use free_ids order;
++last_decision is full length and is a valid correction only with CONVERGED status.
++"""
++from ._reference_bp import ReferenceBp, Result, Status, Trace, build_identity
++__all__ = ["ReferenceBp", "Result", "Status", "Trace", "build_identity"]
+diff --git a/src_python/ldpc/reference_bp/bindings.cpp b/src_python/ldpc/reference_bp/bindings.cpp
+new file mode 100644
+index 0000000..19fa24c
+--- /dev/null
++++ b/src_python/ldpc/reference_bp/bindings.cpp
+@@ -0,0 +1,46 @@
++#include <pybind11/pybind11.h>
++#include <pybind11/stl.h>
++#include "reference_bp.hpp"
++namespace py = pybind11;
++using namespace ldpc::reference;
++
++PYBIND11_MODULE(_reference_bp, m) {
++    m.doc() = "Opt-in binary64 reference flooding BP, with structural fixation and native history.";
++    m.def("build_identity", []() {
++        py::dict identity;
++        identity["profile"] = "screened_reference_flooding_v1";
++        identity["upstream_commit"] = REFERENCE_UPSTREAM_COMMIT;
++        identity["source_sha256"] = REFERENCE_SOURCE_HASH;
++        identity["compiler"] = __VERSION__;
++        identity["flags"] = "-O3 -std=c++17 -fno-fast-math -ffp-contract=off";
++        return identity;
++    });
++    py::enum_<Status>(m, "Status")
++        .value("CONVERGED", Status::CONVERGED)
++        .value("NONCONVERGENCE", Status::NONCONVERGENCE)
++        .value("LOCAL_CONTRADICTION", Status::LOCAL_CONTRADICTION);
++    py::class_<Trace>(m, "Trace")
++        .def_readonly("beliefs", &Trace::beliefs)
++        .def_readonly("variable_to_check", &Trace::variable_to_check)
++        .def_readonly("check_to_variable", &Trace::check_to_variable)
++        .def_readonly("decision", &Trace::decision);
++    py::class_<Result>(m, "Result")
++        .def_readonly("status", &Result::status)
++        .def_readonly("iterations", &Result::iterations)
++        .def_readonly("last_decision", &Result::last_decision)
++        .def_readonly("free_ids", &Result::free_ids)
++        .def_readonly("beliefs", &Result::beliefs)
++        .def_readonly("history", &Result::history)
++        .def_readonly("mean_llr", &Result::mean_llr)
++        .def_readonly("reliability", &Result::reliability)
++        .def_readonly("flips", &Result::flips)
++        .def_readonly("trace", &Result::trace);
++    py::class_<ReferenceBp>(m, "ReferenceBp")
++        .def(py::init<std::vector<Bits>, int, const Beliefs&>(), py::arg("rows"), py::arg("n"), py::arg("probabilities"))
++        .def_property_readonly("physical_weights", &ReferenceBp::physical_weights)
++        .def_property_readonly("num_variables", &ReferenceBp::num_variables)
++        .def_property_readonly("num_checks", &ReferenceBp::num_checks)
++        .def("decode", &ReferenceBp::decode, py::arg("syndrome"), py::arg("max_iterations")=30,
++             py::arg("llr_max")=25.0, py::arg("history_window")=8, py::arg("fixed")=Bits{},
++             py::arg("diagnostics")=false, py::call_guard<py::gil_scoped_release>());
++}

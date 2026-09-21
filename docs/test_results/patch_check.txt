@@ -1,0 +1,2 @@
+Preparing worktree (detached HEAD d342996)
+HEAD is now at d342996 Bumping version number after PR #97 (memory leak fix)

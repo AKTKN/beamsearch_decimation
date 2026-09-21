@@ -1,0 +1,137 @@
+{
+  "scope": "Stages 4\u20135 software validation, no performance claim",
+  "runs": {
+    "two": {
+      "path": "assets/runs/20260920T165309.851432Z_384e5cf5d0b7",
+      "status": "complete",
+      "batches": 8,
+      "samples": 16,
+      "decodes": 48,
+      "decoding_failures": 2,
+      "valid_logical_mismatches": 0,
+      "block_failures": 2,
+      "k_Z_by_family": {
+        "surface": 1,
+        "bb72": 12
+      },
+      "workers": 2,
+      "timing_mode": "throughput"
+    },
+    "one": {
+      "path": "assets/runs/20260920T165317.263612Z_4e59e25bb08d",
+      "status": "complete",
+      "batches": 8,
+      "samples": 16,
+      "decodes": 48,
+      "decoding_failures": 2,
+      "valid_logical_mismatches": 0,
+      "block_failures": 2,
+      "k_Z_by_family": {
+        "surface": 1,
+        "bb72": 12
+      },
+      "workers": 1,
+      "timing_mode": "throughput"
+    },
+    "isolated": {
+      "path": "assets/runs/20260920T165323.304540Z_82f2008bcd19",
+      "status": "complete",
+      "batches": 8,
+      "samples": 16,
+      "decodes": 48,
+      "decoding_failures": 2,
+      "valid_logical_mismatches": 0,
+      "block_failures": 2,
+      "k_Z_by_family": {
+        "surface": 1,
+        "bb72": 12
+      },
+      "workers": 1,
+      "timing_mode": "isolated_latency"
+    },
+    "default_smoke": {
+      "path": "assets/runs/20260920T165329.419945Z_59e197b0aeac",
+      "status": "complete",
+      "batches": 8,
+      "samples": 128,
+      "decodes": 384,
+      "decoding_failures": 0,
+      "valid_logical_mismatches": 1,
+      "block_failures": 1,
+      "k_Z_by_family": {
+        "surface": 1,
+        "bb72": 12
+      },
+      "workers": 4,
+      "timing_mode": "throughput"
+    },
+    "default_latency": {
+      "path": "assets/runs/20260920T165337.387943Z_7190242e56f9",
+      "status": "complete",
+      "batches": 8,
+      "samples": 128,
+      "decodes": 384,
+      "decoding_failures": 0,
+      "valid_logical_mismatches": 1,
+      "block_failures": 1,
+      "k_Z_by_family": {
+        "surface": 1,
+        "bb72": 12
+      },
+      "workers": 1,
+      "timing_mode": "isolated_latency"
+    },
+    "replay": {
+      "path": "assets/runs/20260920T165346.159384Z_c96435bd1085",
+      "status": "complete",
+      "batches": 8,
+      "samples": 16,
+      "decodes": 64,
+      "decoding_failures": 3,
+      "valid_logical_mismatches": 0,
+      "block_failures": 3,
+      "k_Z_by_family": {
+        "surface": 1,
+        "bb72": 12
+      },
+      "workers": 4,
+      "timing_mode": "throughput"
+    }
+  },
+  "paired_checks": [
+    "two vs one: samples and every non-timing scientific decoder result equal",
+    "two vs isolated: samples and every non-timing scientific decoder result equal",
+    "default_smoke vs default_latency: samples and every non-timing scientific decoder result equal",
+    "replay with additional K=4 screened decoder: samples unchanged; all shared decoder outputs/counters equal"
+  ],
+  "commands": [
+    "python -m pip install --no-build-isolation -e .",
+    "python -m pytest -q",
+    "ctest --test-dir build/debug --output-on-failure",
+    "ctest --test-dir build/sanitize --output-on-failure",
+    "scripts/build_dependencies.sh --check",
+    "scripts/run_benchmark.sh config/stage5_validation.yaml",
+    "scripts/run_benchmark.sh config/stage5_validation_serial.yaml",
+    "scripts/run_benchmark.sh config/stage5_validation_latency.yaml",
+    "scripts/run_benchmark.sh config/smoke.yaml",
+    "scripts/run_benchmark.sh config/latency_smoke.yaml",
+    "scripts/replay_samples.sh <two-worker-run> config/decoder_sweep.yaml",
+    "scripts/run_benchmark.sh config/production_template.yaml  # expected validation failure",
+    "python docs/test_results/verify_stage_4_5.py",
+    "python -m pip check"
+  ],
+  "project_tests": {
+    "passed": 91,
+    "seconds": 21.74
+  },
+  "native_debug": "2/2 passed",
+  "native_asan_ubsan": "2/2 passed",
+  "stage4_oracle_comparisons": 560,
+  "pristine_bposd_comparisons": 288,
+  "limitations": [
+    "No production sweep",
+    "No in-place resumption",
+    "Analysis/notebooks remain Stage 6",
+    "Clean-environment acceptance remains Stage 7"
+  ]
+}

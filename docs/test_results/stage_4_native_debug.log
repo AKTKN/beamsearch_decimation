@@ -1,0 +1,23 @@
+-- Found pybind11: /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pybind11/include (found version "2.11.1")
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/quantum_teresheys/workspace/beamsearch_decimation/build/debug
+Consolidate compiler generated dependencies of target test_reference_bp
+Consolidate compiler generated dependencies of target _native
+[ 33%] Built target test_reference_bp
+[ 50%] Building CXX object CMakeFiles/_native.dir/src/qec_bp_benchmark/native/module.cpp.o
+[ 66%] Building CXX object CMakeFiles/test_search.dir/tests/native/test_search.cpp.o
+[ 83%] Linking CXX executable test_search
+[ 83%] Built target test_search
+[100%] Linking CXX shared module _native.cpython-312-x86_64-linux-gnu.so
+[100%] Built target _native
+Internal ctest changing into directory: /home/quantum_teresheys/workspace/beamsearch_decimation/build/debug
+Test project /home/quantum_teresheys/workspace/beamsearch_decimation/build/debug
+    Start 1: reference_bp
+1/2 Test #1: reference_bp .....................   Passed    0.00 sec
+    Start 2: search
+2/2 Test #2: search ...........................   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.01 sec

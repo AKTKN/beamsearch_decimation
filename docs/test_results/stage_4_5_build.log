@@ -1,0 +1,70 @@
+Obtaining file:///home/quantum_teresheys/workspace/beamsearch_decimation
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: numpy in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (2.5.3)
+Requirement already satisfied: scipy in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (1.18.1)
+Requirement already satisfied: stim in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (1.16.0)
+Requirement already satisfied: qldpc in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (0.3.3)
+Requirement already satisfied: pydantic>=2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (2.13.5)
+Requirement already satisfied: PyYAML in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (6.0.3)
+Requirement already satisfied: pyarrow==25.0.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (25.0.1)
+Requirement already satisfied: threadpoolctl==3.7.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qec-bp-benchmark==0.1.0) (3.7.0)
+Requirement already satisfied: annotated-types>=0.6.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pydantic>=2->qec-bp-benchmark==0.1.0) (0.8.0)
+Requirement already satisfied: pydantic-core==2.46.5 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pydantic>=2->qec-bp-benchmark==0.1.0) (2.46.5)
+Requirement already satisfied: typing-extensions>=4.14.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pydantic>=2->qec-bp-benchmark==0.1.0) (4.16.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pydantic>=2->qec-bp-benchmark==0.1.0) (0.4.4)
+Requirement already satisfied: cvxpy>=1.3.2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (1.9.3)
+Requirement already satisfied: diskcache>=5 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (5.6.3)
+Requirement already satisfied: galois>=0.4.2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (0.4.11)
+Requirement already satisfied: ldpc>=2.4.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (2.4.1)
+Requirement already satisfied: networkx>=2.6.2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (3.6.1)
+Requirement already satisfied: platformdirs>=4 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (4.11.11)
+Requirement already satisfied: pymatching>=2.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (2.4.0)
+Requirement already satisfied: pyperclip>=1.11 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (1.11.0)
+Requirement already satisfied: sinter>=1.16 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (1.16.0)
+Requirement already satisfied: sympy>=1.12 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from qldpc->qec-bp-benchmark==0.1.0) (1.14.0)
+Requirement already satisfied: osqp>=1.0.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (1.1.3)
+Requirement already satisfied: clarabel>=0.5.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (0.11.1)
+Requirement already satisfied: scs>=3.2.4.post1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (3.3.1)
+Requirement already satisfied: highspy>=1.14.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (1.15.1)
+Requirement already satisfied: qdldl>=0.1.7.post0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (0.1.9.post1)
+Requirement already satisfied: sparsediffpy<0.7.0,>=0.6.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (0.6.1)
+Requirement already satisfied: cffi in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from clarabel>=0.5.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (2.1.1)
+Requirement already satisfied: numba>=0.55 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from galois>=0.4.2->qldpc->qec-bp-benchmark==0.1.0) (0.67.0)
+Requirement already satisfied: tqdm in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from ldpc>=2.4.1->qldpc->qec-bp-benchmark==0.1.0) (4.70.1)
+Requirement already satisfied: pytest in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from ldpc>=2.4.1->qldpc->qec-bp-benchmark==0.1.0) (9.1.1)
+Requirement already satisfied: llvmlite<0.50,>=0.49.0dev0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from numba>=0.55->galois>=0.4.2->qldpc->qec-bp-benchmark==0.1.0) (0.49.0)
+Requirement already satisfied: jinja2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from osqp>=1.0.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (3.1.6)
+Requirement already satisfied: setuptools in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from osqp>=1.0.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (83.0.0)
+Requirement already satisfied: joblib in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from osqp>=1.0.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (1.6.0)
+Requirement already satisfied: matplotlib in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (3.11.2)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from sympy>=1.12->qldpc->qec-bp-benchmark==0.1.0) (1.3.0)
+Requirement already satisfied: pycparser in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from cffi->clarabel>=0.5.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from jinja2->osqp>=1.0.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (3.0.3)
+Requirement already satisfied: cloudpickle>=3.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from joblib->osqp>=1.0.0->cvxpy>=1.3.2->qldpc->qec-bp-benchmark==0.1.0) (3.1.2)
+Requirement already satisfied: contourpy>=1.0.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (1.4.0)
+Requirement already satisfied: cycler>=0.10 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (0.12.1)
+Requirement already satisfied: fonttools>=4.28.2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (4.65.0)
+Requirement already satisfied: kiwisolver>=1.3.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (1.5.1)
+Requirement already satisfied: packaging>=20.0 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (26.3)
+Requirement already satisfied: pillow>=9 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (12.3.0)
+Requirement already satisfied: pyparsing>=3 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (3.3.2)
+Requirement already satisfied: python-dateutil>=2.7 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from python-dateutil>=2.7->matplotlib->pymatching>=2.1->qldpc->qec-bp-benchmark==0.1.0) (1.17.0)
+Requirement already satisfied: iniconfig>=1.0.1 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pytest->ldpc>=2.4.1->qldpc->qec-bp-benchmark==0.1.0) (2.3.0)
+Requirement already satisfied: pluggy<2,>=1.5 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pytest->ldpc>=2.4.1->qldpc->qec-bp-benchmark==0.1.0) (1.6.0)
+Requirement already satisfied: pygments>=2.7.2 in /home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages (from pytest->ldpc>=2.4.1->qldpc->qec-bp-benchmark==0.1.0) (2.21.0)
+Building wheels for collected packages: qec-bp-benchmark
+  Building editable for qec-bp-benchmark (pyproject.toml): started
+  Building editable for qec-bp-benchmark (pyproject.toml): finished with status 'done'
+  Created wheel for qec-bp-benchmark: filename=qec_bp_benchmark-0.1.0-cp312-cp312-linux_x86_64.whl size=128958 sha256=198a5a4cbbb90f5a54f40908ac28e1b5a9221c05a5931a3a8145ee6a14e42305
+  Stored in directory: /tmp/pip-ephem-wheel-cache-l_sgw45c/wheels/8d/61/05/e6434af06441b434dc5cca49b3fdfca7f12228eadb57efbcf1
+Successfully built qec-bp-benchmark
+Installing collected packages: qec-bp-benchmark
+  Attempting uninstall: qec-bp-benchmark
+    Found existing installation: qec-bp-benchmark 0.1.0
+    Uninstalling qec-bp-benchmark-0.1.0:
+      Successfully uninstalled qec-bp-benchmark-0.1.0
+Successfully installed qec-bp-benchmark-0.1.0

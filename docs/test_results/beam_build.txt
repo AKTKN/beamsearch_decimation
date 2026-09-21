@@ -1,0 +1,33 @@
+Compiling beam_search_decoder/_beam_search_decoder.pyx because it changed.
+[1/1] Cythonizing beam_search_decoder/_beam_search_decoder.pyx
+running build_ext
+building 'beam_search_decoder._beam_search_decoder' extension
+creating build/temp.linux-x86_64-cpython-312/beam_search_decoder
+g++ -pthread -B /home/quantum_teresheys/anaconda3/envs/search_decimation/compiler_compat -fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -I/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/numpy/_core/include -Isrc_cpp -I/home/quantum_teresheys/anaconda3/envs/search_decimation/include/python3.12 -c beam_search_decoder/_beam_search_decoder.cpp -o build/temp.linux-x86_64-cpython-312/beam_search_decoder/_beam_search_decoder.o -std=c++2a -O3
+In file included from beam_search_decoder/_beam_search_decoder.cpp:1306:
+src_cpp/beam_search.hpp: In constructor ‘ldpc::bp::BeamSearchDecoder::BeamSearchDecoder(ldpc::bp::BpSparse&, std::vector<double>, int, int, int, int, int)’:
+src_cpp/beam_search.hpp:86:56: warning: comparison of integer expressions of different signedness: ‘std::vector<double>::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   86 |                 if (this->channel_probabilities.size() != this->bit_count) {
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+src_cpp/beam_search.hpp: In member function ‘std::vector<unsigned char>& ldpc::bp::BeamSearchDecoder::decode(std::vector<unsigned char>&)’:
+src_cpp/beam_search.hpp:259:51: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<int>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  259 |                     for (int path_id = 0; path_id < 2 * explore_list.size(); path_id++) {
+      |                                           ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+src_cpp/beam_search.hpp:409:43: warning: comparison of integer expressions of different signedness: ‘std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int> >, std::greater<std::pair<double, int> > >::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  409 |                         if (min_pq.size() >= this->beam_width && score < min_pq.top().first) {
+      |                             ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+src_cpp/beam_search.hpp:455:43: warning: comparison of integer expressions of different signedness: ‘std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int> >, std::greater<std::pair<double, int> > >::size_type’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+  455 |                         if (min_pq.size() > this->beam_width) min_pq.pop();
+      |                             ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from src_cpp/beam_search.hpp:31,
+                 from beam_search_decoder/_beam_search_decoder.cpp:1306:
+src_cpp/sparse_matrix_base.hpp: In function ‘ldpc::bp::BpSparse* __pyx_f_19beam_search_decoder_20_beam_search_decoder_Py2BpSparse(PyObject*)’:
+src_cpp/sparse_matrix_base.hpp:155:60: warning: ‘__pyx_v_nonzero_count’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  155 |                 this->entry_block_size = this->m + this->n + entry_count;
+      |                                          ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+beam_search_decoder/_beam_search_decoder.cpp:6361:7: note: ‘__pyx_v_nonzero_count’ was declared here
+ 6361 |   int __pyx_v_nonzero_count;
+      |       ^~~~~~~~~~~~~~~~~~~~~
+creating build/lib.linux-x86_64-cpython-312/beam_search_decoder
+g++ -pthread -B /home/quantum_teresheys/anaconda3/envs/search_decimation/compiler_compat -fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -shared -Wl,-rpath,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath-link,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -L/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath-link,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -L/home/quantum_teresheys/anaconda3/envs/search_decimation/lib build/temp.linux-x86_64-cpython-312/beam_search_decoder/_beam_search_decoder.o -o build/lib.linux-x86_64-cpython-312/beam_search_decoder/_beam_search_decoder.cpython-312-x86_64-linux-gnu.so
+copying build/lib.linux-x86_64-cpython-312/beam_search_decoder/_beam_search_decoder.cpython-312-x86_64-linux-gnu.so -> beam_search_decoder

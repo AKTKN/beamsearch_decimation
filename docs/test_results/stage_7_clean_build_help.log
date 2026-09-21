@@ -1,0 +1,11 @@
+usage: clean_build.py [-h] [--conda CONDA] output_root
+
+Build locked sources in a fresh checkout and conda prefix, preserving this
+workspace.
+
+positional arguments:
+  output_root    Parent for a new isolated acceptance build
+
+options:
+  -h, --help     show this help message and exit
+  --conda CONDA  Conda executable, default resolved from PATH

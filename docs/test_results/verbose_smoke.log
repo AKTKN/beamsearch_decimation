@@ -1,0 +1,20 @@
+[qec 0.0s] Loading backends; config=/home/quantum_teresheys/workspace/beamsearch_decimation/config/stage5_validation.yaml
+[qec 1.1s] Run directory: /home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260920T232701.472567Z_b2f4810fc31b
+[qec 1.3s] Enabled decoders: screened_reference, bposd_ms30_cs10, beam8
+[qec 1.3s] Capturing source and environment provenance
+[qec 2.2s] Preparing surface d=5, R=5, p=0.001
+[qec 2.3s] Preparing surface d=7, R=7, p=0.001
+[qec 2.5s] Preparing surface d=9, R=9, p=0.001
+[qec 3.0s] Preparing bb72 d=6, R=6, p=0.001
+[qec 3.8s] Plan: 4 instances, 16 physical shots, 48 decode rows, 8 batches; workers=2, timing=throughput
+[qec 3.8s] Starting decoding; progress updates after each batch is committed
+[qec 5.1s] Committed batch 1/8 (12.5%); shots=3/16; surface d=5, p=0.001, batch_id=0
+[qec 5.2s] Committed batch 2/8 (25.0%); shots=6/16; surface d=7, p=0.001, batch_id=0
+[qec 5.2s] Committed batch 3/8 (37.5%); shots=7/16; surface d=5, p=0.001, batch_id=1
+[qec 5.2s] Committed batch 4/8 (50.0%); shots=8/16; surface d=7, p=0.001, batch_id=1
+[qec 5.3s] Committed batch 5/8 (62.5%); shots=9/16; surface d=9, p=0.001, batch_id=1
+[qec 5.5s] Committed batch 6/8 (75.0%); shots=12/16; surface d=9, p=0.001, batch_id=0
+[qec 5.5s] Committed batch 7/8 (87.5%); shots=15/16; bb72 d=6, p=0.001, batch_id=0
+[qec 6.5s] Committed batch 8/8 (100.0%); shots=16/16; bb72 d=6, p=0.001, batch_id=1
+[qec 6.9s] Verifying committed shards and writing summaries
+[qec 7.0s] Complete: 16 physical shots, 48 decode rows; /home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/20260920T232701.472567Z_b2f4810fc31b

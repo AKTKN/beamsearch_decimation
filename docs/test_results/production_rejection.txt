@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/prepare_circuits.py", line 31, in <module>
+    main()
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/prepare_circuits.py", line 11, in main
+    config = load_config(args.config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/quantum_teresheys/workspace/beamsearch_decimation/src/qec_bp_benchmark/config.py", line 315, in load_config
+    config = Config.model_validate(yaml.load(path.read_text(), Loader=_UniqueLoader))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pydantic/main.py", line 732, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Config
+noise
+  Value error, physical-rate grid must be nonempty and contain no duplicates [type=value_error, input_value={'rates': [], 'multiplier....0, 'measurement': 1.0}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/value_error
+ERROR conda.cli.main_run:execute(125): `conda run python /home/quantum_teresheys/workspace/beamsearch_decimation/python_scripts/prepare_circuits.py config/production_template.yaml` failed. (See above for error)

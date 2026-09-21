@@ -1,0 +1,10 @@
+Processing ./external_lib/ldpc
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: ldpc
+  Building wheel for ldpc (pyproject.toml): started
+  Building wheel for ldpc (pyproject.toml): still running...
+  Building wheel for ldpc (pyproject.toml): finished with status 'done'
+  Created wheel for ldpc: filename=ldpc-2.4.1-cp312-cp312-linux_x86_64.whl size=2034737 sha256=6d68c79812b543dbc2a2fc852d8ef414104438c9cce5ef9ad49ebaf3a8a76963
+  Stored in directory: /tmp/pip-ephem-wheel-cache-xh6zuiu4/wheels/61/d6/e3/9e6d3acfba2d045e65b0d07e28f8c3499fbabe0fad4d155cad
+Successfully built ldpc

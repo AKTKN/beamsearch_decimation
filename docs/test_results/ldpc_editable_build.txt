@@ -1,0 +1,18 @@
+Obtaining file:///home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: ldpc
+  Building editable for ldpc (pyproject.toml): started
+  Building editable for ldpc (pyproject.toml): still running...
+  Building editable for ldpc (pyproject.toml): finished with status 'done'
+  Created wheel for ldpc: filename=ldpc-2.4.1-0.editable-cp312-cp312-linux_x86_64.whl size=5149 sha256=89fc06c1a39fa3f04a9ad3a26da738e59f8e2777039ee32be20e6041b48d99b7
+  Stored in directory: /tmp/pip-ephem-wheel-cache-wg9ud6mb/wheels/61/d6/e3/9e6d3acfba2d045e65b0d07e28f8c3499fbabe0fad4d155cad
+Successfully built ldpc
+Installing collected packages: ldpc
+  Attempting uninstall: ldpc
+    Found existing installation: ldpc 2.4.1
+    Uninstalling ldpc-2.4.1:
+      Successfully uninstalled ldpc-2.4.1
+Successfully installed ldpc-2.4.1

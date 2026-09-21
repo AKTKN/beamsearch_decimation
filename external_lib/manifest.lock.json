@@ -1,0 +1,313 @@
+{
+  "conda_lock_sha256": "c77e1d7c3d0229821c9f876f6ab5a2aaf85ae18fcb8cea4d3075cebb99f5f6fc",
+  "dependencies": {
+    "BeamSearchDecoder": {
+      "branch": "main",
+      "build_commands": [
+        "(cd external_lib/BeamSearchDecoder/decoder && python setup.py build_ext --inplace)"
+      ],
+      "commit": "084a475b05fb64308103317a1ce5a0c4b0be58aa",
+      "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+      "flags": "-O3 -std=c++2a",
+      "hosted_fork": false,
+      "import_location": "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/__init__.py",
+      "license": "CC-BY-NC-SA-4.0; bundled ldpc components MIT",
+      "local_changes": "M decoder/beam_search_decoder/_beam_search_decoder.cpp",
+      "native_files": {
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/_beam_search_decoder.cpython-312-x86_64-linux-gnu.so": "6d1e0bf68fb7f864e8dbde3e83c03606b81b310cc1609598e2d9688a0623143e"
+      },
+      "patch_file": "external_lib/patches/BeamSearchDecoder.patch",
+      "patch_sha256": "d01ba4c051d384043a9b8c558ab8f3ebe4ead4092cd6e486eb2f5c21369e43cb",
+      "relevant_paths": [
+        "decoder/src_cpp/beam_search.hpp",
+        "decoder/beam_search_decoder/_beam_search_decoder.pyx",
+        "decoder/setup.py"
+      ],
+      "role": "Published beam baseline",
+      "source_hashes": {
+        "decoder/beam_search_decoder/_beam_search_decoder.pyx": "64ce3fe0185085d2da31299a668935a4e615fc9dd9344d6bf7e140136d2756c4",
+        "decoder/setup.py": "1007e25c5b1615a573cf5d390506ae1224f6f76b584a4b6373304dcba35eab57",
+        "decoder/src_cpp/beam_search.hpp": "0412598c5baa4fca98139c085256be1eec405728a0b219ae2863228b95242a87"
+      },
+      "url": "https://github.com/ionq-publications/BeamSearchDecoder",
+      "version": null,
+      "version_status": "no package version exposed; identify by exact source commit"
+    },
+    "BivariateBicycleCodes": {
+      "branch": "main",
+      "build_commands": [],
+      "commit": "fa77e3333d3ec44c79d8f914dd24c040d1da471b",
+      "compiler": null,
+      "flags": null,
+      "hosted_fork": false,
+      "import_location": null,
+      "license": "Apache-2.0",
+      "local_changes": "",
+      "native_files": {},
+      "patch_file": "external_lib/patches/BivariateBicycleCodes.patch",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "relevant_paths": [
+        "decoder_setup.py"
+      ],
+      "role": "Algebra and original schedule reference; not executed",
+      "source_hashes": {
+        "decoder_setup.py": "e919e1830b88468c5d257c0119656576a7999f92743dfeccd389a967524b3d2c"
+      },
+      "url": "https://github.com/sbravyi/BivariateBicycleCodes",
+      "version": null,
+      "version_status": "no package version exposed; identify by exact source commit"
+    },
+    "Stim": {
+      "branch": "",
+      "build_commands": [
+        "(cd external_lib/Stim && python setup.py build_ext --inplace --force)",
+        "python -m pip wheel --no-build-isolation --no-deps external_lib/Stim -w external_lib/wheels",
+        "python -m pip install --force-reinstall --no-deps external_lib/wheels/stim-1.16.0-*.whl"
+      ],
+      "commit": "e2fc1eca7fd21684d433aa5f10f4504ea4860d07",
+      "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+      "flags": "-O3 -std=c++20 -fno-strict-aliasing -g0; upstream polyfill/SSE2 selection",
+      "hosted_fork": false,
+      "import_location": "/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/stim/__init__.py",
+      "license": "Apache-2.0",
+      "local_changes": "",
+      "native_files": {
+        "/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/stim/_detect_machine_architecture.cpython-312-x86_64-linux-gnu.so": "1c3c5e8f419fd2638da5e5976799692156a19543c002432e3127272b90f0e74d",
+        "/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/stim/_stim_polyfill.cpython-312-x86_64-linux-gnu.so": "9a57511b94efb642497a881b83bebd89fd8c9276a7b9b8372968fb41b9e7ee78",
+        "/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/stim/_stim_sse2.cpython-312-x86_64-linux-gnu.so": "73e48b541f13d41e3aa516ab686f23edfa1934c176cda103f0816f45e6efa90c"
+      },
+      "patch_file": "external_lib/patches/Stim.patch",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "relevant_paths": [
+        "setup.py",
+        "src/stim/dem/detector_error_model.cc",
+        "src/stim/simulators/error_analyzer.cc"
+      ],
+      "role": "Physical circuit sampling and undecomposed DEM",
+      "source_hashes": {
+        "setup.py": "953c396c66ce4638640ca35ead8a46f1ad3768bcf66eb7c4da0a9ce06ad3352d",
+        "src/stim/dem/detector_error_model.cc": "d07ebfca1ef4ecc7f04088041558f8af2545445f66703dc8b5e7d354194acc8c",
+        "src/stim/simulators/error_analyzer.cc": "684cefceaa28e4b9b318887226b45a3b9e042cc88f743517ea2a77d966c0722c"
+      },
+      "url": "https://github.com/quantumlib/Stim",
+      "version": "1.16.0",
+      "version_status": "upstream package version"
+    },
+    "ldpc": {
+      "branch": "screened-decimation-bp",
+      "build_commands": [
+        "python -m pip wheel --no-build-isolation --no-deps external_lib/ldpc -w external_lib/wheels (before opt-in changes)",
+        "python -m pip install --no-build-isolation --no-deps -e external_lib/ldpc",
+        "(cd external_lib/ldpc && python setup_reference.py build_ext --inplace)"
+      ],
+      "commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40",
+      "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+      "flags": "-O3 -std=c++2a; reference: -O3 -std=c++17 -fno-fast-math -ffp-contract=off",
+      "hosted_fork": false,
+      "import_location": "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/__init__.py",
+      "license": "MIT",
+      "local_changes": "?? setup_reference.py\n?? src_cpp/README.reference_bp.md\n?? src_cpp/reference_bp.hpp\n?? src_python/ldpc/reference_bp/",
+      "native_files": {
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/belief_find_decoder/_belief_find_decoder.cpython-312-x86_64-linux-gnu.so": "f638d3f11e3b83063f5c8344b9b585627319e9f0e1e03767164ab12150bc8ac3",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/bp_decoder/_bp_decoder.cpython-312-x86_64-linux-gnu.so": "b582a5997db1fe9089aaa0930cda64617ec67d51e472326db80511984ea80209",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/bp_flip/_bp_flip.cpython-312-x86_64-linux-gnu.so": "46c0d33f88bd5c166bef6f2ca4c50e063a274522a8af71886d1ffca6091be71c",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/bplsd_decoder/_bplsd_decoder.cpython-312-x86_64-linux-gnu.so": "ad522c38a698adb9ae9242c887a5c613ec105315386e55779f98ae5eec0bc1e8",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/bposd_decoder/_bposd_decoder.cpython-312-x86_64-linux-gnu.so": "1a16562c2d430f8ec610f59612a884ce266ddc5e8ef8dedc05f2a8abaecff8b6",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/lsd_decoder/_lsd_decoder.cpython-312-x86_64-linux-gnu.so": "bfbc3179a058909699f3c37ea4163173b4cf935f39c03fcc225815bd37df3878",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/mod2/_mod2.cpython-312-x86_64-linux-gnu.so": "073fe0413ea8e25909bc6cba55d3200242aaf32fb185f6477003d0f454b83675",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/reference_bp/_reference_bp.cpython-312-x86_64-linux-gnu.so": "5d15c9a2a9126d38206da8559da098ffd332ada1b49f4fda70e6669d6059e731",
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/union_find_decoder/_union_find_decoder.cpython-312-x86_64-linux-gnu.so": "12717c2c1f5ef63c01bdb115a975a4aafff48a0a93ef44eba4c485b1645dd2c0"
+      },
+      "patch_file": "external_lib/patches/ldpc.patch",
+      "patch_sha256": "f80d592678568f2986d4f106a6436d0f770551cb536b7d3d95bc03ffb2ec4cd6",
+      "reference_build_identity": {
+        "compiler": "11.4.0",
+        "flags": "-O3 -std=c++17 -fno-fast-math -ffp-contract=off",
+        "profile": "screened_reference_flooding_v1",
+        "source_sha256": "a9270567546c848c0e70c0fac2a22be2453df346f89f75c4a647fe80f3c9dcad",
+        "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40"
+      },
+      "relevant_paths": [
+        "src_cpp/bp.hpp",
+        "src_cpp/osd.hpp",
+        "src_cpp/reference_bp.hpp",
+        "src_python/ldpc/reference_bp",
+        "setup.py",
+        "setup_reference.py"
+      ],
+      "role": "BP and BP-OSD; opt-in flooding fork",
+      "source_hashes": {
+        "setup.py": "8e18f32e3d6669b417346194cca173132e5e3516925a36296e63fb25c7a70973",
+        "setup_reference.py": "9b9c1248aea40f4f557eea6fccce45b12708a95031dfebdae0835e4a8cd18322",
+        "src_cpp/bp.hpp": "54f1a311a44dbf5f6836797062c1a86c74674347604e6e024ff6eaf11cc072f2",
+        "src_cpp/osd.hpp": "604ec8273edcb253e8db7abeeb1ab26ddf203ea2e272f9616549c9670a7e7415",
+        "src_cpp/reference_bp.hpp": "2652fa2b84e484014c88b271c329ba8716e5cd1c4f797d35468931ed0747be6a",
+        "src_python/ldpc/reference_bp/__init__.py": "973f5121a8463046be48135518c19c1be0820482eca0f5ea0677b92fc34ba1e7",
+        "src_python/ldpc/reference_bp/bindings.cpp": "60299349539e957783549e2c9e5b6580020923856d0546d46fb8e1831527f9c1"
+      },
+      "upstream_remote": "https://github.com/quantumgizmos/ldpc.git",
+      "url": "https://github.com/quantumgizmos/ldpc",
+      "version": "2.4.1",
+      "version_status": "upstream package version"
+    },
+    "qLDPC": {
+      "branch": "main",
+      "build_commands": [
+        "python -m pip install --no-build-isolation --no-deps -e external_lib/qLDPC"
+      ],
+      "commit": "53909112b25cff8d67d1a7528501d72c5a4a34e7",
+      "compiler": null,
+      "flags": null,
+      "hosted_fork": false,
+      "import_location": "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/qLDPC/src/qldpc/__init__.py",
+      "license": "Apache-2.0",
+      "local_changes": "",
+      "native_files": {},
+      "patch_file": "external_lib/patches/qLDPC.patch",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "relevant_paths": [
+        "src/qldpc/codes/quantum.py",
+        "src/qldpc/circuits/memory/memory.py",
+        "src/qldpc/circuits/memory/syndrome_measurement.py",
+        "src/qldpc/circuits/noise_model.py"
+      ],
+      "role": "BB72 construction, edge-coloring memory and noise",
+      "source_hashes": {
+        "src/qldpc/circuits/memory/memory.py": "a505885b78521ee8afe3e21c88b72b74a6fbed1cd05497dc21e60a7179562f7c",
+        "src/qldpc/circuits/memory/syndrome_measurement.py": "f66d0afa2977a27f411ea0fc3e2f5eb8a684dc47a8f92f6a5128467e16062860",
+        "src/qldpc/circuits/noise_model.py": "a668f1557c4720301d233282af07ddf0becb76202e96df858035ea363a8cbef6",
+        "src/qldpc/codes/quantum.py": "623766896fe8726cfa4dbe6e8145c66892fa803394b4ad07a3660db2ef5be40b"
+      },
+      "url": "https://github.com/qLDPCOrg/qLDPC",
+      "version": "0.3.3",
+      "version_status": "upstream package version"
+    },
+    "stimbposd": {
+      "branch": "main",
+      "build_commands": [],
+      "commit": "5ed95e415be245f93d5326c4898bd0182fe8f3bd",
+      "compiler": null,
+      "flags": null,
+      "hosted_fork": false,
+      "import_location": null,
+      "license": "Apache-2.0",
+      "local_changes": "",
+      "native_files": {},
+      "patch_file": "external_lib/patches/stimbposd.patch",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "relevant_paths": [
+        "src/stimbposd/dem_to_matrices.py"
+      ],
+      "role": "Converter comparison source; project implements conversion",
+      "source_hashes": {
+        "src/stimbposd/dem_to_matrices.py": "ed4e3d21c6aa59862b18b22f13240a5e7b17bf56df8ff78594ef5507c9f5fcbc"
+      },
+      "url": "https://github.com/oscarhiggott/stimbposd",
+      "version": null,
+      "version_status": "no package version exposed; identify by exact source commit"
+    }
+  },
+  "dependency_lock_sha256": "f885be75b506fa1f59c9a9d4e68c1f05b7fbc398279838f3233ac30119fb9e8f",
+  "executable": "/home/quantum_teresheys/anaconda3/envs/search_decimation/bin/python",
+  "package_versions": {
+    "Cython": "3.3.0",
+    "Jinja2": "3.1.6",
+    "MarkupSafe": "3.0.3",
+    "PyMatching": "2.4.0",
+    "PyYAML": "6.0.3",
+    "Pygments": "2.21.0",
+    "annotated-types": "0.8.0",
+    "asttokens": "3.0.2",
+    "attrs": "26.1.0",
+    "cffi": "2.1.1",
+    "clarabel": "0.11.1",
+    "cloudpickle": "3.1.2",
+    "comm": "0.2.3",
+    "contourpy": "1.4.0",
+    "cvxpy": "1.9.3",
+    "cycler": "0.12.1",
+    "debugpy": "1.8.22",
+    "diskcache": "5.6.3",
+    "executing": "2.2.1",
+    "fastjsonschema": "2.22.2",
+    "fonttools": "4.65.0",
+    "galois": "0.4.11",
+    "highspy": "1.15.1",
+    "iniconfig": "2.3.0",
+    "ipykernel": "7.3.0",
+    "ipython": "9.17.1",
+    "ipython_pygments_lexers": "1.1.1",
+    "jedi": "0.20.0",
+    "joblib": "1.6.0",
+    "jsonschema": "4.26.0",
+    "jsonschema-specifications": "2025.9.1",
+    "jupyter_client": "8.10.0",
+    "jupyter_core": "5.9.1",
+    "kiwisolver": "1.5.1",
+    "ldpc": "2.4.1",
+    "llvmlite": "0.49.0",
+    "matplotlib": "3.11.2",
+    "matplotlib-inline": "0.2.2",
+    "mpmath": "1.3.0",
+    "nbclient": "0.11.0",
+    "nbformat": "5.11.1",
+    "nest-asyncio2": "1.7.2",
+    "networkx": "3.6.1",
+    "numba": "0.67.0",
+    "numpy": "2.5.3",
+    "osqp": "1.1.3",
+    "packaging": "26.3",
+    "parso": "0.8.7",
+    "pathspec": "1.1.1",
+    "pexpect": "4.9.0",
+    "pillow": "12.3.0",
+    "pip": "26.2.1",
+    "platformdirs": "4.11.11",
+    "pluggy": "1.6.0",
+    "prompt_toolkit": "3.0.53",
+    "psutil": "7.2.2",
+    "ptyprocess": "0.7.0",
+    "pure_eval": "0.2.4",
+    "pyarrow": "25.0.1",
+    "pybind11": "2.11.1",
+    "pycparser": "3.0",
+    "pydantic": "2.13.5",
+    "pydantic_core": "2.46.5",
+    "pyparsing": "3.3.2",
+    "pyperclip": "1.11.0",
+    "pytest": "9.1.1",
+    "python-dateutil": "2.9.0.post0",
+    "pyzmq": "27.2.0",
+    "qdldl": "0.1.9.post1",
+    "qec-bp-benchmark": "0.1.0",
+    "qldpc": "0.3.3",
+    "referencing": "0.37.0",
+    "rpds-py": "2026.6.3",
+    "scikit_build_core": "1.0.3",
+    "scipy": "1.18.1",
+    "scs": "3.3.1",
+    "setuptools": "83.0.0",
+    "sinter": "1.16.0",
+    "six": "1.17.0",
+    "sparsediffpy": "0.6.1",
+    "stack-data": "0.6.3",
+    "stim": "1.16.0",
+    "sympy": "1.14.0",
+    "threadpoolctl": "3.7.0",
+    "tornado": "6.5.10",
+    "tqdm": "4.70.1",
+    "traitlets": "5.16.1",
+    "typing-inspection": "0.4.4",
+    "typing_extensions": "4.16.0",
+    "uv-build": "0.9.30",
+    "wcwidth": "0.8.4",
+    "wheel": "0.47.0"
+  },
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "python": "3.12.14 | packaged by Anaconda, Inc. | (main, Aug 27 2026, 14:46:43) [GCC 14.3.0]",
+  "schema_version": 1,
+  "wheels": {
+    "ldpc-2.4.1-cp312-cp312-linux_x86_64.whl": "6d68c79812b543dbc2a2fc852d8ef414104438c9cce5ef9ad49ebaf3a8a76963",
+    "stim-1.16.0-cp312-cp312-linux_x86_64.whl": "00128874cdc1cc985b33c1b4d3d0dad20f6c0564642215cef729e6c4a648a835"
+  }
+}

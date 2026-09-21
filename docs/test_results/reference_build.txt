@@ -1,0 +1,19 @@
+/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        By 2027-Feb-18, you need to update your project and remove deprecated calls
+        or your builds will no longer be supported.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+running build_ext
+building 'ldpc.reference_bp._reference_bp' extension
+g++ -pthread -B /home/quantum_teresheys/anaconda3/envs/search_decimation/compiler_compat -fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -DREFERENCE_UPSTREAM_COMMIT=\"d3429964cd4ffe1abfc041c6ec8b8425cb174f40\" -DREFERENCE_SOURCE_HASH=\"a9270567546c848c0e70c0fac2a22be2453df346f89f75c4a647fe80f3c9dcad\" -I/home/quantum_teresheys/anaconda3/envs/search_decimation/lib/python3.12/site-packages/pybind11/include -Isrc_cpp -I/home/quantum_teresheys/anaconda3/envs/search_decimation/include/python3.12 -c src_python/ldpc/reference_bp/bindings.cpp -o build/temp.linux-x86_64-cpython-312/src_python/ldpc/reference_bp/bindings.o -O3 -std=c++17 -fno-fast-math -ffp-contract=off -Wall -Wextra
+g++ -pthread -B /home/quantum_teresheys/anaconda3/envs/search_decimation/compiler_compat -fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -fPIC -O2 -isystem /home/quantum_teresheys/anaconda3/envs/search_decimation/include -shared -Wl,-rpath,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath-link,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -L/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -Wl,-rpath-link,/home/quantum_teresheys/anaconda3/envs/search_decimation/lib -L/home/quantum_teresheys/anaconda3/envs/search_decimation/lib build/temp.linux-x86_64-cpython-312/src_python/ldpc/reference_bp/bindings.o -o build/lib.linux-x86_64-cpython-312/ldpc/reference_bp/_reference_bp.cpython-312-x86_64-linux-gnu.so
+copying build/lib.linux-x86_64-cpython-312/ldpc/reference_bp/_reference_bp.cpython-312-x86_64-linux-gnu.so -> src_python/ldpc/reference_bp

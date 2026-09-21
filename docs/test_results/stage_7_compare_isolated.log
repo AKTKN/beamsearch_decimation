@@ -1,0 +1,14 @@
+{
+  "run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+  "status": "complete",
+  "samples": 128,
+  "decodes": 384,
+  "comparison": {
+    "left_run_id": "ba2c2d1259f1956c8ae943cc49add065d618adce68cfe65ae4100f53282baed2",
+    "right_run_id": "187dc764fe4ea8ef005a59829ce5f2a2887b358966b1904374de7b2034ebf0c4",
+    "samples_equal": 128,
+    "shared_decodes_equal": 384,
+    "additional_decode_rows": 0,
+    "status": "equal"
+  }
+}

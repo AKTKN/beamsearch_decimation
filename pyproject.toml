@@ -1,0 +1,20 @@
+[build-system]
+requires = ["scikit-build-core==1.0.3", "pybind11==2.11.1"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "qec-bp-benchmark"
+version = "0.1.0"
+description = "Reproducible circuit-level Z-memory BP benchmark and analysis"
+requires-python = ">=3.12"
+dependencies = ["numpy", "scipy", "stim", "qldpc", "pydantic>=2", "PyYAML", "pyarrow==25.0.1", "threadpoolctl==3.7.0", "matplotlib==3.11.2"]
+
+[project.optional-dependencies]
+notebook = ["nbformat==5.11.1", "nbclient==0.11.0", "ipykernel==7.3.0"]
+
+[tool.scikit-build]
+wheel.packages = ["src/qec_bp_benchmark", "analysis"]
+cmake.build-type = "Release"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

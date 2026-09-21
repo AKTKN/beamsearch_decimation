@@ -1,0 +1,11 @@
+error(0.1) D0 D1 ^ D1 D2 L0
+error(0.2) D0 L1
+error(0.3) D0 L0
+error(0.4) L1
+error(0) D2 L0
+repeat 2 {
+    error(0.125) D0 L0
+    shift_detectors 1
+}
+detector D2
+logical_observable L1

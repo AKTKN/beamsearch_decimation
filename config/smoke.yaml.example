@@ -1,0 +1,18 @@
+# p=0.001 is an implementation example, not a user-selected production sweep.
+experiment:
+  name: implementation_smoke
+  codes:
+    - {family: surface, distances: [5, 7, 9]}
+    - {family: bb72, distances: [6]}
+noise:
+  rates: [0.001]
+  multipliers: {one_qubit: 1.0, two_qubit: 1.0, idle: 1.0, reset: 1.0, measurement: 1.0}
+circuit: {cache: ../simulation_data}
+decoders:
+  - {profile: screened_reference}
+  - {profile: bposd_ms30_cs10}
+  - {profile: beam8}
+sampling: {shots_per_point: 32, batch_size: 16, master_seed: 20260920, warmup_seed: 20260921, warmup_count: 4}
+execution: {workers: 4}
+timing: {mode: throughput}
+output: {root: ../assets/runs}

@@ -1,0 +1,13 @@
+{
+  "reference_bp": {
+    "profile": "screened_reference_flooding_v1",
+    "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40",
+    "source_sha256": "a9270567546c848c0e70c0fac2a22be2453df346f89f75c4a647fe80f3c9dcad",
+    "compiler": "11.4.0",
+    "flags": "-O3 -std=c++17 -fno-fast-math -ffp-contract=off"
+  },
+  "ldpc": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/ldpc/src_python/ldpc/__init__.py",
+  "beam": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/__init__.py",
+  "stim": "1.16.0",
+  "qldpc": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/acceptance/20260920T223215Z_1c9e1644/workspace/external_lib/qLDPC/src/qldpc/__init__.py"
+}

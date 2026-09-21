@@ -1,0 +1,8 @@
+Internal ctest changing into directory: /home/quantum_teresheys/workspace/beamsearch_decimation/build/sanitize
+Test project /home/quantum_teresheys/workspace/beamsearch_decimation/build/sanitize
+    Start 1: reference_bp
+1/1 Test #1: reference_bp .....................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.01 sec

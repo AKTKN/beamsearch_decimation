@@ -1,0 +1,6 @@
+[ 50%] Building CXX object CMakeFiles/test_reference_bp.dir/tests/native/test_reference_bp.cpp.o
+[100%] Linking CXX executable test_reference_bp
+[100%] Built target test_reference_bp
+[ 50%] Building CXX object CMakeFiles/test_search.dir/tests/native/test_search.cpp.o
+[100%] Linking CXX executable test_search
+[100%] Built target test_search

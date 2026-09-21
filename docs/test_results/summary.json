@@ -1,0 +1,29 @@
+{
+  "project_tests": 70,
+  "upstream_tests": 15,
+  "pristine_bposd_outputs_compared": 288,
+  "native_debug": "1/1 passed",
+  "native_asan_ubsan": "1/1 passed",
+  "repeated_artifacts_identical": true,
+  "production_empty_grid_rejected": true,
+  "files": {
+    "project_tests.txt": "51f55ebcf4b7ffd2eedc89a9cd845d477e6ee9a4506534ddfe4802a202003be2",
+    "upstream_tests.txt": "6db6dd6e22f1fdbe695361c3ae8532c28ff938746d05c32f3ca3dfedf3d04791",
+    "native_debug.txt": "c7a156cd8ca0f35c3c1cf0ec7d0d2c609679e403234769eb5a982a62158c5920",
+    "native_sanitizer.txt": "fca70fd4bd9f94cf5511798d7e643d8003872bcf7befc8cd51e6c1897e5fb476",
+    "build_check.json": "6d0d7a162a9a97fe8417a1a24ccf0fb804a933f5087eba7f31e85b5723d5f1c7",
+    "pristine_regression.txt": "57be52af4623aba7a288aead2dd5009536a86c289e7cfad4320fe4586d4c738b",
+    "prepare_smoke.txt": "c5c5815cf080ffcd98f5bf41637f904f44104f8a63080922f8c155a3218f4e68",
+    "prepare_repeat.txt": "c5c5815cf080ffcd98f5bf41637f904f44104f8a63080922f8c155a3218f4e68",
+    "production_rejection.txt": "cc78b5838c68c5a33304123e609cc1c2907615d3b728dc9cd010d5dd99d7ab13",
+    "reference_build.txt": "c4b7e44c53624c5861a9d8fafd1f33c2d136458280fcc0a5c816bf73b94368e3",
+    "project_build.txt": "1c169ce3d3a7532b0f2b593deed27a68dd163d85a706acdb20cdbe28e33d4e99",
+    "ldpc_pristine_build.txt": "899c10e6a6496d06e00955d2a3c72170d6f4e30079ed8fb4ff5e275f4d06451b",
+    "ldpc_editable_build.txt": "e40e19846a0f9110078dbd0aefbb18e15cfe51e08faa2c2bac852457a1203b28",
+    "beam_build.txt": "0d745838c7bb85a44afde36a7c839c7979fecba02bff5ddcb9561b7c5bfc1c1a",
+    "stim_build.txt": "c263c194c5946b75dc4a2e077d83340e0fb9082d97b79a56da04a8700acf94a4",
+    "stim_wheel.txt": "9b54f22128dc1989b47d0944746a421699240c693ac15a1d7b2d5e0db23ac0f5",
+    "stim_install.txt": "fea55acbdcdbaf230e8b6f225d5ea2a525daf6efb61e4976f9bfbf4f0dee4544",
+    "patch_check.txt": "591adaf278d0af34cb0bb1fae3ffa01a317c45f6d80f6d1686fa1a16bc601e41"
+  }
+}

@@ -1,0 +1,46 @@
+# Local scientific artifacts and mutable reports (keep directory documentation).
+/simulation_data/*
+!/simulation_data/README.md
+/assets/*
+!/assets/README.md
+
+# Editable experiment settings and analysis notebooks; templates are versioned.
+/config/**/*.yaml
+/config/**/*.yml
+*.ipynb
+.ipynb_checkpoints/
+
+# Pinned dependencies are restored by build_dependencies from locks and patches.
+/external_lib/*
+!/external_lib/README.md
+!/external_lib/manifest.lock.json
+!/external_lib/patches/
+
+# Build products and caches.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+*.egg-info/
+build/
+dist/
+*.so
+*.dylib
+*.dll
+*.o
+*.a
+*.whl
+.venv/
+venv/
+.coverage
+htmlcov/
+
+# Local credentials and editor state.
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+.DS_Store
