@@ -1,5 +1,10 @@
 # Native screened decoder
 
+For active SEARCH-BP-2.0, see `docs/search_bp_implementation.md`. The final pass
+only adjusts branch-prefix, descendant-neighborhood and global-pool reservations.
+The decoder-only standalone benchmark is `tests/native/benchmark_search_bp.cpp`;
+it does not enable production telemetry or call quantum simulation code.
+
 `search.hpp` implements static history-based pool ranking, increasing-index subset
 and lexicographic bit enumeration, structural residual checks, weighted lower
 bounds, exact bounded-heap top K, every cold-start completion, and physical-cost /
@@ -43,11 +48,30 @@ a fresh project extension against the patched source-only ldpc tree and verifies
 its embedded project/fork digests before executing the service. See
 docs/hybrid_acceptance.md (from the repository root) for scope and reproducible commands.
 
-## SEARCH-BP-2.0 architecture
+## SEARCH-BP-2.0 Steps 1–4
 
-No new decoding implementation is compiled yet. SEARCH-BP-1.0 headers, masked
-min-sum and bindings are in `legacy/search_bp_v1/`, excluded from CMake and the
-active source digest. Existing screened/hybrid implementations remain active.
-The future BP numerical kernel belongs in the ldpc fork; project native code owns
-scores, local search, admission, retention and orchestration. See
-`docs/search_bp_v2_design.md` at the repository root.
+`search_bp_model.hpp`, `search_bp_scores.hpp`, `search_bp_search.hpp`,
+`search_bp_stage3.hpp` and `search_bp_bindings.hpp` implement the partial native
+`SearchBPStage3` service. Initial BP calls the fork's `decimated_bp.hpp`; project
+C++ computes confidence/check ambiguity and bounded solve/guide candidates.
+The default local policy refreshes descendant neighborhoods; fixed_root is also
+available. Scratch and frontiers are per parent expansion and never survive into
+another cycle. Full decoding remains guarded: admission, retained-state recursion
+and OSD fallback are not implemented here. See docs/search_bp_stage3.md at the
+repository root for exact APIs, equations, bounds and numerical conventions.
+
+The five headers are source-hashed and watched by CMake. The focused native target
+`test_search_bp_stage3` joins `test_decimated_bp` and the existing four targets.
+SEARCH-BP-1.0 headers/kernel/bindings remain in `legacy/search_bp_v1/`, excluded
+from CMake and active hashes. Existing screened/hybrid kernels are unchanged.
+
+## SEARCH-BP-2.0 recursive decoder
+
+Stage 4 adds `search_bp_admission.hpp` and `search_bp_decoder.hpp`, binding
+`SearchBP2Decoder`/`SearchBP2Settings` and the five-field `SearchBP2Result`. K_run
+is global across parents; R alone ranks completed BP states. Pools/search trees
+die each cycle. OSD consumes final signed LLRs, converting fixed infinities to
+signed DBL_MAX. The decoder has an atomic non-reentrant guard and owns no
+telemetry. The seventh target `test_search_bp_stage4` observes the same loop only
+in its standalone test build. See docs/search_bp_stage4.md. The simulator adapter
+remains guarded.

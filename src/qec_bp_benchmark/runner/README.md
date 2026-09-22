@@ -8,9 +8,10 @@ batches, with no telemetry stream or raw-sample file. Configured shots_per_flush
 controls row groups, with a final partial flush. Progress reports completed
 batches; a partial group may still be buffered. Failed shots retain their latency.
 
-SEARCH-BP-2.0 fails before run creation until decoding is implemented. Baseline
-runs remain supported. See docs/simulation_output.md and
- docs/search_bp_v2_design.md at repository root. The material below is historical
+SEARCH-BP-2.1 is integrated through the native adapter. The worker returns only
+minimal result rows, with no sampled-truth vectors or wide event payloads. Baseline
+runs remain supported. See docs/simulation_output.md and docs/search_bp_stage5.md
+at repository root. The material below is historical
 pipeline documentation; manifests, replay and event writes are not active.
 
 # Paired runner

@@ -1,12 +1,27 @@
 # Minimal current analysis
 
+For current six-field results, use `analysis.simple_search_bp.summarize_run(run)`
+for detached statistics and the public `analysis.plot_*` functions for figures.
+The plot readers consume `*_results.parquet` directly, with condition and decoder
+labels from `config_resolved.json`. Current results support logical-error rate,
+complete wall latency, latency histograms and OSD-call rates. CPU latency, failure
+components and internal decoder events are absent and are not reconstructed.
+It directly reads `<condition>_results.parquet` plus resolved config and reports
+logical-error rate/Wilson bounds, mean/median/p95/p99 latency including failures,
+and OSD fraction with known/unknown denominators, grouped by condition and decoder.
+Earlier `_logicalerror.parquet` minimal files remain readable. No telemetry or
+inventories are required. See docs/search_bp_stage5.md.
+
+The plotting interfaces below support the current six-field layout and preserve
+earlier wide-layout consumers.
+
 `analysis.benchmark_plots` is the notebook-facing analysis module. Its public
 functions accept a minimal-layout run path and exact experiment selections:
 
 - `plot_logical_error_rate` reads logical-result columns and returns one figure per
-  code family. A logical error is decoder failure OR logical mismatch; the saved
-  `block_failure` field is deliberately not used. Shading is a two-sided Wilson
-  interval over physical shots.
+  code family. Current rows use the saved contract-defined logical-error boolean;
+  historical rows reconstruct decoder failure OR logical mismatch. Shading is a
+  two-sided Wilson interval over physical shots.
 - `plot_mean_decode_time` reads complete service timings, including failed decodes,
   and returns one figure per code family. Shading is a Student-t interval for the
   mean because Wilson intervals are defined only for binomial proportions.
@@ -15,15 +30,16 @@ functions accept a minimal-layout run path and exact experiment selections:
   in microseconds; vertical lines mark the mean, p95, and p99.
 - `decoder_event_rate_table` returns a pandas DataFrame whose row MultiIndex is
   `(code, distance, physical_rate)` and whose column MultiIndex is
-  `(decoder, metric)`. Cells contain search-BP OSD-reach and beam-decoder
-  nonconvergence rates; storage IDs and execution metadata are omitted.
+  `(decoder, metric)`. Current cells contain OSD-call rates over known flags;
+  historical layouts retain search-BP OSD-reach and beam nonconvergence rates.
 
 Both functions create 3.4 x 2.55 inch, 300 dpi figures suitable for one column of
 a two-column RevTeX paper. They return live Matplotlib `Figure` objects and never
 write output files. The caller can edit `figure.axes[0]` or call `figure.savefig`.
-Only `*_condition.parquet`, `*_decoders.parquet`, and selected columns from
-`*_logicalerror.parquet` are read. There is no notebook-side table load, summary
-report, run merging, bootstrap, telemetry load, or decoder execution.
+Current runs read resolved config and selected columns from `*_results.parquet`.
+Historical runs read their condition/decoder companions and selected columns from
+`*_logicalerror.parquet`. There is no run merging, bootstrap, telemetry load or
+decoder execution.
 
 The manifest-based modules described below are historical compatibility code;
 their preserved implementation is also available under `analysis.legacy`.
@@ -124,7 +140,7 @@ No bootstrap, hybrid details or shared all-data cache is used.
 
 ## Current minimal results
 
-`simple_search_bp.summarize_run` reads the five-field result file directly and
+`simple_search_bp.summarize_run` reads the result file directly and
 obtains condition/decoder/execution context from config_resolved.json. It reports
 logical error over all physical shots, failure-inclusive wall latency, and exact
 OSD call counts over known flags with unknown counts separate. It never merges

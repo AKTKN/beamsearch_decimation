@@ -2,9 +2,11 @@
 #include <pybind11/stl.h>
 #include "search.hpp"
 #include "hybrid_bindings.hpp"
+#include "search_bp_bindings.hpp"
 namespace py=pybind11;
 PYBIND11_MODULE(_native, m) {
     qec::hybrid::bind_hybrid(m);
+    qec::search_bp2::bind_stage3(m);
     m.doc()="Exact native exhaustive screening using the forked ldpc reference BP kernel.";
     m.def("build_identity", [](){return "qec-bp-benchmark/0.1.0;c++17;binary64;no-fast-math";});
     m.def("source_identity", [](){py::dict d; d["search_sha256"]=QEC_SEARCH_HASH; d["binding_sha256"]=QEC_BINDING_HASH; d["cmake_sha256"]=QEC_CMAKE_HASH; d["bp_header_sha256"]=QEC_BP_HASH; return d;});

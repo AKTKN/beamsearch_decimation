@@ -1,7 +1,22 @@
 # Specification-to-implementation-to-test traceability
 
-SEARCH-BP-2.0 is contract-only. The exact TeX references and future native/fork
+SEARCH-BP-2.0 simulator integration is complete through Stage 5. The final
+[active implementation audit](search_bp_implementation.md#tex-to-code-traceability)
+maps every TeX step/equation to functions and independent tests. Final-pass evidence
+is under `test_results/search_bp_final_*`; historical evidence below is preserved.
+[search_bp_stage5.md](search_bp_stage5.md) maps configuration, adapter, minimal
+output and invariant checks to source/tests. Native decoding is complete through Stage 4. [search_bp_stage4.md](search_bp_stage4.md) maps global admission,
+retention, recursive execution and OSD fallback to source and tests. Stage-3 Steps 1–4 are implemented;
+[search_bp_stage3.md](search_bp_stage3.md) maps each equation to source and tests. The exact TeX references and future native/fork
 boundaries are in [search_bp_v2_design.md](search_bp_v2_design.md).
+
+Stage 2 BP API traceability: [decimated_bp.md](decimated_bp.md).
+`refined.tex`'s physical LLR and residual definitions map to fork
+`decimated_bp.hpp::Session`; its `eq:average_llr` maps to the bounded ring/mean API
+when history_count == W. `test_decimated_bp.py` supplies a scalar reference and
+edge-mask/history/state tests; `native/test_decimated_bp.cpp` compares pinned
+parallel min-sum. The source inventory and restoration test cover the new header.
+No confidence/check-ranking/search/admission equations are implemented in the fork.
 
 | Migration requirement | Implementation | Evidence |
 |---|---|---|

@@ -1,0 +1,70 @@
+..F......F..................                                             [100%]
+=================================== FAILURES ===================================
+__ test_strict_native_settings_reject_invalid_and_removed_fields[overrides2] ___
+
+overrides = {'search': {'selected_checks': 0}}
+
+    @pytest.mark.parametrize('overrides',[
+        {'search':{'max_fixations':5}}, {'search':{'local_variable_policy':'fixed_root','max_fixations':5}},
+        {'search':{'selected_checks':0}}, {'search':{'local_variables':2**31}},
+        {'search':{'max_cycles':-1}}, {'search':{'guidance_strength':float('inf')}},
+        {'search':{'beta':-1.}}, {'admission':{'k_run':1,'k_keep':2}},
+        {'admission':{'k_run':True}}, {'bp':{'history_window':0}},
+        {'bp':{'history_window':21}}, {'bp':{'average_llr_clip':float('nan')}},
+        {'bp':{'average_llr_clip':float.fromhex('0x1.fffffffffffffp+1023')}},
+        {'bp':{'scaling_factor':0.}}, {'bp':{'scaling_factor':1.1}}, {'native_threads':2},
+        {'search':{'expansions_per_cycle':8}}, {'search':{'det_beam':2}},
+        {'search':{'guidance_selection':'best'}}, {'search':{'retention_score':'old'}},
+        {'search':{'max_generated_nodes':100}}, {'fallback':{'osd_order':0}},
+        {'numerics':{'fast_math':False}},
+    ])
+    def test_strict_native_settings_reject_invalid_and_removed_fields(overrides):
+>       with pytest.raises(ValidationError): config(**overrides)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_search_bp_stage5.py:47: Failed
+__ test_strict_native_settings_reject_invalid_and_removed_fields[overrides9] ___
+
+overrides = {'bp': {'history_window': 0}}
+
+    @pytest.mark.parametrize('overrides',[
+        {'search':{'max_fixations':5}}, {'search':{'local_variable_policy':'fixed_root','max_fixations':5}},
+        {'search':{'selected_checks':0}}, {'search':{'local_variables':2**31}},
+        {'search':{'max_cycles':-1}}, {'search':{'guidance_strength':float('inf')}},
+        {'search':{'beta':-1.}}, {'admission':{'k_run':1,'k_keep':2}},
+        {'admission':{'k_run':True}}, {'bp':{'history_window':0}},
+        {'bp':{'history_window':21}}, {'bp':{'average_llr_clip':float('nan')}},
+        {'bp':{'average_llr_clip':float.fromhex('0x1.fffffffffffffp+1023')}},
+        {'bp':{'scaling_factor':0.}}, {'bp':{'scaling_factor':1.1}}, {'native_threads':2},
+        {'search':{'expansions_per_cycle':8}}, {'search':{'det_beam':2}},
+        {'search':{'guidance_selection':'best'}}, {'search':{'retention_score':'old'}},
+        {'search':{'max_generated_nodes':100}}, {'fallback':{'osd_order':0}},
+        {'numerics':{'fast_math':False}},
+    ])
+    def test_strict_native_settings_reject_invalid_and_removed_fields(overrides):
+>       with pytest.raises(ValidationError): config(**overrides)
+                                             ^^^^^^^^^^^^^^^^^^^
+
+tests/test_search_bp_stage5.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_search_bp_stage5.py:29: in config
+    return SearchBP(algorithm_version='SEARCH-BP-2.0', **overrides)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = SearchBPBP(initial_iterations=30, candidate_iterations=20, history_window=0, average_llr_clip=25.0, scaling_factor=1.0)
+
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.history_window > min(self.initial_iterations, self.candidate_iterations):
+            raise ValueError("history_window exceeds a BP iteration budget")
+>       if self.average_llr_clip > sys.float_info.max / (2.0 * self.history_window):
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ZeroDivisionError: float division by zero
+
+src/qec_bp_benchmark/config.py:272: ZeroDivisionError
+=========================== short test summary info ============================
+FAILED tests/test_search_bp_stage5.py::test_strict_native_settings_reject_invalid_and_removed_fields[overrides2]
+FAILED tests/test_search_bp_stage5.py::test_strict_native_settings_reject_invalid_and_removed_fields[overrides9]
+2 failed, 26 passed in 8.35s

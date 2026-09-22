@@ -1,0 +1,24 @@
+.........F..                                                             [100%]
+=================================== FAILURES ===================================
+___________ test_statuses_zero_budget_early_valid_and_contradiction ____________
+
+    def test_statuses_zero_budget_early_valid_and_contradiction():
+        bp = session([[0, 1], [0]], [.1, .2])
+        bp.reset_from_channel([1, 1], [(0, 0), (1, 0)])
+        result = bp.continue_iterations(10)
+        assert result.status.name == 'LOCAL_CONTRADICTION'
+        assert result.requested_iterations == 10 and result.actual_iterations == result.total_iterations == 0
+        bp.reset_from_channel([1, 1], [(0, 1), (1, 0)])
+        assert bp.continue_iterations(10).status.name == 'CONVERGED' and bp.history_count == 0
+        bp.reset_from_channel([1, 1])
+        assert bp.continue_iterations(0).status.name == 'BUDGET_EXHAUSTED'
+        result = bp.continue_iterations(10)
+>       assert result.valid and result.actual_iterations == 1
+E       assert (True and 2 == 1)
+E        +  where True = <ldpc.hybrid_bp._hybrid_bp.DecimatedBPAdvance object at 0x7070997c5230>.valid
+E        +  and   2 = <ldpc.hybrid_bp._hybrid_bp.DecimatedBPAdvance object at 0x7070997c5230>.actual_iterations
+
+tests/test_decimated_bp.py:179: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_decimated_bp.py::test_statuses_zero_budget_early_valid_and_contradiction
+1 failed, 11 passed in 1.08s

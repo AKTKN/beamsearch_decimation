@@ -1,15 +1,21 @@
 # Complete YAML interface
 
-## SEARCH-BP-2.0 (contract only)
+## SEARCH-BP-2.1
 
 `kind`, `profile`, and `name` are `search_bp`. An explicit
-`algorithm_version: SEARCH-BP-2.0` and `config_schema_version: search_bp_config/3`
-are required. Old versions and keys fail validation. The proposed fields and
-unresolved numerical policies are in [the design map](search_bp_v2_design.md).
-`output.layout: minimal_results` uses `search_bp_results/1`; no telemetry keys
+`algorithm_version: SEARCH-BP-2.1` and `config_schema_version: search_bp_config/4`
+are required. Old versions/keys fail validation. [Stage 5](search_bp_stage5.md)
+lists every nested YAML field and its exact native mapping. Counts are strict
+positive int32, k_keep <= k_run, q <= m for both local policies, W >= 1 and no
+larger than either iteration budget. Clip/scoring/scaling values must be finite;
+clip is positive and bounded against ring overflow, beta/lambda are nonnegative,
+and bp.scaling_factor is in (0,1]. native_threads is fixed to 1. OSD-0 and
+binary64/no-fast-math are fixed. Top-level `osd_fallback` is a strict boolean,
+default true; false returns a declared failure after BP/search exhaustion without
+calling OSD. Nested fallback/numerics sections are rejected.
+`output.layout: minimal_results` uses `search_bp_results/2`; no telemetry keys
 are accepted. `python python_scripts/validate_config.py config/search_bp.yaml.example`
-validates without checking execution availability. Running an enabled search_bp
-raises NotImplementedError before imports, artifact preparation or run creation.
+validates without sampling. The enabled adapter calls the complete native decoder.
 
 `load_config(path)` safely reads YAML, rejects duplicate/unknown keys, validates
 parameters and resolves all paths relative to the YAML file. Config models are

@@ -53,7 +53,7 @@ if(QEC_BUILD_TESTS)
 endif()
 
 if(QEC_BUILD_TESTS)
-    foreach(TEST_NAME hybrid_bp hybrid)
+    foreach(TEST_NAME hybrid_bp hybrid decimated_bp search_bp_stage3 search_bp_stage4)
         add_executable(test_${TEST_NAME} tests/native/test_${TEST_NAME}.cpp)
         target_include_directories(test_${TEST_NAME} PRIVATE external_lib/ldpc/src_cpp src/qec_bp_benchmark/native)
         target_compile_features(test_${TEST_NAME} PRIVATE cxx_std_17)

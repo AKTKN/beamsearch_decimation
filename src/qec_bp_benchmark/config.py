@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import sys
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
@@ -11,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Positive = Annotated[int, Field(strict=True, gt=0)]
 Nonnegative = Annotated[int, Field(strict=True, ge=0)]
 Probability = Annotated[float, Field(ge=0, le=0.5, allow_inf_nan=False)]
+PositiveNativeCount = Annotated[int, Field(strict=True, ge=1, le=2**31-1)]
 
 
 class StrictModel(BaseModel):
@@ -240,10 +242,11 @@ class HybridNumerics(StrictModel):
 
 class SearchBPSearch(StrictModel):
     """Step 3/4/6 budgets; names distinguish check count from matrix row count."""
-    selected_checks: Positive = 2
-    local_variables: Positive = 4
-    max_fixations: Positive = 2
-    max_cycles: Positive = 2
+    selected_checks: PositiveNativeCount = 2
+    local_variables: PositiveNativeCount = 4
+    local_variable_policy: Literal['fixed_root', 'refresh_descendant'] = 'refresh_descendant'
+    max_fixations: PositiveNativeCount = 2
+    max_cycles: PositiveNativeCount = 2
     beta: Annotated[float, Field(strict=True, ge=0)] = 1.0
     guidance_strength: Annotated[float, Field(strict=True, ge=0)] = 1.0
 
@@ -255,22 +258,25 @@ class SearchBPSearch(StrictModel):
 
 
 class SearchBPBP(StrictModel):
-    """Proposed iteration budgets and Step 2 history, not message clipping."""
-    initial_iterations: Positive = 30
-    candidate_iterations: Positive = 20
-    history_window: Positive = 8
+    """Parallel minimum-sum budgets and clipped posterior history."""
+    initial_iterations: PositiveNativeCount = 30
+    candidate_iterations: PositiveNativeCount = 20
+    history_window: PositiveNativeCount = 8
     average_llr_clip: Annotated[float, Field(strict=True, gt=0)] = 25.0
+    scaling_factor: Annotated[float, Field(strict=True, gt=0, le=1)] = 1.0
 
     @model_validator(mode="after")
     def check(self) -> Self:
         if self.history_window > min(self.initial_iterations, self.candidate_iterations):
             raise ValueError("history_window exceeds a BP iteration budget")
+        if self.average_llr_clip > sys.float_info.max / (2.0 * self.history_window):
+            raise ValueError("average_llr_clip can overflow the history accumulator")
         return self
 
 
 class SearchBPAdmission(StrictModel):
-    k_run: Positive = 4
-    k_keep: Positive = 2
+    k_run: PositiveNativeCount = 4
+    k_keep: PositiveNativeCount = 2
 
     @model_validator(mode="after")
     def check(self) -> Self:
@@ -279,33 +285,17 @@ class SearchBPAdmission(StrictModel):
         return self
 
 
-class SearchBPFallback(StrictModel):
-    backend: Literal["ldpc_osd_only"] = "ldpc_osd_only"
-    osd_order: Annotated[int, Field(strict=True, ge=0, le=0)] = 0
-
-
-class SearchBPNumerics(StrictModel):
-    dtype: Literal["float64"] = "float64"
-    fast_math: Literal[False] = False
-
-
 class SearchBP(StrictModel):
-    """SEARCH-BP-2.0 contract only; execution is deliberately unavailable.
-
-    Exact numerical edge policies must be resolved against refined.tex before
-    implementing the native service. An explicit version prevents old defaults
-    from acquiring a new algorithm identity.
-    """
+    """SEARCH-BP-2.1 native service with an optional direct OSD-0 fallback."""
     kind: Literal["search_bp"] = "search_bp"
     profile: Literal["search_bp"] = SEARCH_BP_PROFILE
     name: Literal["search_bp"] = "search_bp"
     enabled: Annotated[bool, Field(strict=True)] = True
-    algorithm_version: Literal["SEARCH-BP-2.0"]
+    algorithm_version: Literal["SEARCH-BP-2.1"]
+    osd_fallback: Annotated[bool, Field(strict=True)] = True
     search: SearchBPSearch = SearchBPSearch()
     bp: SearchBPBP = SearchBPBP()
     admission: SearchBPAdmission = SearchBPAdmission()
-    fallback: SearchBPFallback = SearchBPFallback()
-    numerics: SearchBPNumerics = SearchBPNumerics()
     native_threads: Annotated[int, Field(strict=True, ge=1, le=1)] = 1
 
 
@@ -376,7 +366,7 @@ class Hybrid(StrictModel):
 def require_available_decoder(profile: str) -> None:
     """Reject unknown profiles without numerical imports or mutation (ValueError)."""
     if profile == SEARCH_BP_PROFILE:
-        raise NotImplementedError("SEARCH-BP-2.0 is contract-only; decoding is not implemented")
+        return
     if profile in HYBRID_PROFILES:
         return
     if profile not in ("screened_reference", "bposd_ms30_cs10", "bposd_ms30_cs0", "beam8", "beam32"):
@@ -460,10 +450,10 @@ class ParquetOutput(StrictModel):
 
 
 class SearchBPOutput(StrictModel):
-    """Five-column per-condition result contract; no telemetry or raw samples."""
+    """Six-column per-condition result contract; no telemetry or raw samples."""
     root: Path = Path("../assets/runs")
     layout: Literal["minimal_results"] = "minimal_results"
-    data_schema_version: Literal["search_bp_results/1"] = "search_bp_results/1"
+    data_schema_version: Literal["search_bp_results/2"] = "search_bp_results/2"
     parquet: ParquetOutput = ParquetOutput()
 
     @property
@@ -508,7 +498,7 @@ class Analysis(StrictModel):
 
 
 class Config(StrictModel):
-    config_schema_version: Literal["search_bp_config/3"] | None = Field(
+    config_schema_version: Literal["search_bp_config/4"] | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     experiment: Experiment = Experiment()
@@ -531,8 +521,8 @@ class Config(StrictModel):
         has_search_bp = any(isinstance(d, SearchBP) for d in self.decoders)
         if has_search_bp and not isinstance(self.output, SearchBPOutput):
             raise ValueError("search_bp requires minimal_results output")
-        if has_search_bp and self.config_schema_version != "search_bp_config/3":
-            raise ValueError("search_bp requires config_schema_version: search_bp_config/3")
+        if has_search_bp and self.config_schema_version != "search_bp_config/4":
+            raise ValueError("search_bp requires config_schema_version: search_bp_config/4")
         if has_search_bp and self.timing.profiling != "none":
             raise ValueError("search_bp does not emit phase profiling")
         return self
@@ -561,8 +551,6 @@ class Config(StrictModel):
                     "hard_decision": "upstream L<=0", "error_channel_type": "list",
                     "converge_flag": "BP stage only; validate correction after OSD",
                 }
-            elif decoder["profile"] == SEARCH_BP_PROFILE:
-                decoder["implementation_properties"] = {"availability": "contract_only"}
 
         return data
 

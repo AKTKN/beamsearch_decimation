@@ -13,35 +13,37 @@ from qec_bp_benchmark.storage.minimal import SCHEMA, minimal_record, result_tabl
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_v2_contract_and_v1_rejection():
+def test_v21_contract_and_legacy_rejection():
     config = load_config(ROOT / 'config/search_bp.yaml.example')
-    assert config.config_schema_version == 'search_bp_config/3'
-    assert config.decoders[0].algorithm_version == 'SEARCH-BP-2.0'
+    assert config.config_schema_version == 'search_bp_config/4'
+    assert config.decoders[0].algorithm_version == 'SEARCH-BP-2.1'
+    assert config.decoders[0].osd_fallback is True
     assert Config.model_validate_json(config.model_dump_json()) == config
     with pytest.raises(ValidationError):
         load_config(ROOT / 'config/legacy/search_bp_v1/search_bp.yaml.example')
-    for override in ({}, {'algorithm_version': 'SEARCH-BP-1.0'},
-                     {'algorithm_version': 'SEARCH-BP-2.0', 'bp': {'beam_width': 2}},
-                     {'algorithm_version': 'SEARCH-BP-2.0', 'admission': {'k_run': 1, 'k_keep': 2}},
-                     {'algorithm_version': 'SEARCH-BP-2.0', 'search': {'beta': float('nan')}},
-                     {'algorithm_version': 'SEARCH-BP-2.0', 'search': {'max_fixations': 5}}):
+    with pytest.raises(ValidationError):
+        load_config(ROOT / 'config/legacy/search_bp_v2/search_bp.yaml.example')
+    for override in ({}, {'algorithm_version': 'SEARCH-BP-2.0'},
+                     {'algorithm_version': 'SEARCH-BP-2.1', 'bp': {'beam_width': 2}},
+                     {'algorithm_version': 'SEARCH-BP-2.1', 'admission': {'k_run': 1, 'k_keep': 2}},
+                     {'algorithm_version': 'SEARCH-BP-2.1', 'search': {'beta': float('nan')}},
+                     {'algorithm_version': 'SEARCH-BP-2.1', 'search': {'local_variable_policy': 'unknown'}},
+                     {'algorithm_version': 'SEARCH-BP-2.1', 'search': {'local_variable_policy': 'fixed_root', 'max_fixations': 5}},
+                     {'algorithm_version': 'SEARCH-BP-2.1', 'osd_fallback': 1}):
         with pytest.raises(ValidationError):
             SearchBP.model_validate(override)
+    assert SearchBP.model_validate({'algorithm_version': 'SEARCH-BP-2.1'}).search.local_variable_policy == 'refresh_descendant'
+    with pytest.raises(ValidationError):
+        SearchBP.model_validate({'algorithm_version': 'SEARCH-BP-2.1', 'search': {'max_fixations': 5}})
 
 
-def test_v2_execution_fails_before_artifacts_and_old_binding_is_absent(tmp_path):
-    from qec_bp_benchmark.decoders import DecoderAdapter, native_hybrid
-    config = load_config(ROOT / 'config/search_bp.yaml.example')
-    with pytest.raises(NotImplementedError, match='SEARCH-BP-2.0'):
-        DecoderAdapter(None, config.decoders[0])
-    data = config.model_dump(mode='json')
-    data['output']['root'] = str(tmp_path / 'runs')
-    data['circuit']['cache'] = str(tmp_path / 'circuits')
-    path = tmp_path / 'config.yaml'; path.write_text(yaml.safe_dump(data))
-    with pytest.raises(NotImplementedError, match='contract-only'):
-        run_benchmark(path)
-    assert not (tmp_path / 'runs').exists() and not (tmp_path / 'circuits').exists()
+def test_v2_binding_available_and_old_binding_absent():
+    from qec_bp_benchmark.decoders import native_hybrid, implementation_identity
+    from qec_bp_benchmark.config import require_available_decoder
+    require_available_decoder('search_bp')
+    assert implementation_identity('search_bp')['fork_sha256']
     native = native_hybrid()
+    assert hasattr(native, 'SearchBP2Decoder')
     assert not hasattr(native, 'SearchBPDecoder') and not hasattr(native, 'SearchBPSettings')
     assert (ROOT / 'src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp.hpp').is_file()
 
@@ -53,13 +55,15 @@ def test_v2_execution_fails_before_artifacts_and_old_binding_is_absent(tmp_path)
 def test_logical_error_includes_declared_failure_and_latency(status, valid, mismatch, expected):
     row = minimal_record(dict(shot_id='s', decoder_name='search_bp', decoder_profile='search_bp',
         status=status, syndrome_valid=valid, valid_logical_mismatch=mismatch,
-        wall_ns=123, osd_called=True))
+        wall_ns=123, osd_called=True, correction_by_search=False))
     assert row['logical_error'] is expected and row['latency_ns'] == 123
     assert result_table([row]).schema == SCHEMA
     with pytest.raises(ValueError):
         result_table([row, row])
     with pytest.raises(ValueError):
         result_table([{**row, 'osd_called': None}])
+    with pytest.raises(ValueError):
+        result_table([{**row, 'correction_by_search': None}])
 
 
 def test_baselines_write_only_five_fields_with_grouped_spawn_output(tmp_path):
@@ -81,6 +85,7 @@ def test_baselines_write_only_five_fields_with_grouped_spawn_output(tmp_path):
     assert parquet.metadata.num_rows == 8 and parquet.metadata.num_row_groups == 2
     rows = parquet.read().to_pylist()
     assert all(type(row['osd_called']) is bool for row in rows)
+    assert all(row['correction_by_search'] is None for row in rows)
     assert all(not row['osd_called'] for row in rows if row['decoder_name'] == 'beam8')
     summaries = summarize_run(run)
     assert len(summaries) == 2 and all(row['shots'] == 4 for row in summaries)

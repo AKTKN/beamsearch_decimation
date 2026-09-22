@@ -37,11 +37,17 @@ Per-node `diagnostics=True` is rejected; profiling collects compact events. Sess
 lifetimes and error/reset behavior are in docs/hybrid_native.md. No truth is passed
 to the service. Historical v2 telemetry is described in docs/hybrid_data.md.
 
-`SearchBP` is now the SEARCH-BP-2.0 configuration contract. Its adapter raises
-NotImplementedError before loading a backend; no v1 fallback is permitted.
+`SearchBP` is the strict SEARCH-BP-2.0 configuration. Its adapter verifies native
+source identities, maps every setting to SearchBP2Settings, and calls
+SearchBP2Decoder with syndrome only. No v1 fallback is permitted.
 `DecodeResult.osd_called` is false for screened/beam and algebraic empty-model
 paths, exact from the hybrid invocation flag, and exact for upstream BP-OSD from
 its nonzero-syndrome BP-fallback branch. A zero-syndrome early return never uses
 a stale upstream convergence flag. Native baseline algorithms are unchanged.
 The active runner saves only this flag, logical error and full service latency
 with shot/decoder keys. Telemetry export remains a historical hybrid API.
+
+The complete Stage-4 native `SearchBP2Decoder` is integrated in Stage 5.
+SEARCH-BP profiling/diagnostics are rejected; no event dictionaries are constructed.
+The adapter independently validates H and predicts A within the service timing
+boundary, and preserves the exact native OSD flag. See docs/search_bp_stage5.md.

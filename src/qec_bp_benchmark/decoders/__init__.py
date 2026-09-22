@@ -54,7 +54,7 @@ def implementation_identity(kind: str) -> dict:
     if kind == 'screened_reference':
         module=native_search()
         detail=dict(module.source_identity(), build=module.build_identity())
-    elif kind in HYBRID_PROFILES:
+    elif kind in HYBRID_PROFILES or kind == 'search_bp':
         import platform
         module=native_hybrid()
         detail=dict(module.hybrid_source_identity(), build=module.build_identity(),
@@ -97,6 +97,8 @@ class DecodeResult:
     hybrid_summary: dict | None = None
     # Exact invocation flag; None is reserved for opaque future baseline APIs.
     osd_called: bool | None = None
+    # Exact only for SEARCH-BP-2.1; false for non-search exits, null for baselines.
+    correction_by_search: bool | None = None
 
 
 class DecoderAdapter:
@@ -111,6 +113,8 @@ class DecoderAdapter:
         require_available_decoder(config.profile)
         if isinstance(config,Hybrid) and diagnostics:
             raise ValueError("hybrid per-node traces are unsupported; use profiling and export_telemetry after decode")
+        if isinstance(config,SearchBP) and (diagnostics or profiling):
+            raise ValueError("SEARCH-BP-2.1 exposes no diagnostic or phase telemetry")
         if not isinstance(config, (Screened, Bposd, Beam, Hybrid, SearchBP)):
             raise TypeError(f'unsupported decoder configuration: {type(config).__name__}')
         self.problem=problem
@@ -122,6 +126,31 @@ class DecoderAdapter:
         self._weights=[math.log1p(-float(p))-math.log(float(p)) for p in problem.probabilities]
         self._native=None
         n=problem.H.shape[1]
+        if isinstance(config,SearchBP):
+            native=native_hybrid()
+            settings=native.SearchBP2Settings()
+            for key,value in {
+                'initial_iterations':config.bp.initial_iterations,
+                'candidate_iterations':config.bp.candidate_iterations,
+                'history_window':config.bp.history_window,
+                'history_clip':config.bp.average_llr_clip,
+                'scaling_factor':config.bp.scaling_factor,
+                'selected_checks':config.search.selected_checks,
+                'local_variables':config.search.local_variables,
+                'local_variable_policy':config.search.local_variable_policy,
+                'max_fixations':config.search.max_fixations,
+                'max_cycles':config.search.max_cycles,
+                'beta':config.search.beta,
+                'guidance_strength':config.search.guidance_strength,
+                'k_run':config.admission.k_run,'k_keep':config.admission.k_keep,
+                'osd_fallback':config.osd_fallback,
+            }.items():
+                setattr(settings,key,value)
+            def rows(matrix):
+                csr=matrix.tocsr()
+                return [csr.indices[csr.indptr[a]:csr.indptr[a+1]].tolist() for a in range(csr.shape[0])]
+            self._native=native.SearchBP2Decoder(rows(problem.H),n,problem.probabilities.tolist(),rows(problem.A),settings)
+            return
         # The exactly normalized empty model has a unique length-zero correction.
         # No native baseline accepts every empty shape, so handle it algebraically.
         if isinstance(config,Hybrid):
@@ -168,6 +197,7 @@ class DecoderAdapter:
         diagnostics=None
         hybrid_summary=None
         osd_called=False
+        correction_by_search=None
         phases={} if self.profiling else None
         if self.profiling:
             now=time.perf_counter_ns(); phases['input_wall_ns']=now-phase_start; phase_start=now
@@ -175,6 +205,17 @@ class DecoderAdapter:
             candidate=np.zeros(0,dtype=np.uint8)
             declared=bool(s.any())
             native_status='EMPTY_MODEL_CONTRADICTION' if declared else 'EMPTY_MODEL_VALID'
+        elif isinstance(self.config,SearchBP):
+            r=self._native.decode(s.tolist())
+            candidate=np.asarray(r.correction) if r.valid else None
+            declared=not r.valid
+            native_status='VALID' if r.valid else 'DECLARED_FAILURE'
+            if type(r.osd_called) is not bool:
+                raise ValueError('SEARCH-BP-2.1 must expose an exact boolean osd_called')
+            osd_called=r.osd_called
+            if type(r.correction_by_search) is not bool:
+                raise ValueError('SEARCH-BP-2.1 must expose an exact boolean correction_by_search')
+            correction_by_search=r.correction_by_search
         elif isinstance(self.config,Hybrid):
             r=self._native.decode(s.tolist(),self.profiling)
             candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None
@@ -222,7 +263,7 @@ class DecoderAdapter:
             cost=sum(w for i,w in enumerate(self._weights) if correction[i])
         if self.profiling: phases['validation_prediction_cost_wall_ns']=time.perf_counter_ns()-phase_start
         return DecodeResult(correction,prediction,valid,status,native_status,cost,counters,diagnostics,phases,
-                            hybrid_summary,osd_called)
+                            hybrid_summary,osd_called,correction_by_search)
 
 
     def export_telemetry(self) -> dict:

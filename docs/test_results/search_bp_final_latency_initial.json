@@ -1,0 +1,262 @@
+{
+  "command": "benchmark_search_bp 100; seven alternating before/after processes; each policy has 16 untimed warmups and 1600 timed decodes",
+  "compiler": "c++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "summary": [
+    {
+      "policy": "fixed_root",
+      "version": "before",
+      "median_ns": 955487.0,
+      "min_ns": 932581.0,
+      "max_ns": 963144.0
+    },
+    {
+      "policy": "fixed_root",
+      "version": "after",
+      "median_ns": 952426.0,
+      "min_ns": 937955.0,
+      "max_ns": 963160.0
+    },
+    {
+      "policy": "refresh_descendant",
+      "version": "before",
+      "median_ns": 955385.0,
+      "min_ns": 936825.0,
+      "max_ns": 973781.0
+    },
+    {
+      "policy": "refresh_descendant",
+      "version": "after",
+      "median_ns": 953777.0,
+      "min_ns": 943397.0,
+      "max_ns": 970835.0
+    }
+  ],
+  "records": [
+    {
+      "trial": 0,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 960072.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 0,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 961664.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 0,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 960989.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 0,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 948700.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 1,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 955302.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 1,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 962248.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 1,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 955069.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 1,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 965630.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 2,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 955487.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 2,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 954636.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 2,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 963160.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 2,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 953777.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 3,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 937955.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 3,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 957641.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 3,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 941234.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 3,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 954058.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 4,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 963144.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 4,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 973781.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 4,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 942119.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 4,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 946479.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 5,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 952426.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 5,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 970835.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 5,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 960968.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 5,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 955385.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 6,
+      "version": "before",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 932581.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 6,
+      "version": "before",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 936825.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 6,
+      "version": "after",
+      "policy": "fixed_root",
+      "decodes": 1600,
+      "ns_per_decode": 951008.0,
+      "checksum": "7813421695437808195"
+    },
+    {
+      "trial": 6,
+      "version": "after",
+      "policy": "refresh_descendant",
+      "decodes": 1600,
+      "ns_per_decode": 943397.0,
+      "checksum": "7813421695437808195"
+    }
+  ],
+  "limitations": "Synthetic inconsistent H/s, 64 checks, 128 variables, degree eight, two cycles; decoder only, no quantum simulation; process mean samples, not individual-shot percentiles. No accuracy or production latency inference."
+}

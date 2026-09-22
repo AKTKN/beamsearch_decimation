@@ -32,20 +32,13 @@ def test_result_store_creates_only_data_and_resolved_config(tmp_path):
     run = tmp_path / "2026_09_22_14_05_12345678"
     run.mkdir()
     (run / "config_resolved.json").write_text(json.dumps({"test": True}))
-    schema = pa.schema([pa.field("logical_error", pa.bool_(), nullable=False)])
+    row = dict(shot_id='s',decoder_name='search_bp',logical_error=True,latency_ns=123,
+               osd_called=True,correction_by_search=False)
     with ResultStore(run, {"condition": "bb72_d6_r6_p003_Z"}) as store:
-        store.append(
-            "condition", "decodes", [{"logical_error": True}], schema,
-            lambda rows: pa.Table.from_pylist(rows, schema=schema), compression="none",
-        )
-        store.ensure("condition", "samples", schema, compression="none")
+        store.append("condition", [row], compression="none")
     assert sorted(path.name for path in run.iterdir()) == ["config_resolved.json", "data"]
-    assert sorted(path.name for path in (run / "data").iterdir()) == [
-        "bb72_d6_r6_p003_Z_logicalerror.parquet",
-        "bb72_d6_r6_p003_Z_samples.parquet",
-    ]
-    assert pq.read_table(run / "data" / "bb72_d6_r6_p003_Z_logicalerror.parquet").num_rows == 1
-    assert pq.read_table(run / "data" / "bb72_d6_r6_p003_Z_samples.parquet").num_rows == 0
+    assert sorted(path.name for path in (run / "data").iterdir()) == ["bb72_d6_r6_p003_Z_results.parquet"]
+    assert pq.read_table(run / "data" / "bb72_d6_r6_p003_Z_results.parquet").to_pylist() == [row]
 
 
 def test_shot_chunk_buffer_flushes_full_and_final_groups():
@@ -87,8 +80,8 @@ def test_runner_emits_minimal_layout_end_to_end(tmp_path):
     assert run.name.endswith("_" + content_hash(resolved)[:8])
     assert sorted(item.name for item in run.iterdir()) == ["config_resolved.json", "data"]
     assert sorted(item.name for item in (run / "data").iterdir()) == [
-        "surface_d3_r3_p003_Z_logicalerror.parquet",
+        "surface_d3_r3_p003_Z_results.parquet",
     ]
-    assert pq.read_table(run / "data" / "surface_d3_r3_p003_Z_logicalerror.parquet").num_rows == 1
+    assert pq.read_table(run / "data" / "surface_d3_r3_p003_Z_results.parquet").num_rows == 1
     rows = summarize_run(run)
     assert len(rows) == 1 and rows[0]["shots"] == 1

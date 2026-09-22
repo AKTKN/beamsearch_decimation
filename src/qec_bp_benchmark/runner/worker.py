@@ -66,9 +66,8 @@ def sample_physical(circuit: stim.Circuit, selected: list[int], count: int,
 def process_batch(task: BatchTask) -> dict:
     """Process one bounded physical batch with unchanged paired decoder scheduling."""
     import numpy as np
-    from ..identity import content_hash
     from ..storage import failure_labels
-    from ..storage.schema import COMMON,DECODES_V2 as DECODES
+    from ..storage.minimal import minimal_record
     from ..provenance import timer_diagnostics
     from threadpoolctl import threadpool_info
     assert _CONFIG is not None and _CONTEXT is not None
@@ -105,21 +104,12 @@ def process_batch(task: BatchTask) -> dict:
     if benchmark:
         benchmark_phases["physical_sampling"] = sample_wall
     phase_start = time.perf_counter_ns() if benchmark else 0
-    common={'run_id':_CONTEXT['run_id'],'instance_id':task.instance_id,'sampling_id':task.sampling_id,
-        'batch_id':task.batch_id,'batch_seed':task.seed,'family':metadata['family'],'distance':metadata['distance'],
-        'n':metadata['n'],'k_Z':metadata['k_Z'],'rounds':metadata['rounds'],'physical_p':metadata['p'],
-        'noise_id':content_hash(metadata['noise']),'model_hash':content_hash(problem.hashes),
-        'source_hash':_CONTEXT['source_hash'],'config_hash':_CONTEXT['config_hash']}
-    samples=[]; results=[]; rounds=[]; phases=[]
+    results=[]
     add_phase("batch_metadata", phase_start)
     for local,(syndrome,truth) in enumerate(zip(syndromes,truths)):
         phase_start = time.perf_counter_ns() if benchmark else 0
         index=task.offset+local
-        row=dict(common,shot_index=index,shot_id=f'{task.instance_id}:{task.sampling_id}:{index}',
-            num_detectors=problem.H.shape[0],detectors_packed=np.packbits(syndrome,bitorder='little').tobytes(),
-            actual_observables=[bool(b) for b in truth])
-        samples.append(row)
-        shared={f.name:row[f.name] for f in COMMON}
+        shot_id=f'{task.instance_id}:{task.sampling_id}:{index}'
         rotate=index%len(decoders)
         order=decoders[rotate:]+decoders[:rotate]
         add_phase("shot_input_preparation", phase_start)
@@ -132,21 +122,12 @@ def process_batch(task: BatchTask) -> dict:
                 benchmark_phases["decoding"] = benchmark_phases.get("decoding", 0) + wall_ns
             phase_start = time.perf_counter_ns() if benchmark else 0
             prediction=None if result.prediction is None else result.prediction.astype(bool).tolist()
-            record={f.name:None for f in DECODES}
-            record.update(shared,decoder_id=decoder.identity,decoder_name=decoder.config.name,
-                decoder_profile=decoder.config.profile,execution_position=position,prediction=prediction,
-                status=result.status,native_status=result.native_status,syndrome_valid=result.syndrome_valid,cost=result.cost,
-                cpu_ns=cpu_ns,wall_ns=wall_ns,timing_mode=_CONFIG.timing.mode,
-                concurrent_load=_CONFIG.timing.mode=='throughput' and _CONFIG.execution.workers>1,
-                workers=_CONFIG.execution.workers,native_threads=1,blas_threads=1,
-                oversubscribed=_CONTEXT['execution']['oversubscribed'],profiling=_CONFIG.timing.profiling)
-            record.update(failure_labels(result.status,result.syndrome_valid,prediction,truth,version=2))
-            record.update(result.counters)
-            if _CONFIG.output.retain_corrections and result.correction is not None:
-                record['correction_packed']=np.packbits(result.correction,bitorder='little').tobytes()
-            if result.diagnostics is not None: record['diagnostics_json']=json.dumps(result.diagnostics,allow_nan=False)
-            if result.phases is not None: record['phases_json']=json.dumps(result.phases,allow_nan=False)
-            record['osd_called']=result.osd_called
+            labels=failure_labels(result.status,result.syndrome_valid,prediction,truth,version=2)
+            record=minimal_record(dict(shot_id=shot_id,decoder_name=decoder.config.name,
+                decoder_profile=decoder.config.profile,status=result.status,
+                syndrome_valid=result.syndrome_valid,valid_logical_mismatch=labels['valid_logical_mismatch'],
+                wall_ns=wall_ns,osd_called=result.osd_called,
+                correction_by_search=result.correction_by_search))
             results.append(record)
             add_phase("result_normalization", phase_start)
     phase_start = time.perf_counter_ns() if benchmark else 0
@@ -158,7 +139,7 @@ def process_batch(task: BatchTask) -> dict:
         benchmark_phases["worker_unattributed"] = max(
             0, time.perf_counter_ns() - benchmark_total_start - measured
         )
-    return {'task':task,'samples':samples,'decodes':results,'hybrid_rounds':rounds,'decoder_phases':phases,
+    return {'task':task,'results':results,
         'decoder_ids':tuple(d.identity for d in decoders),
         'progress':{'family':metadata['family'],'distance':metadata['distance'],'physical_p':metadata['p']},
         'simulation_timings':benchmark_phases if benchmark else None,

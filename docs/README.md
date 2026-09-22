@@ -30,5 +30,10 @@ the preserved Stage 1 decision record; its planned interfaces are superseded the
 - hybrid_acceptance.md: final source restoration, Release/Debug/sanitizer and E2E
   commands, contract review, evidence scope and handoff limitations.
 - search_bp_v2_design.md: root refined.tex map and unresolved numerical policies.
-- simulation_output.md and data_dictionary.md: active five-field contract.
+- simulation_output.md and data_dictionary.md: active six-field contract.
 - legacy/hybrid_frontier_bp_beam/: preserved HSBP-FB-2.0 sources and evidence.
+
+search_bp_implementation.md is the active SEARCH-BP-2.1 equation/function map,
+complete defaults, allocation/memory audit and final validation record.
+search_bp_stage5.md documents the SEARCH-BP-2.1 simulator integration,
+strict native mapping, six-field schema and smoke-sized invariant tests.

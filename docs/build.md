@@ -1,12 +1,22 @@
 # Build and test
 
-SEARCH-BP-2.0 is contract-only: no search_bp native target exists yet. The old
+The final SEARCH-BP-2.0 audit is in search_bp_implementation.md. After project
+search header edits, rebuild the editable extension; the fork is unchanged in
+this pass. Final native builds use all seven test targets below, including under
+ASan/UBSan (detect_leaks=1, halt_on_error=1); the standalone decoder microbenchmark
+is separately compiled without sanitizers. Logs are `test_results/search_bp_final_*`.
+
+SEARCH-BP-2.0 Stage 4 compiles the full native decoder and `test_search_bp_stage4`;
+Stage 5 integrates the simulator without changing native sources. See search_bp_stage4.md. Stage 3 supplies
+the reusable partial service and `test_search_bp_stage3`.
+Stage 2 adds the fork BP test target `test_decimated_bp` and opt-in
+DecimatedMinSumSession binding. See decimated_bp.md. The old
 headers/bindings are archived and excluded. Existing screened and hybrid native
 targets retain C++17, no fast-math and no contraction. After a watched ldpc hybrid
 source changes, rebuild its opt-in extension, audit dependencies, then reinstall
 the project editable. `native_sources.py` lists the active project hash inputs.
 `python tests/check_hybrid_restoration.py` rebuilds both opt-in bindings and the
-four active native test targets from restored sources in an isolated directory.
+seven active native test targets from restored sources in an isolated directory.
 
 Create the locked environment and build every required native dependency from its
 pinned checkout. The helper also installs the optimized project extension and

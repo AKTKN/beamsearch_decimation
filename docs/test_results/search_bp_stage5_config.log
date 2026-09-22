@@ -1,0 +1,145 @@
+{
+  "config_schema_version": "search_bp_config/3",
+  "experiment": {
+    "name": "search_bp_smoke",
+    "purpose": "SEARCH-BP-2.0 smoke validation",
+    "codes": [
+      {
+        "family": "surface",
+        "distances": [
+          3
+        ],
+        "rounds": null
+      },
+      {
+        "family": "bb72",
+        "distances": [
+          6
+        ],
+        "rounds": null
+      }
+    ],
+    "memory_basis": "Z",
+    "sector": "Z_checks",
+    "round_rule": "distance"
+  },
+  "noise": {
+    "profile": "circuit_depolarizing",
+    "rates": [
+      0.003
+    ],
+    "sweep": null,
+    "multipliers": {
+      "one_qubit": 1.0,
+      "two_qubit": 1.0,
+      "idle": 1.0,
+      "reset": 1.0,
+      "measurement": 1.0
+    }
+  },
+  "circuit": {
+    "surface_provider": "stim",
+    "bb_provider": "qldpc",
+    "surface_schedule": "rotated_memory_z",
+    "bb_schedule": "edge_coloring",
+    "edge_coloring_strategy": "smallest_last",
+    "boundary": "noisy_prepare_extract_readout",
+    "cache": "/home/quantum_teresheys/workspace/beamsearch_decimation/simulation_data"
+  },
+  "dem": {
+    "decompose_errors": false,
+    "approximate_disjoint_errors": false,
+    "allow_gauge_detectors": false,
+    "sector_mapping": "measurement_provenance",
+    "merge": "none",
+    "normalization": "remove_zero_reject_above_half"
+  },
+  "decoders": [
+    {
+      "kind": "search_bp",
+      "profile": "search_bp",
+      "name": "search_bp",
+      "enabled": true,
+      "algorithm_version": "SEARCH-BP-2.0",
+      "search": {
+        "selected_checks": 2,
+        "local_variables": 4,
+        "local_variable_policy": "refresh_descendant",
+        "max_fixations": 2,
+        "max_cycles": 2,
+        "beta": 1.0,
+        "guidance_strength": 1.0
+      },
+      "bp": {
+        "initial_iterations": 4,
+        "candidate_iterations": 4,
+        "history_window": 2,
+        "average_llr_clip": 25.0,
+        "scaling_factor": 1.0
+      },
+      "admission": {
+        "k_run": 4,
+        "k_keep": 2
+      },
+      "native_threads": 1
+    },
+    {
+      "profile": "beam8",
+      "name": "beam8",
+      "enabled": true,
+      "max_rounds": 10,
+      "beam_width": 8,
+      "num_results": 1,
+      "initial_iters": 30,
+      "iters_per_round": 20
+    },
+    {
+      "profile": "bposd_ms30_cs10",
+      "name": "bposd_ms30_cs10",
+      "enabled": true,
+      "max_iter": 30,
+      "bp_method": "minimum_sum",
+      "schedule": "parallel",
+      "ms_scaling_factor": 1.0,
+      "osd_method": "OSD_CS",
+      "osd_order": 10,
+      "omp_thread_count": 1
+    }
+  ],
+  "sampling": {
+    "shots_per_point": 8,
+    "batch_size": 4,
+    "master_seed": 20260922,
+    "warmup_seed": 20260923,
+    "warmup_count": 1,
+    "store_raw_samples": false
+  },
+  "execution": {
+    "workers": 1,
+    "start_method": "spawn",
+    "max_pending": 2,
+    "worker_cache_size": 2,
+    "native_threads": 1,
+    "blas_threads": 1,
+    "affinity": null
+  },
+  "timing": {
+    "mode": "throughput",
+    "timers": [
+      "process_time_ns",
+      "perf_counter_ns"
+    ],
+    "decoder_order": "cyclic",
+    "profiling": "none"
+  },
+  "output": {
+    "root": "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs",
+    "layout": "minimal_results",
+    "data_schema_version": "search_bp_results/1",
+    "parquet": {
+      "compression": "zstd",
+      "compression_level": 3,
+      "shots_per_flush": 1024
+    }
+  }
+}

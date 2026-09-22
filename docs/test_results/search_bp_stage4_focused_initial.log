@@ -1,0 +1,18 @@
+..................................F.                                     [100%]
+=================================== FAILURES ===================================
+_______________ test_channel_fallback_and_invalid_input_recovery _______________
+
+    def test_channel_fallback_and_invalid_input_recovery():
+        s=settings()
+        decoder,result,evidence=check([[],[0]],[.1],[1,0],s)
+        assert not result.valid and result.osd_called
+>       assert evidence['source'] is None and evidence['llrs']==[math.log(9.)]
+E       assert (None is None and [2.197224577336219] == [2.1972245773362196]
+E         
+E         At index 0 diff: 2.197224577336219 != 2.1972245773362196
+E         Use -v to get more diff)
+
+tests/test_search_bp_stage4.py:157: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_search_bp_stage4.py::test_channel_fallback_and_invalid_input_recovery
+1 failed, 35 passed in 0.57s

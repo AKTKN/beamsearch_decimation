@@ -13,16 +13,6 @@ import time
 from typing import Callable, MutableMapping
 
 
-_FILE_NAMES = {
-    "conditions": "condition",
-    "decoder_profiles": "decoders",
-    "shot_inputs": "samples",
-    "samples": "samples",
-    "decode_results": "logicalerror",
-    "decodes": "logicalerror",
-}
-
-
 def physical_rate_tag(rate: float) -> str:
     """Return the compact, decimal-preserving rate tag used in filenames.
 
@@ -107,7 +97,7 @@ class ShotChunkBuffer:
 
 
 class ResultStore:
-    """Append typed batches to one human-named Parquet file per condition/data kind.
+    """Append the five-field schema to one results Parquet file per condition.
 
     Writers stay open for the run and are closed even after an execution error,
     so a failed run contains only readable partial simulation data.  No final
@@ -122,7 +112,7 @@ class ResultStore:
         self.data_directory = self.run_directory / "data"
         self.data_directory.mkdir(exist_ok=True)
         self._prefixes = dict(prefixes)
-        self._writers: dict[tuple[str, str], pq.ParquetWriter] = {}
+        self._writers: dict[str, pq.ParquetWriter] = {}
         self._benchmark_timings = benchmark_timings
 
     def _add_timing(self, name: str, started_ns: int) -> None:
@@ -131,48 +121,49 @@ class ResultStore:
                 self._benchmark_timings.get(name, 0) + time.perf_counter_ns() - started_ns
             )
 
-    def path(self, condition_id: str, dataset: str) -> Path:
+    def path(self, condition_id: str) -> Path:
         try:
             prefix = self._prefixes[condition_id]
         except KeyError as error:
             raise ValueError(f"unknown simulation condition: {condition_id}") from error
-        suffix = _FILE_NAMES.get(dataset, dataset)
-        return self.data_directory / f"{prefix}_{suffix}.parquet"
+        return self.data_directory / f"{prefix}_results.parquet"
 
-    def ensure(self, condition_id: str, dataset: str, schema, *, compression: str,
+    def ensure(self, condition_id: str, *, compression: str,
                compression_level: int | None = None) -> None:
         """Create a dataset once; closing it without rows yields typed empty data."""
         import pyarrow.parquet as pq
 
-        key = (condition_id, dataset)
-        if key in self._writers:
+        from .minimal import SCHEMA
+
+        if condition_id in self._writers:
             return
-        path = self.path(condition_id, dataset)
+        path = self.path(condition_id)
         if path.exists():
             raise FileExistsError(path)
         options = {"compression": None if compression == "none" else compression}
         if compression == "zstd" and compression_level is not None:
             options["compression_level"] = compression_level
         started = time.perf_counter_ns()
-        self._writers[key] = pq.ParquetWriter(path, schema, **options)
+        self._writers[condition_id] = pq.ParquetWriter(path, SCHEMA, **options)
         self._add_timing("parquet_writer_open", started)
 
-    def append(self, condition_id: str, dataset: str, rows, schema,
-               table_factory: Callable, *, compression: str,
+    def append(self, condition_id: str, rows, *, compression: str,
                compression_level: int | None = None) -> None:
-        self.ensure(condition_id, dataset, schema, compression=compression,
+        from .minimal import result_table
+
+        self.ensure(condition_id, compression=compression,
                     compression_level=compression_level)
         has_rows = (any(len(values) for values in rows.values())
                     if isinstance(rows, Mapping) else bool(rows))
         if has_rows:
             started = time.perf_counter_ns()
-            table = table_factory(rows)
+            table = result_table(rows)
             self._add_timing("arrow_table_conversion", started)
             started = time.perf_counter_ns()
             # Every append is one deliberate row group.  The runner
             # coalesces a configured number of complete shots before arriving
             # here, so row-group boundaries never split a shot flush group.
-            self._writers[(condition_id, dataset)].write_table(
+            self._writers[condition_id].write_table(
                 table, row_group_size=table.num_rows
             )
             self._add_timing("parquet_write", started)

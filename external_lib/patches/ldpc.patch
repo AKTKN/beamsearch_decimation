@@ -64,6 +64,269 @@ index 0000000..1ddd6e3
 +This addition does not modify bp.hpp or ordinary BP-OSD. The benchmark's
 +README under the Python reference_bp binding and docs/reference_bp.md describe
 +numerics, shapes, test evidence and the explicit build. No search code lives here.
+diff --git a/src_cpp/decimated_bp.hpp b/src_cpp/decimated_bp.hpp
+new file mode 100644
+index 0000000..b1242cc
+--- /dev/null
++++ b/src_cpp/decimated_bp.hpp
+@@ -0,0 +1,257 @@
++#ifndef LDPC_DECIMATED_BP_HPP
++#define LDPC_DECIMATED_BP_HPP
++
++#include "hybrid_graph.hpp"
++#include <limits>
++#include <memory>
++
++namespace ldpc::decimated {
++using hybrid::Bits;
++using hybrid::Graph;
++using hybrid::Reals;
++using Pattern = std::vector<std::pair<int, int>>;
++
++enum class Status { Ready, Converged, LocalContradiction, BudgetExhausted };
++struct Advance {
++    uint64_t requested_iterations = 0, actual_iterations = 0, total_iterations = 0;
++    Status status = Status::Ready;
++    bool valid() const { return status == Status::Converged; }
++};
++
++// Immutable-by-interface owned snapshot. z, decision, residual and mean are
++// derived/work buffers and are deliberately not copied. No graph is copied.
++class Snapshot {
++    friend class Session;
++    Reals q_, llrs_, history_, sums_;
++    std::vector<int8_t> fixed_;
++    Bits syndrome_;
++    uint64_t model_id_ = 0, shot_id_ = 0, iterations_ = 0;
++    size_t window_ = 0, count_ = 0, cursor_ = 0;
++    double alpha_ = 1, clip_ = 25;
++    Snapshot() = default;
++public:
++    Snapshot(const Snapshot&) = default;
++    Snapshot(Snapshot&&) noexcept = default;
++    Snapshot& operator=(const Snapshot&) = default;
++    Snapshot& operator=(Snapshot&&) noexcept = default;
++    const Reals& q() const { return q_; }
++    const Reals& llrs() const { return llrs_; }
++    const std::vector<int8_t>& fixed() const { return fixed_; }
++    const Bits& syndrome() const { return syndrome_; }
++    uint64_t shot_id() const { return shot_id_; }
++    uint64_t iterations() const { return iterations_; }
++    size_t history_count() const { return count_; }
++    size_t history_window() const { return window_; }
++    // Vector payload only: excludes vector/control objects, capacities and allocator overhead.
++    size_t payload_bytes() const {
++        return sizeof(double) * (q_.size() + llrs_.size() + history_.size() + sums_.size())
++            + sizeof(int8_t) * fixed_.size() + sizeof(uint8_t) * syndrome_.size();
++    }
++};
++
++// Non-reentrant, worker-owned session, sharing an immutable graph. All arrays
++// allocate at construction; iterations/reset/inheritance reuse their capacities.
++// Native const array views last only until the next mutation; snapshots own copies.
++class Session {
++    std::shared_ptr<const Graph> graph_;
++    Snapshot state_;
++    Reals z_;                       // overwritten before use on each iteration
++    Bits decision_, residual_;
++    bool ready_ = false, contradiction_ = false;
++
++    void require_ready() const {
++        if (!ready_) throw std::logic_error("reset_from_channel required before BP access");
++    }
++    bool active(size_t edge) const { return state_.fixed_[graph_->col[edge]] < 0; }
++    static double add(double a, double b) {
++        constexpr double top = std::numeric_limits<double>::max();
++        if (b > 0 && a > top - b) return top;
++        if (b < 0 && a < -top - b) return -top;
++        return a + b;
++    }
++    double clip(double x) const { return std::max(-state_.clip_, std::min(state_.clip_, x)); }
++    void validate_pattern(const Pattern& pattern, bool additional) const {
++        int previous = -1;
++        if (additional && pattern.empty()) throw std::invalid_argument("descendant requires additional fixations");
++        for (auto [j, bit] : pattern) {
++            if (j <= previous || j < 0 || j >= graph_->n || (bit != 0 && bit != 1))
++                throw std::invalid_argument("fixations must be sorted unique in-range binary assignments");
++            if (additional && state_.fixed_[j] >= 0)
++                throw std::invalid_argument("additional fixation overlaps an ancestor fixation");
++            previous = j;
++        }
++    }
++    void reconstruct() {
++        residual_ = state_.syndrome_;
++        for (int j = 0; j < graph_->n; ++j) {
++            const int bit = state_.fixed_[j];
++            if (bit >= 0) {
++                // Exact fixed-bit posterior. Never enters message arithmetic.
++                state_.llrs_[j] = bit ? -std::numeric_limits<double>::infinity()
++                                     : std::numeric_limits<double>::infinity();
++                for (size_t k = graph_->cp[j]; k < graph_->cp[j + 1]; ++k) {
++                    const size_t e = graph_->ce[k];
++                    residual_[graph_->row[e]] ^= uint8_t(bit);
++                    state_.q_[e] = 0;
++                    z_[e] = 0;
++                }
++            }
++            decision_[j] = bit >= 0 ? uint8_t(bit) : uint8_t(state_.llrs_[j] <= 0);
++        }
++        contradiction_ = false;
++        for (int a = 0; a < graph_->m; ++a) {
++            bool has_free = false;
++            for (size_t e = graph_->rp[a]; e < graph_->rp[a + 1]; ++e) has_free |= active(e);
++            contradiction_ |= residual_[a] && !has_free;
++        }
++    }
++    void clear_history() {
++        std::fill(state_.history_.begin(), state_.history_.end(), 0);
++        std::fill(state_.sums_.begin(), state_.sums_.end(), 0);
++        state_.count_ = state_.cursor_ = 0;
++        state_.iterations_ = 0;
++    }
++    void record_history() {
++        const size_t n = size_t(graph_->n), base = state_.cursor_ * n;
++        for (size_t j = 0; j < n; ++j) {
++            const double value = state_.fixed_[j] < 0 ? clip(state_.llrs_[j]) : 0;
++            state_.sums_[j] -= state_.history_[base + j];
++            state_.history_[base + j] = value;
++            state_.sums_[j] += value;
++        }
++        state_.count_ = std::min(state_.count_ + 1, state_.window_);
++        state_.cursor_ = (state_.cursor_ + 1) % state_.window_;
++    }
++    void iteration() {
++        // Parallel checks: all read the previous variable-to-check array.
++        // Zero signs and the degree-one DBL_MAX sentinel match pinned ldpc BP.
++        for (int a = 0; a < graph_->m; ++a) {
++            double first = std::numeric_limits<double>::max(), second = first;
++            size_t minimum = SIZE_MAX;
++            bool sign = bool(residual_[a]);
++            for (size_t e = graph_->rp[a]; e < graph_->rp[a + 1]; ++e) if (active(e)) {
++                const double magnitude = std::abs(state_.q_[e]);
++                sign ^= state_.q_[e] <= 0;
++                if (magnitude < first) { second = first; first = magnitude; minimum = e; }
++                else if (magnitude < second) second = magnitude;
++            }
++            for (size_t e = graph_->rp[a]; e < graph_->rp[a + 1]; ++e) {
++                if (!active(e)) { z_[e] = 0; continue; }
++                const double magnitude = state_.alpha_ * (e == minimum ? second : first);
++                z_[e] = (sign ^ (state_.q_[e] <= 0)) ? -magnitude : magnitude;
++            }
++        }
++        // Prefix/suffix extrinsics avoid subtracting a saturated posterior.
++        for (int j = 0; j < graph_->n; ++j) if (state_.fixed_[j] < 0) {
++            double sum = graph_->weights[j];
++            for (size_t k = graph_->cp[j]; k < graph_->cp[j + 1]; ++k) {
++                const size_t e = graph_->ce[k];
++                state_.q_[e] = sum;
++                sum = add(sum, z_[e]);
++            }
++            state_.llrs_[j] = sum;
++            decision_[j] = uint8_t(sum <= 0);
++            double suffix = 0;
++            for (size_t k = graph_->cp[j + 1]; k > graph_->cp[j];) {
++                const size_t e = graph_->ce[--k];
++                state_.q_[e] = add(state_.q_[e], suffix);
++                suffix = add(suffix, z_[e]);
++            }
++        }
++        ++state_.iterations_;
++        record_history();
++    }
++public:
++    Session(std::shared_ptr<const Graph> graph, int history_window = 8,
++            double history_clip = 25, double scaling_factor = 1) : graph_(std::move(graph)) {
++        if (!graph_ || history_window < 1 || !std::isfinite(history_clip) || history_clip <= 0 ||
++            history_clip > std::numeric_limits<double>::max() / (2.0 * history_window) ||
++            !std::isfinite(scaling_factor) || scaling_factor <= 0 || scaling_factor > 1)
++            throw std::invalid_argument("positive finite history window/clip and scaling in (0,1] required");
++        const size_t n = size_t(graph_->n), edges = graph_->col.size();
++        const size_t window = size_t(history_window);
++        if (n && window > state_.history_.max_size() / n)
++            throw std::length_error("LLR history shape exceeds vector capacity");
++        state_.model_id_ = graph_->model_id;
++        state_.alpha_ = scaling_factor; state_.clip_ = history_clip; state_.window_ = window;
++        state_.q_.resize(edges); z_.resize(edges);
++        state_.llrs_.resize(n); state_.sums_.resize(n); state_.history_.resize(n * window);
++        state_.fixed_.resize(n); decision_.resize(n);
++        state_.syndrome_.resize(size_t(graph_->m)); residual_.resize(size_t(graph_->m));
++    }
++    // D is the complete pattern. Invalid reset invalidates old state; valid reset
++    // replaces all state/history, even when the caller reuses a shot token.
++    void reset_from_channel(const Bits& syndrome, const Pattern& fixed = {}, uint64_t shot_id = 0) {
++        ready_ = false;
++        hybrid::binary(syndrome, size_t(graph_->m));
++        validate_pattern(fixed, false);
++        state_.syndrome_ = syndrome; state_.shot_id_ = shot_id;
++        std::fill(state_.fixed_.begin(), state_.fixed_.end(), -1);
++        for (auto [j, bit] : fixed) state_.fixed_[j] = int8_t(bit);
++        state_.llrs_ = graph_->weights;
++        for (size_t e = 0; e < state_.q_.size(); ++e) state_.q_[e] = graph_->weights[graph_->col[e]];
++        std::fill(z_.begin(), z_.end(), 0);
++        clear_history(); reconstruct(); ready_ = true;
++    }
++    Status status() const {
++        require_ready();
++        if (contradiction_) return Status::LocalContradiction;
++        return graph_->valid(decision_, state_.syndrome_) ? Status::Converged : Status::Ready;
++    }
++    Advance continue_iterations(int64_t requested) {
++        require_ready();
++        if (requested < 0 || uint64_t(requested) > UINT64_MAX - state_.iterations_)
++            throw std::invalid_argument("invalid/overflowing iteration budget");
++        Advance out; out.requested_iterations = uint64_t(requested); out.status = status();
++        while (out.actual_iterations < out.requested_iterations && out.status == Status::Ready) {
++            iteration(); ++out.actual_iterations; out.status = status();
++        }
++        if (out.status == Status::Ready) out.status = Status::BudgetExhausted;
++        out.total_iterations = state_.iterations_;
++        return out;
++    }
++    Snapshot snapshot() const { require_ready(); return state_; }
++    // Restore only within an explicitly reset matching model/shot/syndrome and
++    // numeric policy. Opaque snapshots cannot contain caller-edited buffers.
++    void restore(const Snapshot& source) {
++        require_ready();
++        if (source.model_id_ != state_.model_id_ || source.shot_id_ != state_.shot_id_ ||
++            source.syndrome_ != state_.syndrome_ || source.alpha_ != state_.alpha_ ||
++            source.clip_ != state_.clip_ || source.window_ != state_.window_)
++            throw std::invalid_argument("snapshot model, shot, syndrome or numerical policy mismatch");
++        state_ = source;
++        std::fill(z_.begin(), z_.end(), 0);
++        reconstruct();
++    }
++    // Additional pattern must be nonempty and disjoint from ancestor fixations.
++    // Preserve free q/LLRs; clear history because this is a new masked instance.
++    // Failure leaves this session invalid, requiring reset before reuse.
++    void inherit_descendant(const Snapshot& source, const Pattern& additional) {
++        try {
++            restore(source);
++            validate_pattern(additional, true);
++            for (auto [j, bit] : additional) state_.fixed_[j] = int8_t(bit);
++            clear_history(); reconstruct();
++        } catch (...) { ready_ = false; throw; }
++    }
++    const Bits& decision() const { require_ready(); return decision_; }
++    const Reals& posterior_llr() const { require_ready(); return state_.llrs_; }
++    const Bits& residual_syndrome() const { require_ready(); return residual_; }
++    const std::vector<int8_t>& fixed() const { require_ready(); return state_.fixed_; }
++    uint64_t total_iterations() const { require_ready(); return state_.iterations_; }
++    size_t history_count() const { require_ready(); return state_.count_; }
++    size_t snapshot_payload_bytes() const { return state_.payload_bytes(); }
++    // Copy at the public boundary, never inside the iteration loop. Short history
++    // averages only completed samples; count==0 returns clipped current LLRs.
++    // Fixed entries are +/-clip placeholders; consumers must use the fixed mask.
++    Reals clipped_mean_llr() const {
++        require_ready();
++        Reals out(size_t(graph_->n));
++        for (size_t j = 0; j < out.size(); ++j)
++            out[j] = state_.fixed_[j] >= 0 || !state_.count_ ? clip(state_.llrs_[j])
++                : state_.sums_[j] / double(state_.count_);
++        return out;
++    }
++};
++}
++#endif
 diff --git a/src_cpp/hybrid_graph.hpp b/src_cpp/hybrid_graph.hpp
 new file mode 100644
 index 0000000..09f51ef
@@ -559,10 +822,10 @@ index 0000000..0d9425e
 +#endif
 diff --git a/src_python/ldpc/hybrid_bp/__init__.py b/src_python/ldpc/hybrid_bp/__init__.py
 new file mode 100644
-index 0000000..ce907b7
+index 0000000..c9c8602
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/__init__.py
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,11 @@
 +"""Opt-in HSBP-ALG-1.0 sessions; arrays are copied across the Python boundary.
 +
 +Sessions are mutable and non-reentrant. reset starts a new shot; replace_fields
@@ -571,12 +834,15 @@ index 0000000..ce907b7
 +"""
 +from ._hybrid_bp import StatefulMinSumSession, Osd0Bridge, build_identity
 +from .source_files import SOURCE_FILES, source_digest
++
++from ._hybrid_bp import (DecimatedMinSumSession, DecimatedBPSnapshot,
++                         DecimatedBPAdvance, DecimatedBPStatus)
 diff --git a/src_python/ldpc/hybrid_bp/__init__.pyi b/src_python/ldpc/hybrid_bp/__init__.pyi
 new file mode 100644
-index 0000000..754b9c9
+index 0000000..262d15d
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/__init__.pyi
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,95 @@
 +from typing import Sequence
 +class Snapshot:
 +    fields: list[float]
@@ -613,15 +879,75 @@ index 0000000..754b9c9
 +    @property
 +    def candidate_count(self) -> int: ...
 +def build_identity() -> dict[str, str]: ...
++
++# Opt-in structural decimation API. Arrays returned to Python are detached copies.
++from enum import Enum
++class DecimatedBPStatus(Enum):
++    READY = 0
++    CONVERGED = 1
++    LOCAL_CONTRADICTION = 2
++    BUDGET_EXHAUSTED = 3
++class DecimatedBPAdvance:
++    requested_iterations: int
++    actual_iterations: int
++    total_iterations: int
++    status: DecimatedBPStatus
++    @property
++    def valid(self) -> bool: ...
++class DecimatedBPSnapshot:
++    @property
++    def q(self) -> list[float]: ...
++    @property
++    def posterior_llr(self) -> list[float]: ...
++    @property
++    def fixed(self) -> list[int]: ...
++    @property
++    def syndrome(self) -> list[int]: ...
++    @property
++    def shot_id(self) -> int: ...
++    @property
++    def total_iterations(self) -> int: ...
++    @property
++    def history_count(self) -> int: ...
++    @property
++    def history_window(self) -> int: ...
++    @property
++    def payload_bytes(self) -> int: ...
++class DecimatedMinSumSession:
++    def __init__(self, rows: Sequence[Sequence[int]], n: int, probabilities: Sequence[float], history_window: int = 8, history_clip: float = 25., scaling_factor: float = 1.) -> None: ...
++    def reset_from_channel(self, syndrome: Sequence[int], fixed: Sequence[tuple[int, int]] = (), shot_id: int = 0) -> None: ...
++    def continue_iterations(self, requested_iterations: int) -> DecimatedBPAdvance: ...
++    def snapshot(self) -> DecimatedBPSnapshot: ...
++    def restore(self, snapshot: DecimatedBPSnapshot) -> None: ...
++    def inherit_descendant(self, snapshot: DecimatedBPSnapshot, additional_fixations: Sequence[tuple[int, int]]) -> None: ...
++    @property
++    def status(self) -> DecimatedBPStatus: ...
++    @property
++    def decision(self) -> list[int]: ...
++    @property
++    def posterior_llr(self) -> list[float]: ...
++    @property
++    def clipped_mean_llr(self) -> list[float]: ...
++    @property
++    def residual_syndrome(self) -> list[int]: ...
++    @property
++    def fixed(self) -> list[int]: ...
++    @property
++    def total_iterations(self) -> int: ...
++    @property
++    def history_count(self) -> int: ...
++    @property
++    def snapshot_payload_bytes(self) -> int: ...
 diff --git a/src_python/ldpc/hybrid_bp/bindings.cpp b/src_python/ldpc/hybrid_bp/bindings.cpp
 new file mode 100644
-index 0000000..f1bb1c5
+index 0000000..6dbf422
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/bindings.cpp
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,81 @@
 +#include <pybind11/pybind11.h>
 +#include <pybind11/stl.h>
 +#include "stateful_min_sum.hpp"
++#include "decimated_bp.hpp"
 +#include "osd0_bridge.hpp"
 +namespace py=pybind11;
 +using namespace ldpc::hybrid;
@@ -649,6 +975,50 @@ index 0000000..f1bb1c5
 +        .def("snapshot",&StatefulMinSumSession::snapshot)
 +        .def("restore",&StatefulMinSumSession::restore,py::arg("snapshot"),py::arg("shot_id"),py::call_guard<py::gil_scoped_release>())
 +        .def_property_readonly("snapshot_bytes",&StatefulMinSumSession::snapshot_bytes);
++    namespace dec = ldpc::decimated;
++    py::enum_<dec::Status>(m,"DecimatedBPStatus")
++        .value("READY",dec::Status::Ready).value("CONVERGED",dec::Status::Converged)
++        .value("LOCAL_CONTRADICTION",dec::Status::LocalContradiction)
++        .value("BUDGET_EXHAUSTED",dec::Status::BudgetExhausted);
++    py::class_<dec::Advance>(m,"DecimatedBPAdvance")
++        .def_readonly("requested_iterations",&dec::Advance::requested_iterations)
++        .def_readonly("actual_iterations",&dec::Advance::actual_iterations)
++        .def_readonly("total_iterations",&dec::Advance::total_iterations)
++        .def_readonly("status",&dec::Advance::status)
++        .def_property_readonly("valid",&dec::Advance::valid);
++    py::class_<dec::Snapshot>(m,"DecimatedBPSnapshot")
++        .def_property_readonly("q",&dec::Snapshot::q)
++        .def_property_readonly("posterior_llr",&dec::Snapshot::llrs)
++        .def_property_readonly("fixed",&dec::Snapshot::fixed)
++        .def_property_readonly("syndrome",&dec::Snapshot::syndrome)
++        .def_property_readonly("shot_id",&dec::Snapshot::shot_id)
++        .def_property_readonly("total_iterations",&dec::Snapshot::iterations)
++        .def_property_readonly("history_count",&dec::Snapshot::history_count)
++        .def_property_readonly("history_window",&dec::Snapshot::history_window)
++        .def_property_readonly("payload_bytes",&dec::Snapshot::payload_bytes);
++    py::class_<dec::Session>(m,"DecimatedMinSumSession")
++        .def(py::init([](const Rows& rows,int n,const Reals& p,int window,double clip,double alpha){
++            return std::make_unique<dec::Session>(std::make_shared<Graph>(rows,n,p),window,clip,alpha);}),
++            py::arg("rows"),py::arg("n"),py::arg("probabilities"),py::arg("history_window")=8,
++            py::arg("history_clip")=25.,py::arg("scaling_factor")=1.)
++        .def("reset_from_channel",&dec::Session::reset_from_channel,
++            py::arg("syndrome"),py::arg("fixed")=dec::Pattern{},py::arg("shot_id")=0,
++            py::call_guard<py::gil_scoped_release>())
++        .def("continue_iterations",&dec::Session::continue_iterations,py::arg("requested_iterations"),
++            py::call_guard<py::gil_scoped_release>())
++        .def("snapshot",&dec::Session::snapshot)
++        .def("restore",&dec::Session::restore,py::arg("snapshot"),py::call_guard<py::gil_scoped_release>())
++        .def("inherit_descendant",&dec::Session::inherit_descendant,
++            py::arg("snapshot"),py::arg("additional_fixations"),py::call_guard<py::gil_scoped_release>())
++        .def_property_readonly("status",&dec::Session::status)
++        .def_property_readonly("decision",&dec::Session::decision)
++        .def_property_readonly("posterior_llr",&dec::Session::posterior_llr)
++        .def_property_readonly("clipped_mean_llr",&dec::Session::clipped_mean_llr)
++        .def_property_readonly("residual_syndrome",&dec::Session::residual_syndrome)
++        .def_property_readonly("fixed",&dec::Session::fixed)
++        .def_property_readonly("total_iterations",&dec::Session::total_iterations)
++        .def_property_readonly("history_count",&dec::Session::history_count)
++        .def_property_readonly("snapshot_payload_bytes",&dec::Session::snapshot_payload_bytes);
 +    py::class_<OsdResult>(m,"OsdResult").def_readonly("valid",&OsdResult::valid).def_readonly("correction",&OsdResult::correction);
 +    py::class_<Osd0Bridge>(m,"Osd0Bridge")
 +        .def(py::init([](const Rows& rows,int n,const Reals& p){return std::make_unique<Osd0Bridge>(std::make_shared<Graph>(rows,n,p));}))
@@ -657,7 +1027,7 @@ index 0000000..f1bb1c5
 +}
 diff --git a/src_python/ldpc/hybrid_bp/source_files.py b/src_python/ldpc/hybrid_bp/source_files.py
 new file mode 100644
-index 0000000..5c99f54
+index 0000000..abf64ea
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/source_files.py
 @@ -0,0 +1,21 @@
@@ -666,7 +1036,7 @@ index 0000000..5c99f54
 +import hashlib
 +
 +SOURCE_FILES = tuple('src_cpp/' + name + '.hpp' for name in (
-+    'hybrid_graph', 'stateful_min_sum', 'osd0_bridge', 'bp', 'osd', 'sort',
++    'hybrid_graph', 'stateful_min_sum', 'decimated_bp', 'osd0_bridge', 'bp', 'osd', 'sort',
 +    'util', 'gf2sparse', 'gf2sparse_linalg', 'sparse_matrix_base', 'sparse_matrix_util', 'rng',
 +)) + ('src_python/ldpc/hybrid_bp/bindings.cpp', 'src_python/ldpc/hybrid_bp/__init__.py',
 +     'src_python/ldpc/hybrid_bp/__init__.pyi', 'src_python/ldpc/hybrid_bp/source_files.py', 'setup_hybrid.py')

@@ -1,0 +1,25 @@
+{
+  "runs": [
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/validation/search_bp_final/runs_final/2026_09_22_19_29_0a84bc9c",
+    "/home/quantum_teresheys/workspace/beamsearch_decimation/assets/validation/search_bp_final/runs_final/2026_09_22_19_29_fd0dcde4"
+  ],
+  "conditions": [
+    "surface d3 r3",
+    "bb72 d6 r6"
+  ],
+  "physical_rate": 0.003,
+  "shots_per_condition": 4,
+  "decoders": [
+    "search_bp",
+    "beam8",
+    "bposd_ms30_cs0"
+  ],
+  "rows_per_run": 24,
+  "workers": [
+    1,
+    2
+  ],
+  "exact_scientific_row_equality": true,
+  "schema": "shot_id: string not null\ndecoder_name: string not null\nlogical_error: bool not null\nlatency_ns: int64 not null\nosd_called: bool\n-- schema metadata --\nqec_schema: 'search_bp_results/1'",
+  "scope": "Bounded software integration only; no accuracy/tail or cross-decoder performance inference"
+}

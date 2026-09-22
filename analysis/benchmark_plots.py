@@ -1,14 +1,16 @@
 """Direct Parquet readers and paper-sized benchmark comparison figures.
 
 The public plotting functions own the complete workflow: they select a saved run,
-read only its condition/decoder/logical-error Parquet columns, calculate the points
-needed by one plot, and return new Matplotlib ``Figure`` objects.  They do not load
-telemetry, join runs, bootstrap samples, write files, or create summary reports.
+read its resolved labels and only the result columns required for one plot, then
+return new Matplotlib ``Figure`` objects. They support current six-field files and
+historical wider layouts. They do not load telemetry, join runs, bootstrap samples,
+write files, or create summary reports.
 """
 from __future__ import annotations
 
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
+import json
 import math
 from pathlib import Path
 from statistics import NormalDist
@@ -18,6 +20,9 @@ from matplotlib.figure import Figure
 import numpy as np
 import pyarrow.parquet as pq
 from scipy.stats import t as student_t
+
+from qec_bp_benchmark.storage.minimal import LEGACY_SCHEMA, SCHEMA
+from qec_bp_benchmark.storage.results import condition_prefix
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -79,6 +84,83 @@ def _selected_decoder(profile: dict, decoders: tuple | None) -> bool:
         return True
     identities = {profile["decoder_id"], profile["name"], profile["profile"]}
     return any(value in identities for value in decoders)
+
+
+def _current_context(run: Path) -> tuple[dict[str, dict], dict[str, dict], dict]:
+    """Return filename-prefix conditions and enabled decoders from resolved config."""
+    config = json.loads((run / "config_resolved.json").read_text())
+    conditions = {}
+    for code in config["experiment"]["instances"]:
+        for rate in config["noise"]["expanded_rates"]:
+            prefix = condition_prefix(
+                code["family"], code["distance"], code["rounds"], rate,
+                config["experiment"]["memory_basis"],
+            )
+            conditions[prefix] = {
+                "family": code["family"], "distance": int(code["distance"]),
+                "rounds": int(code["rounds"]), "physical_rate": float(rate),
+                "memory_basis": config["experiment"]["memory_basis"],
+            }
+    decoders = {}
+    for decoder in config["decoders"]:
+        if decoder.get("enabled", True):
+            decoders[decoder["name"]] = {
+                "decoder_id": decoder["name"], "name": decoder["name"],
+                "profile": decoder["profile"], "kind": decoder.get("kind", decoder["profile"]),
+            }
+    return conditions, decoders, config
+
+
+def _current_points(
+    result_path: Path,
+    *,
+    clock: Clock,
+    codes: tuple | None,
+    physical_rates: tuple | None,
+    distances: tuple | None,
+    decoders: tuple | None,
+) -> list[_Point]:
+    if clock != "wall":
+        raise ValueError("minimal search_bp results save wall latency only; clock must be 'wall'")
+    if not any(pq.read_schema(result_path).equals(schema, check_metadata=True)
+               for schema in (SCHEMA, LEGACY_SCHEMA)):
+        raise ValueError(f"unexpected result schema: {result_path}")
+    conditions, profiles, _ = _current_context(result_path.parent.parent)
+    prefix = result_path.name.removesuffix("_results.parquet")
+    if prefix not in conditions:
+        raise ValueError(f"unknown result condition: {prefix}")
+    condition = conditions[prefix]
+    if not _selected_condition(
+        condition, codes=codes, physical_rates=physical_rates, distances=distances
+    ):
+        return []
+    selected_profiles = {
+        name: profile for name, profile in profiles.items()
+        if _selected_decoder(profile, decoders)
+    }
+    if not selected_profiles:
+        return []
+    rows = pq.read_table(
+        result_path, columns=["decoder_name", "logical_error", "latency_ns"]
+    ).to_pylist()
+    unknown = sorted({row["decoder_name"] for row in rows} - profiles.keys())
+    if unknown:
+        raise ValueError(f"unknown decoder names in {result_path}: {unknown}")
+    points = []
+    for name, profile in sorted(selected_profiles.items()):
+        selected = [row for row in rows if row["decoder_name"] == name]
+        if not selected:
+            continue
+        times = np.asarray([row["latency_ns"] for row in selected], dtype=np.int64)
+        if np.any(times < 0):
+            raise ValueError(f"decode time must be nonnegative: {result_path}")
+        points.append(_Point(
+            **condition, decoder_id=profile["decoder_id"], decoder_name=name,
+            decoder_profile=profile["profile"],
+            logical_errors=sum(bool(row["logical_error"]) for row in selected),
+            shots=len(selected), decode_times_ns=times,
+        ))
+    return points
 
 
 def _logical_errors_from_search(rows: list[dict], path: Path) -> int:
@@ -237,14 +319,19 @@ def _read_points(
         "decoders": _values(decoders, name="decoders"),
     }
     points = []
-    paths = sorted(data.glob("*_logicalerror.parquet"))
-    for logical_path in paths:
-        stem = logical_path.name.removesuffix("_logicalerror.parquet")
-        reader = (_search_points if logical_path.with_name(f"{stem}_condition.parquet").is_file()
-                  else _standard_points)
-        points.extend(reader(logical_path, clock=clock, **selections))
+    paths = sorted(data.glob("*_results.parquet"))
+    if paths:
+        for result_path in paths:
+            points.extend(_current_points(result_path, clock=clock, **selections))
+    else:
+        paths = sorted(data.glob("*_logicalerror.parquet"))
+        for logical_path in paths:
+            stem = logical_path.name.removesuffix("_logicalerror.parquet")
+            reader = (_search_points if logical_path.with_name(f"{stem}_condition.parquet").is_file()
+                      else _standard_points)
+            points.extend(reader(logical_path, clock=clock, **selections))
     if not paths:
-        raise ValueError(f"no *_logicalerror.parquet files found in {data}")
+        raise ValueError(f"no result Parquet files found in {data}")
     if not points:
         raise ValueError("the requested filters select no logical-error rows")
 
@@ -530,6 +617,79 @@ def _standard_rate_rows(
     return output
 
 
+def _current_rate_rows(
+    result_path: Path,
+    *,
+    codes: tuple | None,
+    physical_rates: tuple | None,
+    distances: tuple | None,
+    decoders: tuple | None,
+) -> list[dict]:
+    schema = pq.read_schema(result_path)
+    if not any(schema.equals(candidate, check_metadata=True)
+               for candidate in (SCHEMA, LEGACY_SCHEMA)):
+        raise ValueError(f"unexpected result schema: {result_path}")
+    conditions, profiles, config = _current_context(result_path.parent.parent)
+    prefix = result_path.name.removesuffix("_results.parquet")
+    if prefix not in conditions:
+        raise ValueError(f"unknown result condition: {prefix}")
+    condition = conditions[prefix]
+    if not _selected_condition(
+        condition, codes=codes, physical_rates=physical_rates, distances=distances
+    ):
+        return []
+    profiles = {
+        name: profile for name, profile in profiles.items()
+        if _selected_decoder(profile, decoders)
+    }
+    columns = ["decoder_name", "osd_called"]
+    current = schema.equals(SCHEMA, check_metadata=True)
+    if current:
+        columns.append("correction_by_search")
+    rows = pq.read_table(result_path, columns=columns).to_pylist()
+    output = []
+    for name, profile in sorted(profiles.items()):
+        selected = [row["osd_called"] for row in rows if row["decoder_name"] == name]
+        if not selected:
+            continue
+        known = [value for value in selected if value is not None]
+        if not known:
+            continue
+        events = sum(known)
+        output.append({
+            "condition_id": prefix, "code": condition["family"],
+            "distance": condition["distance"], "rounds": condition["rounds"],
+            "physical_rate": condition["physical_rate"],
+            "memory_basis": condition["memory_basis"],
+            "timing_mode": config["timing"]["mode"],
+            "decoder_id": profile["decoder_id"], "decoder": name,
+            "decoder_profile": profile["profile"], "metric": "osd_call_rate",
+            "events": events, "shots": len(known), "unknown": len(selected) - len(known),
+            "rate": events / len(known), "percent": 100.0 * events / len(known),
+        })
+        if current and profile["profile"] == "search_bp":
+            search_flags = [row["correction_by_search"] for row in rows
+                            if row["decoder_name"] == name]
+            search_known = [value for value in search_flags if value is not None]
+            if search_known:
+                search_events = sum(search_known)
+                output.append({
+                    "condition_id": prefix, "code": condition["family"],
+                    "distance": condition["distance"], "rounds": condition["rounds"],
+                    "physical_rate": condition["physical_rate"],
+                    "memory_basis": condition["memory_basis"],
+                    "timing_mode": config["timing"]["mode"],
+                    "decoder_id": profile["decoder_id"], "decoder": name,
+                    "decoder_profile": profile["profile"],
+                    "metric": "correction_by_search_rate",
+                    "events": search_events, "shots": len(search_known),
+                    "unknown": len(search_flags) - len(search_known),
+                    "rate": search_events / len(search_known),
+                    "percent": 100.0 * search_events / len(search_known),
+                })
+    return output
+
+
 def decoder_event_rate_table(
     run_path: str | Path,
     *,
@@ -538,12 +698,13 @@ def decoder_event_rate_table(
     distances: int | Sequence[int] | None = None,
     decoders: str | Sequence[str] | None = None,
 ) -> "pd.DataFrame":
-    """Return condition-level search-BP OSD and beam nonconvergence rates.
+    """Return condition-level decoder event rates available in the saved schema.
 
-    Search-BP rows report ``osd_reach_rate`` from the saved ``osd_entered`` flag.
-    Beam decoder rows report ``decoding_failure_rate`` from
-    ``syndrome_valid == False``. No other decoder type is included. The returned
-    The returned pandas table uses ``(code, distance, physical_rate)`` as its row
+    Current ``search_bp_results/2`` rows report ``osd_call_rate`` and the exact
+    ``correction_by_search_rate`` for SEARCH-BP. Historical minimal v1 rows report
+    only OSD calls; historical wide SEARCH-BP rows report ``osd_reach_rate`` and
+    beam rows report ``decoding_failure_rate``. The returned pandas table uses
+    ``(code, distance, physical_rate)`` as its row
     MultiIndex and ``(decoder, metric)`` as its column MultiIndex. Cells contain
     rates in ``[0, 1]``. Storage IDs, profiles, timing metadata, counts, and other
     implementation metadata are not exposed in the displayed table.
@@ -559,17 +720,22 @@ def decoder_event_rate_table(
         "decoders": _values(decoders, name="decoders"),
     }
     output = []
-    paths = sorted(data.glob("*_logicalerror.parquet"))
-    for logical_path in paths:
-        stem = logical_path.name.removesuffix("_logicalerror.parquet")
-        reader = (_search_rate_rows
-                  if logical_path.with_name(f"{stem}_condition.parquet").is_file()
-                  else _standard_rate_rows)
-        output.extend(reader(logical_path, **selections))
+    paths = sorted(data.glob("*_results.parquet"))
+    if paths:
+        for result_path in paths:
+            output.extend(_current_rate_rows(result_path, **selections))
+    else:
+        paths = sorted(data.glob("*_logicalerror.parquet"))
+        for logical_path in paths:
+            stem = logical_path.name.removesuffix("_logicalerror.parquet")
+            reader = (_search_rate_rows
+                      if logical_path.with_name(f"{stem}_condition.parquet").is_file()
+                      else _standard_rate_rows)
+            output.extend(reader(logical_path, **selections))
     if not paths:
-        raise ValueError(f"no *_logicalerror.parquet files found in {data}")
+        raise ValueError(f"no result Parquet files found in {data}")
     if not output:
-        raise ValueError("the requested filters select no search_bp or beam decoder rows")
+        raise ValueError("the requested filters select no rows with a known event flag")
     import pandas as pd
 
     frame = pd.DataFrame.from_records(output)
@@ -595,8 +761,8 @@ def plot_logical_error_rate(
 ) -> list[Figure]:
     """Return one logical-error-rate figure per selected code family.
 
-    A logical error is calculated directly as decoder failure OR logical mismatch;
-    the stored ``block_failure`` column is not read.  Each shaded band is the
+    Current minimal files use their contract-defined ``logical_error`` value.
+    Historical files calculate decoder failure OR logical mismatch. Each shaded band is the
     two-sided Wilson score interval over physical shots.  Decoder filters match an
     exact decoder ID, name, or profile.  The caller owns the returned figures and
     may style or save them through ``figure.axes`` and ``figure.savefig``.

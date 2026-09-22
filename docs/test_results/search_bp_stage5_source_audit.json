@@ -1,0 +1,58 @@
+{
+  "unchanged_sources": {
+    "src/qec_bp_benchmark/circuits/algebra.py": "368ee137b6cacf04b254212d98630d6503d34c6ffba67b160441c1a47908923d",
+    "src/qec_bp_benchmark/circuits/__init__.py": "684ec3158e44be3bb2d1378c2fec86876464a5d29a976bc088a5cb96460658fe",
+    "src/qec_bp_benchmark/circuits/providers.py": "1a0e25b914f484ff6601d84309837587dff3245ffd8267f92a9b56ac230230e5",
+    "src/qec_bp_benchmark/circuits/noise.py": "a4f03ebab518807338e5f172724fc931a7cb178c6903f1ab037557b31bd70fae",
+    "src/qec_bp_benchmark/circuits/sector.py": "96172c9690983c57418a570d805e89440b75d7e76c3e4d1a3e563cb627e1e8ed",
+    "src/qec_bp_benchmark/dem/model.py": "949aa7dd0a4f4a0d487741982d0fab709dfc244ddcd6407de340bea75e6e12d5",
+    "src/qec_bp_benchmark/dem/__init__.py": "b833abca0dc7dc666389cb025398d5deebabdcfdc8553f7acce0ea48c0104562",
+    "refined.tex": "5addef23e2a2476d319baed8764d745f0b7fb2d114a6ab579481dc56a7958c15",
+    "src/qec_bp_benchmark/artifacts.py": "85899e05374635fc068f1e67262d5b0633d7c9943dff1f026ee1eca716860c4b",
+    "src/qec_bp_benchmark/runner/plan.py": "dde4743c38ff0496d5a911b0fa77fe4f3eaf3b8fb2746637dd3ed109ff3e5027",
+    "src/qec_bp_benchmark/identity.py": "7ceb35702827a8745ea5ee5c8a126740e379a48166168583b970117bc1ddf815",
+    "src/qec_bp_benchmark/storage/__init__.py": "dc113e2a6d2d6aa2b8a84226141576b2fb61ba89add3a24176fc5df4159591c4",
+    "src/qec_bp_benchmark/native/hybrid_bindings.hpp": "8434f6b83a1d7c8fc1a170f200fe6af134f4af84d4e54ee977da29f99fa87b2d",
+    "src/qec_bp_benchmark/native/search_bp_scores.hpp": "bda221a99510b619cdaa3e744b5d6e8c0a3a7751a4b2636dbb1174fa11b6b3cc",
+    "src/qec_bp_benchmark/native/hybrid_telemetry.hpp": "9002862a618950353dceb2ff59abdb8cb3ccd6f321e1a1f0b4dbfe88b95e759a",
+    "src/qec_bp_benchmark/native/search_bp_admission.hpp": "549657c334ec2fdddc01cba4a5ce7fd7a5120d4eaae16d762d20d561f4c3e14c",
+    "src/qec_bp_benchmark/native/search_bp_decoder.hpp": "8ba64158edd316d2a18eda4c7eb0dba97da80a95ac1ac1c684a7f576b39b7950",
+    "src/qec_bp_benchmark/native/search_bp_search.hpp": "3c859419d1abfd811a62d4aeebdb820103e6f0c9e74f403e25b6cccfc27c3e44",
+    "src/qec_bp_benchmark/native/search_bp_stage3.hpp": "83d6e78f6b5c5510d16065fd034729e1e313b8fc8796165cacf909e8510354d3",
+    "src/qec_bp_benchmark/native/hybrid_search.hpp": "bb306e0a8223080fdee522b0003327097ed3b66ddd0fdc5ba6a023751671350a",
+    "src/qec_bp_benchmark/native/hybrid.hpp": "753ba0081f97745df4b15d3153d22aa66b01881f3ad7c67640c6da0085d3413e",
+    "src/qec_bp_benchmark/native/hybrid_model.hpp": "c533fe0a0fa546c0e07bd65a2ab84101702a13159f587d8f9cbeff34a701406b",
+    "src/qec_bp_benchmark/native/search_bp_bindings.hpp": "300920460b19eb7495e09da66780c6dad43f021a4612b6378db7349fa7ea292d",
+    "src/qec_bp_benchmark/native/search.hpp": "b1fd858c90cb15ca97527e3f10c0a10ef2eb64a55d054452e6f958fcdf4b64d3",
+    "src/qec_bp_benchmark/native/search_bp_model.hpp": "6250be1891e3e4bf2fff308aea57fd8a45826754c60ea169903bac393c9e0325",
+    "src/qec_bp_benchmark/native/module.cpp": "071976e7e19b19f8d793be1486cd132491e179b4fdf46ca2f43b1c7cd4590afa",
+    "external_lib/manifest.lock.json": "e99f404083d1167288ea992e9da9b253314e381fc951f543d8cd1a4ae6a7ee3b",
+    "external_lib/patches/ldpc.patch": "35fc2e822413aef63c95d6f4556fd0e41e6a2a8281241ea53c7667faa5afe697"
+  },
+  "scope": "Stage 5 Python integration/minimal output only; no physics, sampling, baseline kernel or native changes",
+  "source_identity": {
+    "project_sha256": "254be37967554975696501e024c08548f88db5639204e28d1ae05f7adc8df34f",
+    "fork_sha256": "4e6f509105c564ba92723272cf58ad13e7690bcc12fdb08ab5263a4b79bab342"
+  },
+  "physical_config_classes_ast_unchanged": [
+    "Code",
+    "Experiment",
+    "Noise",
+    "Circuit",
+    "Dem",
+    "Sampling",
+    "Execution",
+    "Timing",
+    "Screened",
+    "Bposd",
+    "Bposd0",
+    "Beam",
+    "Hybrid"
+  ],
+  "sampling_and_pairing": "sample_physical, batch_seed/sample calls, cyclic order and shot-id expression unchanged",
+  "validation": {
+    "python_suite": "327 passed, 1 skipped",
+    "integration_tests": "28 Stage-5 cases passed in full suite",
+    "smoke": "Surface d3 and BB72 d6; 4 shots per condition per run; SEARCH-BP, beam8, CS0; workers 1 vs 2 scientific equality"
+  }
+}

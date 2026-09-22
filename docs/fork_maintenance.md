@@ -56,3 +56,11 @@ project hashes together when adding files. The audited patch exporter explicitly
 includes ignored .cpp and .pyi sources. Run tests/check_hybrid_restoration.py after
 exporting changes. The existing screened-decimation-bp branch/upstream are retained;
 ordinary bp.hpp/osd.hpp behavior is not patched by this addition.
+
+SEARCH-BP-2.0 Stage 2 adds only `decimated_bp.hpp` and symbols in the existing
+opt-in hybrid binding/package. The header is a hashed SOURCE_FILES input; no
+ordinary BP/OSD or old opt-in kernel changes are required. Rebuild setup_hybrid,
+regenerate audit/patch/manifest, rebuild the project extension and run
+check_hybrid_restoration.py. That check now executes decimation/history transfers
+in the newly compiled binding and builds all five native targets. Snapshot payload
+and numerical API conventions are documented in decimated_bp.md.

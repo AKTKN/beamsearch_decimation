@@ -48,3 +48,10 @@ complete. Production rates remain an explicit user choice.
 Fixed columns are excluded from native message updates and fixed ones modify the
 residual syndrome. Search, scheduling, state inheritance, ranking, solutions and
 direct CS0 stay native; Python owns preparation, persistence and offline labels.
+
+SEARCH-BP-2.0 Stage 3 exposes `_native.SearchBPStage3` for Steps 1–4 only, with
+fork-owned BP and project-owned scores/local search. See docs/search_bp_stage3.md for the two local-variable policies.
+
+Stage 4 additionally exposes `_native.SearchBP2Decoder` for full native recursive
+decoding with a compact result. Stage 5 integrates it into the existing simulator with truth-free dispatch and
+six-field results only. See docs/search_bp_stage5.md.

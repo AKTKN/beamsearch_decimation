@@ -1,8 +1,11 @@
-# Contract-only SEARCH-BP-2.0; validate_config.py succeeds, execution fails explicitly.
-config_schema_version: search_bp_config/3
+# Smoke-sized SEARCH-BP-2.1 paired integration example; no production sweep.
+# Complete defaults and constraints: docs/search_bp_implementation.md.
+# This example overrides default initial/candidate BP budgets 30/20 and W=8
+# with 4/4 and W=2. Minimal results have exactly six columns; profiling is off.
+config_schema_version: search_bp_config/4
 experiment:
   name: search_bp_smoke
-  purpose: SEARCH-BP-2.0 contract validation only; decoder not implemented
+  purpose: SEARCH-BP-2.1 smoke validation
   codes:
   - family: surface
     distances:
@@ -52,7 +55,7 @@ timing:
 output:
   root: ../assets/runs
   layout: minimal_results
-  data_schema_version: search_bp_results/1
+  data_schema_version: search_bp_results/2
   parquet:
     compression: zstd
     compression_level: 3
@@ -61,15 +64,18 @@ decoders:
 - kind: search_bp
   profile: search_bp
   name: search_bp
-  algorithm_version: SEARCH-BP-2.0
+  algorithm_version: SEARCH-BP-2.1
+  osd_fallback: true
   bp:
     initial_iterations: 4
     candidate_iterations: 4
     history_window: 2
     average_llr_clip: 25.0
+    scaling_factor: 1.0
   search:
     selected_checks: 2
     local_variables: 4
+    local_variable_policy: refresh_descendant
     max_fixations: 2
     max_cycles: 2
     beta: 1.0
@@ -77,8 +83,5 @@ decoders:
   admission:
     k_run: 4
     k_keep: 2
-  fallback:
-    backend: ldpc_osd_only
-    osd_order: 0
 - profile: beam8
 - profile: bposd_ms30_cs10

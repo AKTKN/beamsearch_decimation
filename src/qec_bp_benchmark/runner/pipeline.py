@@ -190,9 +190,9 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
             with ResultStore(directory, prefixes,
                              benchmark_timings=_simulation_timings) as store:
                 phase_started = time.perf_counter_ns()
-                from ..storage.minimal import SCHEMA, result_table, minimal_record
+                from ..storage.minimal import SCHEMA
                 for condition_id in prefixes:
-                    store.ensure(condition_id, "decodes", SCHEMA, compression=compression,
+                    store.ensure(condition_id, compression=compression,
                                  compression_level=compression_level)
                 if _simulation_timings is not None:
                     _simulation_timings["static_output_setup"] = (
@@ -201,8 +201,8 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                     )
 
                 def write_group(message: dict) -> None:
-                    store.append(message["condition_id"], "decodes", message["tables"]["results"],
-                                 SCHEMA, result_table, compression=compression,
+                    store.append(message["condition_id"], message["tables"]["results"],
+                                 compression=compression,
                                  compression_level=compression_level)
 
                 buffer = ShotChunkBuffer(
@@ -221,7 +221,7 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                     key = (task.instance_id, task.batch_id)
                     if key in seen:
                         raise ValueError("duplicate task completion")
-                    rows = [minimal_record(row) for row in result["decodes"]]
+                    rows = result["results"]
                     by_shot = {}
                     for row in rows:
                         by_shot.setdefault(row["shot_id"], []).append(row)

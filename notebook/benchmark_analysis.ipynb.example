@@ -2,185 +2,250 @@
  "cells": [
   {
    "cell_type": "markdown",
-   "id": "a2a41815",
+   "id": "efb98280",
    "metadata": {},
    "source": [
-    "# Saved-data plots and descriptive analysis\n",
+    "# SEARCH-BP-2.1 minimal-result analysis\n",
     "\n",
-    "Select **Python (search_decimation)** and set `CONFIG_PATH` and `RUN_PATHS`.\n",
-    "Paths select existing saved runs; no simulation or decoding is performed.\n",
-    "Validation/loading, failure summaries, timing summaries and plotting have separate\n",
-    "cells. Rerun the plotting cell to redraw without reading the data again.\n",
+    "This notebook reads the current `search_bp_results/2` layout directly: one resolved config and one six-field Parquet file per condition. It does not load circuits, samples, corrections, search paths, or truth. Every logical-error denominator is a physical shot; BB's 12 observables are one block trial.\n",
     "\n",
-    "The notebook uses output, confidence, quantiles, plots, timing stratification and\n",
-    "tail-support settings from `analysis`. Bootstrap and accuracy-margin settings are\n",
-    "used only by the separate full-report CLI, not by this notebook.\n",
-    "Run/scientific/decoder/execution groups stay separate, including replay trials.\n",
-    "BB uses one physical block trial per shot with all 12 logical Z observables."
+    "Figures compare the three configured decoders within this one run and execution context. Wall latency includes failed decoder calls. Wilson bands describe binomial logical-error uncertainty; Student-t bands describe uncertainty in the arithmetic mean wall latency. They do not establish decoder superiority or production tail behavior."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "790b50ba",
+   "id": "d8805760",
    "metadata": {},
    "outputs": [],
    "source": [
     "from pathlib import Path\n",
     "import os\n",
     "import sys\n",
+    "get_ipython().run_line_magic(\"matplotlib\", \"inline\")\n",
+    "from matplotlib_inline.backend_inline import set_matplotlib_formats\n",
+    "set_matplotlib_formats(\"png\")\n",
+    "import matplotlib.pyplot as plt\n",
+    "import pandas as pd\n",
+    "from IPython.display import display\n",
     "import analysis\n",
-    "# Select Python (search_decimation), restart, then run all cells.\n",
-    "# The CLI injects CONFIG_PATH/RUN_PATHS; interactive users may edit them first.\n",
-    "ROOT = next((p for p in (Path.cwd(), *Path.cwd().parents) if (p / \"pyproject.toml\").is_file()), Path.cwd())\n",
-    "CONFIG_PATH = globals().get(\"CONFIG_PATH\", os.environ.get(\"QEC_ANALYSIS_CONFIG\", str(ROOT / \"config/analysis.yaml.example\")))\n",
-    "RUN_PATHS = globals().get(\"RUN_PATHS\", [os.environ[\"QEC_ANALYSIS_RUN\"]] if \"QEC_ANALYSIS_RUN\" in os.environ else [])\n",
-    "if not hasattr(analysis, \"load_analysis_config\") or not hasattr(analysis, \"analysis_runtime\"):\n",
-    "    raise RuntimeError(f\"Old analysis package: {analysis.__file__}; Python: {sys.executable}. Select Python (search_decimation), restart the kernel, and run all cells.\")\n",
-    "if (ROOT / \"analysis\").is_dir() and Path(analysis.__file__).resolve().parent != (ROOT / \"analysis\").resolve():\n",
-    "    raise RuntimeError(f\"Analysis loaded from another checkout: {analysis.__file__}; Python: {sys.executable}. Select this workspace's search_decimation environment and restart the kernel.\")\n",
-    "runtime = analysis.analysis_runtime()\n",
-    "if (ROOT / \"src/qec_bp_benchmark/config.py\").is_file() and Path(runtime[\"config_path\"]) != (ROOT / \"src/qec_bp_benchmark/config.py\").resolve():\n",
-    "    raise RuntimeError(f\"Configuration package loaded from another checkout: {runtime['config_path']}; Python: {sys.executable}. Select this workspace's search_decimation environment and restart the kernel.\")\n",
-    "if not RUN_PATHS:\n",
-    "    raise ValueError(\"Select saved run paths explicitly in RUN_PATHS or QEC_ANALYSIS_RUN\")\n",
-    "from analysis import load_analysis_config, analysis_runtime\n",
-    "config = load_analysis_config(CONFIG_PATH)\n",
-    "import matplotlib\n",
-    "matplotlib.use(\"Agg\")\n",
-    "analysis_runtime()\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "9325740a",
-   "metadata": {},
-   "source": [
-    "## Load and validate saved data once\n",
-    "\n",
-    "Checks manifests, shard checksums, counts and identities. This can take time for\n",
-    "large runs and materializes the data in memory. Subsequent cells reuse `records`."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "eba389cf",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from analysis.io import load_run, select_records\n",
-    "\n",
-    "runs = []\n",
-    "for path in RUN_PATHS:\n",
-    "    print(f\"Validating saved run: {path}\", flush=True)\n",
-    "    runs.append(load_run(path))\n",
-    "records = select_records(runs)\n",
-    "if not records:\n",
-    "    raise ValueError(\"Selection contains no committed decode rows\")\n",
-    "print(f\"Loaded {len(records):,} decode records from {len(runs)} runs\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "3b762531",
-   "metadata": {},
-   "source": [
-    "## Failure rates\n",
-    "\n",
-    "Block failure includes decoding failure or any valid logical mismatch. Component\n",
-    "rates use all physical shots; conditional mismatch uses only valid outputs.\n",
-    "Wilson intervals use physical shots, not observable bits. Zero-event triangles\n",
-    "in plots mark the Wilson upper bound, not a positive estimated failure rate."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "8e46b060",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from analysis.statistics import aggregate_failures\n",
-    "\n",
-    "failures = aggregate_failures(records, confidence=config.analysis.confidence)\n",
-    "[(row[\"family\"], row[\"distance\"], row[\"decoder_name\"], row[\"shots\"], row[\"block_failure\"])\n",
-    " for row in failures]"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "f35d523d",
-   "metadata": {},
-   "source": [
-    "## Measured execution times\n",
-    "\n",
-    "Uses saved complete-block CPU/wall durations, including failed shots, without\n",
-    "normalizing by rounds or observables. Isolated/concurrent contexts stay separate.\n",
-    "Quantiles retain sample counts, expected tail counts and insufficient-tail flags."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "5c3f858f",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from analysis.statistics import aggregate_timings\n",
-    "\n",
-    "timings = aggregate_timings(\n",
-    "    records, quantiles=config.analysis.quantiles,\n",
-    "    stratify=config.analysis.stratify_timing,\n",
-    "    min_expected_tail_count=config.analysis.min_expected_tail_count,\n",
+    "from analysis import (\n",
+    "    decoder_event_rate_table,\n",
+    "    plot_decode_time_histogram,\n",
+    "    plot_logical_error_rate,\n",
+    "    plot_mean_decode_time,\n",
     ")\n",
-    "[(r[\"family\"], r[\"distance\"], r[\"decoder_name\"], r[\"timing_mode\"], r[\"timer\"],\n",
-    "  r[\"samples\"], r[\"mean_ns\"], r[\"p99_ns\"], r[\"quantiles\"][-1]) for r in timings]"
+    "from analysis import summarize_run\n",
+    "\n",
+    "ROOT = next(p for p in (Path.cwd(), *Path.cwd().parents) if (p / \"pyproject.toml\").is_file())\n",
+    "RUN_PATH = Path(os.environ.get(\"QEC_ANALYSIS_RUN\", '/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/2026_09_22_19_37_199b4d87')).expanduser().resolve()\n",
+    "if Path(analysis.__file__).resolve().parent != (ROOT / \"analysis\").resolve():\n",
+    "    raise RuntimeError(f\"Analysis loaded from another checkout: {analysis.__file__}; Python: {sys.executable}\")\n",
+    "if not (RUN_PATH / \"config_resolved.json\").is_file():\n",
+    "    raise ValueError(f\"Not a current simulation run: {RUN_PATH}\")\n",
+    "\n",
+    "CODES = None\n",
+    "PHYSICAL_RATES = None\n",
+    "DISTANCES = None\n",
+    "DECODERS = None\n",
+    "CONFIDENCE = 0.95\n",
+    "HISTOGRAM_CODE = \"bb72\"\n",
+    "HISTOGRAM_PHYSICAL_RATE = 0.002\n",
+    "HISTOGRAM_DISTANCE = 6\n",
+    "HISTOGRAM_BINS = 60\n",
+    "FIGURE_OUTPUT = ROOT / \"assets\" / \"analysis\" / RUN_PATH.name\n",
+    "FIGURE_OUTPUT.mkdir(parents=True, exist_ok=True)\n",
+    "print(f\"Run: {RUN_PATH}\")\n",
+    "print(f\"Figures: {FIGURE_OUTPUT}\")"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "2b4d5d41",
+   "id": "e747313e",
    "metadata": {},
    "source": [
-    "## Draw selected figures\n",
+    "## Condition-level statistics\n",
     "\n",
-    "Exports the configured failure-rate and CPU/wall ECDF/survival plots as PNG/PDF\n",
-    "into a new directory on each execution. No hybrid stage or paired comparison\n",
-    "analysis is performed. `records`, `failures` and `timings` remain available for\n",
-    "further analysis through the reusable `analysis` APIs."
+    "This is the complete descriptive information supported by the saved schema: block logical errors, all-shot wall latency, and OSD calls over known flags. Failed shots remain in logical-error and latency denominators."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "9b01465d",
+   "id": "403cbd71",
    "metadata": {},
    "outputs": [],
    "source": [
-    "from uuid import uuid4\n",
-    "from IPython.display import Image, display\n",
-    "from analysis.plots import plot_failure_rates, plot_timings\n",
+    "summaries = summarize_run(RUN_PATH, confidence=CONFIDENCE)\n",
+    "summary_table = pd.DataFrame([{\n",
+    "    \"code\": row[\"family\"],\n",
+    "    \"distance\": row[\"distance\"],\n",
+    "    \"rounds\": row[\"rounds\"],\n",
+    "    \"physical_rate\": row[\"physical_rate\"],\n",
+    "    \"decoder\": row[\"decoder_name\"],\n",
+    "    \"shots\": row[\"shots\"],\n",
+    "    \"logical_errors\": row[\"block_failures\"],\n",
+    "    \"logical_error_rate\": row[\"logical_error_rate\"][\"rate\"],\n",
+    "    \"logical_ci_low\": row[\"logical_error_rate\"][\"low\"],\n",
+    "    \"logical_ci_high\": row[\"logical_error_rate\"][\"high\"],\n",
+    "    \"mean_wall_ms\": row[\"decode_time\"][\"mean_ns\"] / 1e6,\n",
+    "    \"median_wall_ms\": row[\"decode_time\"][\"median_ns\"] / 1e6,\n",
+    "    \"p95_wall_ms\": row[\"decode_time\"][\"p95_ns\"] / 1e6,\n",
+    "    \"p99_wall_ms\": row[\"decode_time\"][\"p99_ns\"] / 1e6,\n",
+    "    \"osd_calls\": row[\"osd_call_fraction\"][\"count\"],\n",
+    "    \"osd_known\": row[\"osd_call_fraction\"][\"denominator\"],\n",
+    "    \"osd_unknown\": row[\"osd_unknown\"],\n",
+    "    \"osd_call_rate\": row[\"osd_call_fraction\"][\"rate\"],\n",
+    "} for row in summaries]).sort_values([\"physical_rate\", \"decoder\"]).reset_index(drop=True)\n",
+    "display(summary_table)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "76034e3d",
+   "metadata": {},
+   "source": [
+    "## Logical error rate\n",
     "\n",
-    "figure_output = Path(config.analysis.output) / f\"notebook_plots_{uuid4().hex}\"\n",
-    "figure_output.mkdir(parents=True, exist_ok=False)\n",
-    "figures = []\n",
-    "for plot in config.analysis.plots:\n",
-    "    print(f\"Plotting {plot}\", flush=True)\n",
-    "    if plot == \"failure_rate\":\n",
-    "        figures.extend(plot_failure_rates(failures, figure_output))\n",
-    "    else:\n",
-    "        figures.extend(plot_timings(\n",
-    "            records, figure_output,\n",
-    "            timer=\"cpu_ns\" if plot.startswith(\"cpu_\") else \"wall_ns\",\n",
-    "            survival=plot.endswith(\"survival\"),\n",
-    "            stratify=config.analysis.stratify_timing,\n",
-    "            min_expected_tail_count=config.analysis.min_expected_tail_count,\n",
-    "        ))\n",
-    "print(f\"Figure directory: {figure_output}\")\n",
-    "for figure in figures:\n",
-    "    if figure.suffix == \".png\":\n",
-    "        display(Image(filename=str(figure)))"
+    "Shading is the two-sided 95% Wilson interval. All points have 10,000 physical-shot trials in this run."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a42f36a7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "logical_error_figures = plot_logical_error_rate(\n",
+    "    RUN_PATH, codes=CODES, physical_rates=PHYSICAL_RATES, distances=DISTANCES,\n",
+    "    decoders=DECODERS, confidence=CONFIDENCE,\n",
+    ")\n",
+    "for figure in logical_error_figures:\n",
+    "    family = figure.axes[0].get_title()\n",
+    "    for suffix in (\"png\", \"pdf\"):\n",
+    "        figure.savefig(FIGURE_OUTPUT / f\"logical_error_rate_{family}.{suffix}\", dpi=300)\n",
+    "    display(figure)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "700f585f",
+   "metadata": {},
+   "source": [
+    "## Mean complete-service wall latency\n",
+    "\n",
+    "Each mean includes every saved shot, including failures. Shading is a 95% Student-t interval for the arithmetic mean. Throughput-mode worker contention is part of these measurements."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0c41cbb2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decode_time_figures = plot_mean_decode_time(\n",
+    "    RUN_PATH, codes=CODES, physical_rates=PHYSICAL_RATES, distances=DISTANCES,\n",
+    "    decoders=DECODERS, clock=\"wall\", confidence=CONFIDENCE,\n",
+    ")\n",
+    "for figure in decode_time_figures:\n",
+    "    family = figure.axes[0].get_title()\n",
+    "    for suffix in (\"png\", \"pdf\"):\n",
+    "        figure.savefig(FIGURE_OUTPUT / f\"mean_wall_latency_{family}.{suffix}\", dpi=300)\n",
+    "    display(figure)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "01f2fac0",
+   "metadata": {},
+   "source": [
+    "## Wall-latency distribution at p = 0.002\n",
+    "\n",
+    "Each decoder has its own panel. Vertical lines show the arithmetic mean, p95, and p99. This plot is descriptive; the run does not save CPU time or isolated-latency measurements."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5d3e8f39",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "histogram_figure = plot_decode_time_histogram(\n",
+    "    RUN_PATH, code=HISTOGRAM_CODE, physical_rate=HISTOGRAM_PHYSICAL_RATE,\n",
+    "    distance=HISTOGRAM_DISTANCE, decoders=DECODERS, clock=\"wall\",\n",
+    "    bins=HISTOGRAM_BINS,\n",
+    ")\n",
+    "for suffix in (\"png\", \"pdf\"):\n",
+    "    histogram_figure.savefig(\n",
+    "        FIGURE_OUTPUT / f\"wall_latency_histogram_{HISTOGRAM_CODE}_d{HISTOGRAM_DISTANCE}_p002.{suffix}\",\n",
+    "        dpi=300,\n",
+    "    )\n",
+    "display(histogram_figure)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "955d27eb",
+   "metadata": {},
+   "source": [
+    "## OSD call fraction\n",
+    "\n",
+    "The current schema saves the exact OSD-called flag. The denominator excludes null flags and is shown explicitly in `summary_table`; this run has no unknown flags."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "283d7690",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decoder_rates = decoder_event_rate_table(\n",
+    "    RUN_PATH, codes=CODES, physical_rates=PHYSICAL_RATES,\n",
+    "    distances=DISTANCES, decoders=DECODERS,\n",
+    ")\n",
+    "display(decoder_rates)\n",
+    "print(\"Saved figures:\")\n",
+    "for path in sorted(FIGURE_OUTPUT.iterdir()):\n",
+    "    print(path)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "search-correction-rate",
+   "metadata": {},
+   "source": [
+    "## Correction found directly by search\n",
+    "\n",
+    "For SEARCH-BP-2.1, `correction_by_search_rate` is the fraction of shots whose local combinatorial search directly constructed a correction satisfying the original H/s. Initial-BP, decimated-BP, OSD, and failed exits are false."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "search-correction-table",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "search_columns = [column for column in decoder_rates.columns\n",
+    "                  if column[1] == \"correction_by_search_rate\"]\n",
+    "if search_columns:\n",
+    "    display(decoder_rates.loc[:, search_columns])\n",
+    "else:\n",
+    "    print(\"correction_by_search is unavailable for this legacy run.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9e863e4a",
+   "metadata": {},
+   "source": [
+    "## Interpretation limits\n",
+    "\n",
+    "This notebook analyzes one BB72 d6 throughput run with three physical rates. It makes no production, asymptotic, causal, or decoder-advantage claim. The minimal schema cannot recover failure components, logical-observable-specific outcomes, BP iteration counts, search paths, correction weights, CPU time, or internal phase timing."
    ]
   }
  ],

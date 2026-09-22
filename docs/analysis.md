@@ -3,7 +3,8 @@
 Use `analysis.simple_search_bp.summarize_run(run)` for new runs: logical error,
 complete wall latency and OSD-call fraction, grouped within one run/condition/
 decoder/execution context. No raw samples or event diagnostics are available.
-The plotting and report APIs below remain readers of historical wider schemas.
+The plotting API below reads current results directly and retains historical
+wider-schema compatibility. The full report APIs remain historical consumers.
 
 # Saved-data analysis
 
@@ -41,14 +42,17 @@ rates = decoder_event_rate_table(RUN_PATH)
 
 Each argument may be a scalar or sequence; `None` includes all values. Decoder
 selection matches an exact saved ID, name, or profile. The run must use the current
-minimal `config_resolved.json` plus `data/` layout. The module reads the named
-condition/decoder files and projects only required columns from each
-`*_logicalerror.parquet`; it does not read samples or telemetry.
+minimal `config_resolved.json` plus `data/` layout. For current runs the module
+gets condition and decoder labels from resolved config and projects only required
+columns from each `*_results.parquet`; it does not read samples or telemetry.
+Historical layouts continue through their existing companion-file readers.
 
-Logical error is recomputed as decoding failure OR logical mismatch. The stored
-`block_failure` column is not read. The point denominator is the number of physical
-shots and the default shaded band is a 95% two-sided Wilson interval. Mean CPU/wall
-service time uses every shot, including failures. Since a Wilson interval has no
+Current logical error uses the contract-defined saved boolean: decoder failure OR
+logical mismatch. Historical wide rows retain their explicit recomputation. The
+point denominator is the number of physical shots and the default shaded band is a
+95% two-sided Wilson interval. Mean wall service time uses every shot, including
+failures. Current data do not save CPU time, so `clock="cpu"` raises instead of
+substituting another timer. Since a Wilson interval has no
 definition for continuous durations, timing shading is a 95% Student-t interval
 for the arithmetic mean.
 
@@ -57,15 +61,17 @@ the topological surface code and whenever selection would otherwise leave multip
 conditions. Times are shown in microseconds, one decoder per subplot, with mean,
 p95, and p99 vertical lines. The event-rate API returns a pandas DataFrame indexed
 by `(code, distance, physical_rate)`, with `(decoder, metric)` columns and rate
-values in the cells. `search_bp` uses its saved `osd_entered` flag, while beam
-profiles use `syndrome_valid == False`. Storage IDs and execution metadata are not
-included in the displayed table.
+values in the cells. Current rows expose `osd_call_rate` for every decoder over
+nonnull saved flags. Historical layouts retain search-BP OSD reach and beam
+nonconvergence interpretations. Storage IDs and execution metadata are not included
+in the displayed table; exact known/unknown denominators remain in `summarize_run`.
 
 Every code family gets a separate 3.4 x 2.55 inch figure at 300 dpi, intended for
 one column in a two-column RevTeX document. Functions return newly owned live
 Matplotlib `Figure` objects and write nothing. Notebook users can adjust
-`figure.axes[0]` and save in their desired format. There is no summary cell, data
-frame merge, bootstrap, report generation, or automatic output directory.
+`figure.axes[0]` and save in their desired format. The current notebook includes a
+compact summary table and explicit output directory; the module itself performs no
+automatic write, bootstrap, report generation or run merge.
 
 ## Historical manifest workflow
 

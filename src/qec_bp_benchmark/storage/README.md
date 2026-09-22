@@ -1,8 +1,9 @@
 # Result storage
 
-`minimal.py` defines the active five-field `search_bp_results/1` Arrow contract.
-`results.py` supplies generic ResultStore/ShotChunkBuffer. The runner writes only
-config_resolved.json and data/<condition>_logicalerror.parquet; no raw samples,
+`minimal.py` defines the active six-field `search_bp_results/2` Arrow contract.
+The read-only SEARCH-BP-2.0 five-field schema is under `legacy/search_bp_v2/`.
+`results.py` supplies a fixed-schema ResultStore and generic ShotChunkBuffer. The runner writes only
+config_resolved.json and data/<condition>_results.parquet; no raw samples,
 telemetry, manifests, inventories or final read-back. See docs/simulation_output.md.
 SEARCH-BP-1.0's 14-dataset schema/writer are in `legacy/search_bp_v1/` and used only
 by historical readers. The following generic v1/v2 storage APIs remain for

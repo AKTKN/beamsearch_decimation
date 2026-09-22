@@ -79,11 +79,48 @@ are indexed under docs/test_results/analysis_migration_*.
 `test_quick_plots.py` checks trusted on-demand column projection, all-shot timing
 row retention, and failure-count/Wilson-interval parity with the verified reader.
 
-SEARCH-BP-2.0 migration coverage is in `test_search_bp_v2_contract.py`: explicit
+SEARCH-BP-2.1 migration coverage is in `test_search_bp_v2_contract.py`: explicit
 version/config rejection, execution guards, absence of old native symbols,
-independent failure-label cases, exact five-field output and grouped spawn output.
+independent failure-label cases, exact six-field output and grouped spawn output.
 `test_simple_results.py` retains generic naming/writer/serial integration checks.
 `test_hybrid_storage.py` checks paired scientific result equality across worker
 and warmup settings; raw samples and event tables are no longer emitted.
 SEARCH-BP-1.0 tests are preserved under `legacy/search_bp_v1/` and excluded from
 pytest collection and CMake. Baseline/circuit/native numerical tests remain active.
+
+Stage 2 fork tests: `test_decimated_bp.py` checks actual pinned BP outputs/LLRs,
+an independent scalar masked-message/history oracle, ring wrap, zero/short history,
+continuation/restore, descendant message inheritance, contradictions, input
+boundaries, saturation, exact iteration counts and reset/ownership. The native
+`test_decimated_bp` target adds 360 pinned C++ BP comparisons and participates in
+Debug/ASan/UBSan and clean opt-in restoration. Existing baseline tests are retained.
+
+SEARCH-BP-2.0 Stage 3: `test_search_bp_stage3.py` independently recomputes the
+TeX formulas and both bounded-tree policies, with exhaustive probe patterns,
+randomized scalar tree comparisons, direct solutions, snapshot immutability and
+repeated-shot reset. `native/test_search_bp_stage3.cpp` adds the sixth native
+Debug/sanitizer/restoration target. These tests do not execute recursive admission
+or fallback and do not run production simulations.
+
+SEARCH-BP-2.0 Stage 4: `test_search_bp_stage4.py` compares the full native decoder
+with an independent Python orchestration reference, using scalar Stage-3 formulas
+and the unchanged fork BP/OSD services. The seventh native target
+`test_search_bp_stage4` checks global quotas/refill/dedup, exact donor inheritance,
+R retention, three recursive cycles, fallback inputs/call count and reentrancy.
+Native test callbacks are compile-time-only; the production result has no telemetry.
+
+Stage 5 adds `test_search_bp_stage5.py`: strict config/native mapping, truth-free
+adapter and independent H/A checks, worker pairing and controlled timing/failure
+labels, plus paired Surface/BB single/spawn-worker smoke runs with SEARCH-BP,
+beam8 and BP-OSD-CS0. New files have exactly the five `_results.parquet` fields.
+Source audit verifies unchanged physics, sampler/seed/pairing and native code.
+# SEARCH-BP-2.1 validation
+
+`test_decimated_bp.py` and `test_search_bp_stage3.py` compare scalar messages,
+trailing means and all score terms with explicit tight tolerances and exact GF(2).
+`test_search_bp_stage4.py` and its standalone native test cover independent global
+admission, retention and fallback. Stage-5 tests include correction-level repeat/
+reset checks on Surface d3 and BB72 d6, with all 12 BB observables, plus paired
+serial/spawn minimal-output smoke runs. `native/benchmark_search_bp.cpp` is a
+standalone synthetic decoder-only benchmark; see the active implementation audit
+for commands and limits. Historical evidence below remains stage-specific.

@@ -37,3 +37,13 @@ HSBP-FB-2.0 extends the opt-in stateful min-sum snapshot with full owned mutable
 buffers plus model, shot, numeric-policy and shape checks on restore. The immutable
 graph remains shared. `audit_dependencies.py` records these bytes and the rebuilt
 binding identity; ordinary upstream BP-OSD remains unchanged.
+
+## SEARCH-BP-2.0 Stage 2 BP API
+
+`ldpc/src_cpp/decimated_bp.hpp` supplies opt-in `ldpc::decimated::Session`, exposed
+as `ldpc.hybrid_bp.DecimatedMinSumSession` by setup_hybrid.py. The existing
+SOURCE_FILES inventory, build digests, audit/patch export and pristine restoration
+cover the new header/bindings. No upstream bp.hpp/osd.hpp, reference, soft-hint
+kernel or baseline was changed. The fork implements no search/scoring/recursive
+controller. See docs/decimated_bp.md at repository root for exact history,
+inheritance, finite overflow, fixed-infinity and snapshot ownership conventions.

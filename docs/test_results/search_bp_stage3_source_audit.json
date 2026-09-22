@@ -1,0 +1,31 @@
+{
+  "scope": "SEARCH-BP-2.0 native Steps 1-4 only; both local-variable policies; no persistent search frontier, admission, recursive BP or OSD fallback",
+  "unchanged_since_stage2_sha256": {
+    "refined.tex": "5addef23e2a2476d319baed8764d745f0b7fb2d114a6ab579481dc56a7958c15",
+    "external_lib/ldpc/src_cpp/bp.hpp": "54f1a311a44dbf5f6836797062c1a86c74674347604e6e024ff6eaf11cc072f2",
+    "external_lib/ldpc/src_cpp/osd.hpp": "604ec8273edcb253e8db7abeeb1ab26ddf203ea2e272f9616549c9670a7e7415",
+    "external_lib/ldpc/src_cpp/stateful_min_sum.hpp": "5c9753a0de3a96d27874e5ce78f332d0f42bb7cd8bdd098363ce2e9bb3b51b58",
+    "external_lib/ldpc/src_cpp/osd0_bridge.hpp": "f6b77c01b13269ae88881334cd2ac488bd97b078b96cf1e85bb814f1ecdf95a2",
+    "external_lib/ldpc/src_cpp/decimated_bp.hpp": "6275517941baaa4ca5d8dad60c36ef006dca1f1db087e50003a69a29db0cadea",
+    "external_lib/ldpc/src_python/ldpc/hybrid_bp/bindings.cpp": "faba324a445a4a5801f0744ba2b75f20d0e47c83a7cabc158829e348e54f01e7",
+    "external_lib/ldpc/src_python/ldpc/hybrid_bp/__init__.py": "ac2c421b9b334abd0f8f02a2c5cb8e0989b8933299ef98daa390fbc78c966ef2",
+    "external_lib/ldpc/src_python/ldpc/hybrid_bp/__init__.pyi": "dd19a5a280f5ede2569eeac60ead12f08eff05559a4b37a7181b501f1e8dd84a",
+    "external_lib/ldpc/src_python/ldpc/hybrid_bp/source_files.py": "4c13bd8a418cca03407eff25cc46526309a5035f75503efd61a98ec6856b0001"
+  },
+  "unchanged_fork_source_sha256": "4e6f509105c564ba92723272cf58ad13e7690bcc12fdb08ab5263a4b79bab342",
+  "unchanged_fork_patch_sha256": "35fc2e822413aef63c95d6f4556fd0e41e6a2a8281241ea53c7667faa5afe697",
+  "project_source_sha256": "563e5c2da449120ef65c20e6e276f0e1cba68d198cbefb2b32e2d37755c9bb1e",
+  "stage3_native_sources": {
+    "src/qec_bp_benchmark/native/search_bp_model.hpp": "6250be1891e3e4bf2fff308aea57fd8a45826754c60ea169903bac393c9e0325",
+    "src/qec_bp_benchmark/native/search_bp_scores.hpp": "bda221a99510b619cdaa3e744b5d6e8c0a3a7751a4b2636dbb1174fa11b6b3cc",
+    "src/qec_bp_benchmark/native/search_bp_search.hpp": "3c859419d1abfd811a62d4aeebdb820103e6f0c9e74f403e25b6cccfc27c3e44",
+    "src/qec_bp_benchmark/native/search_bp_stage3.hpp": "83d6e78f6b5c5510d16065fd034729e1e313b8fc8796165cacf909e8510354d3",
+    "src/qec_bp_benchmark/native/search_bp_bindings.hpp": "5cc813525cac249703148ee6af76e74bcd5cd86a6e20917cd323c85647425b88"
+  },
+  "validation": {
+    "python_suite": "262 passed, 1 skipped",
+    "native_debug": "6/6 passed",
+    "native_asan_ubsan": "6/6 passed",
+    "clean_restoration": "6/6 native, both fork bindings and project/fork source identities passed"
+  }
+}

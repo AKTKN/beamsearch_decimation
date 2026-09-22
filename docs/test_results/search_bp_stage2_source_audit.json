@@ -1,0 +1,29 @@
+{
+  "unchanged_normative_and_baseline_sha256": {
+    "refined.tex": "5addef23e2a2476d319baed8764d745f0b7fb2d114a6ab579481dc56a7958c15",
+    "external_lib/ldpc/src_cpp/bp.hpp": "54f1a311a44dbf5f6836797062c1a86c74674347604e6e024ff6eaf11cc072f2",
+    "external_lib/ldpc/src_cpp/osd.hpp": "604ec8273edcb253e8db7abeeb1ab26ddf203ea2e272f9616549c9670a7e7415",
+    "external_lib/ldpc/src_cpp/stateful_min_sum.hpp": "5c9753a0de3a96d27874e5ce78f332d0f42bb7cd8bdd098363ce2e9bb3b51b58",
+    "external_lib/ldpc/src_cpp/osd0_bridge.hpp": "f6b77c01b13269ae88881334cd2ac488bd97b078b96cf1e85bb814f1ecdf95a2"
+  },
+  "fork_source_sha256": "4e6f509105c564ba92723272cf58ad13e7690bcc12fdb08ab5263a4b79bab342",
+  "changed_fork_sources": {
+    "src_cpp/decimated_bp.hpp": "6275517941baaa4ca5d8dad60c36ef006dca1f1db087e50003a69a29db0cadea",
+    "src_python/ldpc/hybrid_bp/bindings.cpp": "faba324a445a4a5801f0744ba2b75f20d0e47c83a7cabc158829e348e54f01e7",
+    "src_python/ldpc/hybrid_bp/__init__.py": "ac2c421b9b334abd0f8f02a2c5cb8e0989b8933299ef98daa390fbc78c966ef2",
+    "src_python/ldpc/hybrid_bp/__init__.pyi": "dd19a5a280f5ede2569eeac60ead12f08eff05559a4b37a7181b501f1e8dd84a",
+    "src_python/ldpc/hybrid_bp/source_files.py": "4c13bd8a418cca03407eff25cc46526309a5035f75503efd61a98ec6856b0001"
+  },
+  "fork_patch_sha256": "35fc2e822413aef63c95d6f4556fd0e41e6a2a8281241ea53c7667faa5afe697",
+  "fork_upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40",
+  "branch": "screened-decimation-bp",
+  "snapshot_vector_payload_bytes": "8*(E + N*W + 2*N) + N + M",
+  "scope": "BP state/history API only; no search, scoring, selection, orchestration or OSD rewrite",
+  "validation": {
+    "python_suite": "227 passed, 1 skipped",
+    "focused_fork_python": "16 passed",
+    "native_debug": "5/5 passed",
+    "native_asan_ubsan": "5/5 passed",
+    "clean_restoration": "5/5 native plus both new bindings and source digests passed"
+  }
+}

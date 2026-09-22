@@ -60,7 +60,16 @@ session.reset([1,1]);session.replace_hint([(0,0)],8)
 assert session.advance(1).valid and session.snapshot().decision==[1]
 osd=module.Osd0Bridge([[0],[0]],1,[.1])
 assert osd.decode([1,1],[-2]).valid and not osd.decode([1,0],[-2]).valid
-print('Both restored bindings, complete source digests, stateful BP and direct OSD passed')
+hard=module.DecimatedMinSumSession([[0,1],[1,2],[0,2]],3,[.1,.19,.27],3,.8,.75)
+hard.reset_from_channel([1,0,0],[],7)
+assert hard.continue_iterations(5).actual_iterations==5 and hard.history_count==3
+saved=hard.snapshot()
+hard.inherit_descendant(saved,[(0,1)])
+assert hard.fixed==[1,-1,-1] and hard.history_count==0
+assert hard.residual_syndrome==[0,0,1]
+hard.restore(saved)
+assert hard.history_count==3 and hard.total_iterations==5
+print('Both restored bindings, complete source digests, decimation/history, stateful BP and direct OSD passed')
 '''
             subprocess.run([sys.executable,'-c',program],cwd=checkout,check=True)
             import pybind11
@@ -68,7 +77,7 @@ print('Both restored bindings, complete source digests, stateful BP and direct O
             subprocess.run(['cmake','-S',str(project),'-B',str(build),'-DCMAKE_BUILD_TYPE=Release',
                 '-DQEC_BUILD_TESTS=ON',f'-DPython_EXECUTABLE={sys.executable}',f'-Dpybind11_DIR={pybind11.get_cmake_dir()}'],check=True)
             subprocess.run(['cmake','--build',str(build),'--target','_native','test_reference_bp','test_search',
-                'test_hybrid_bp','test_hybrid','-j2'],check=True)
+                'test_hybrid_bp','test_hybrid','test_decimated_bp','test_search_bp_stage3','test_search_bp_stage4','-j2'],check=True)
             subprocess.run(['ctest','--test-dir',str(build),'--output-on-failure'],check=True)
             program='''
 from pathlib import Path

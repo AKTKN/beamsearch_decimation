@@ -1,3 +1,325 @@
+# SEARCH-BP-2.0 final validation and conservative optimization (2026-09-22)
+
+Completed the seven-step TeX-to-function audit in
+[the active implementation document](docs/search_bp_implementation.md), including
+exact defaults/schema, numerical conventions, ownership and memory bounds.
+Root refined.tex, fork BP/OSD, physics/sampling and all baseline kernels are unchanged.
+SEARCH-BP-1.0 remains legacy-only. The active fork supplies BP; project C++ owns
+all search, global dual-score admission, R retention and highest-R OSD-0 control.
+
+Production edits are limited to two headers: `search_bp_search.hpp` reserves branch
+prefixes before copying and sizes reusable descendant scratch by visited check
+rather than N; `search_bp_decoder.hpp` reserves the first generated candidate batch,
+keeps vector geometric growth across subsequent parents and checks size overflow.
+No scores, order, budget, pruning, recursion or fallback convention changed.
+
+Added randomized scalar checks across 32 synthetic graphs and 512 candidate
+patterns, explicit tight floating-point tolerances/exact GF(2), and Surface d3 /
+BB72 d6 correction-level fresh/reused/reset tests (all 12 BB observables). Existing
+independent ring/BP, tree, admission, R/retention/fallback tests remain active.
+
+Executed in search_decimation, with final-source logs under
+`docs/test_results/search_bp_final_*`:
+
+- `scripts/build_dependencies.sh --check`: passed; no fork patch/manifest
+  regeneration required because external source/build bytes are unchanged.
+- `python -m pip install --no-build-isolation --no-deps -e .`: rebuilt successfully;
+  final runtime/source identities verified.
+- Focused BP/Stages 3-5 pytest: 115 passed; final full `python -m pytest -q`:
+  **330 passed, 1 skipped in 27.76 s**. Skip is the unavailable historical local
+  acceptance artifact. Full suite includes all focused tests after the final edits.
+- Selected upstream ldpc BP tests: **12 passed**, six existing legacy/OpenMP warnings.
+- All seven standalone native targets: **Debug CTest 7/7**, **ASan/UBSan CTest 7/7**
+  (leak detection, halt-on-error). Exact directories/options in active document.
+- `python tests/check_hybrid_restoration.py`: restored pinned fork plus patch,
+  rebuilt both opt-in bindings and fresh project extension, checked hashes;
+  **7/7 native tests passed**. This reuses installed conda dependencies, not a
+  fresh-environment rebuild.
+- Config validation passed. Explicit serial and two-worker CLI smoke runs on
+  Surface d3 / BB72 d6 at validation p=.003, four shots per condition, SEARCH-BP /
+  beam8 / CS0: **24 rows per run**, exact scientific equality excluding latency,
+  exact five-column schema and only `data/` plus resolved config. Paths/evidence
+  are in `search_bp_final_smoke_validation.json`; no production sweep.
+
+Decoder-only synthetic benchmark: 64 checks, 128 variables, degree eight,
+contradictory duplicate checks to exercise two cycles/fallback, seven alternating
+before/after process pairs, 1,600 timed decodes per policy per process. Median of
+process means (microseconds/decode): **fixed_root 951.228 -> 949.949**;
+**refresh_descendant 950.167 -> 963.153**. Observed ranges overlap. This does not
+show a latency improvement; the changes reduce avoidable allocation/storage only.
+All stress cases fail by construction; successful-path equivalence is covered by
+independent behavioral tests, not the benchmark checksum. Baseline gprof sampled
+about 52.9% in BP iterations and 31.0% in existing OSD sorting/row addition.
+Python adapter-only profiling identified binary validation and H/A multiplication;
+independent validation was preserved. Quantum simulation was not profiled.
+
+One `/usr/bin/time -v` process each reported **4532 KiB before / 4136 KiB after**
+peak RSS, including runtime/allocator/OSD. These are coarse observations, not a
+measured per-state footprint or a general memory improvement. Live-state bounds
+are documented analytically; no large physical-model peak was measured. No
+accuracy, throughput, tail or advantage claim follows from this bounded evidence.
+Earlier final-pass iterations are preserved with `_initial` filenames.
+
+Updated AGENTS, README, STATUS, active implementation/integration/build/traceability
+and minimal-output docs, native/tests READMEs and smoke-config comments. Historical
+stage evidence and legacy scientific documents are preserved.
+
+# SEARCH-BP-2.0 Stage 5: simulator integration (2026-09-22)
+
+Integrated `SearchBP` with the existing truth-free DecoderAdapter and complete
+native `SearchBP2Decoder`. Every validated mathematical setting maps directly to
+native Settings, including newly exposed min-sum scaling. Python does not score,
+search, select candidates or construct SEARCH-BP event dictionaries. The adapter
+independently validates original H/s and predicts all A observables inside the
+existing complete-service timer. Native OSD usage is preserved exactly.
+
+The strict nested SEARCH-BP-2.0 config now enforces positive int32 counts,
+k_keep <= k_run, **q <= m for both local policies**, full history-window budgets,
+finite bounded clip, finite scoring/scaling coefficients and native_threads=1.
+OSD-0/binary64/no-fast-math are fixed; fallback/numerics sections and old SEARCH-BP
+controls are rejected. refresh_descendant remains the default. The native test
+API's broader q capability is unchanged; simulator configuration follows the
+Stage-5 constraint.
+
+Workers normalize directly to five scalar fields and no longer build/transport
+raw-sample rows, wide decoder records or event dictionaries. The simplified
+ResultStore owns the single five-field schema and writes one
+`data/<condition>_results.parquet` per condition. Grouped shot flushing and bounded
+batch backpressure remain. New runs contain exactly config_resolved.json and data/.
+The reader directly summarizes rate/Wilson bounds, mean/median/p95/p99 wall latency
+including failures, and OSD fraction with known/unknown denominators. Earlier
+minimal `_logicalerror.parquet` files remain readable, without rewriting artifacts.
+
+Exact schema: shot_id:string nonnull; decoder_name:string nonnull;
+logical_error:bool nonnull; latency_ns:int64 nonnull/nonnegative;
+osd_called:bool nullable only for an opaque baseline. SEARCH-BP requires an exact
+boolean. No corrections, predictions, costs, statuses, telemetry, phase clocks,
+samples, identities/hashes or counters are persisted as result fields.
+
+No circuit/noise/schedule/provenance/DEM/physical-sampling/truth-generation/seed/
+pairing/logical-error convention changed. The source audit verifies unchanged
+physics and baseline config ASTs, physical-source bytes, sampler/scheduling ASTs,
+shot-ID expression, failure-label function and all native/fork inputs. No native
+rebuild or patch regeneration was needed. No production sweep was run.
+
+Actual commands in search_decimation (docs/test_results/search_bp_stage5_*):
+
+| Command / evidence | Result |
+|---|---|
+| `python -m pytest -q` | **327 passed, 1 skipped**, 30.60 s |
+| New integration tests | **28 Stage-5 cases passed** within the full suite |
+| Paired smoke integration | Surface d3 + BB72 d6, four shots each, SEARCH-BP/beam8/CS0, one and two workers; identical scientific rows, exact pairing, 24 rows per run, only five fields and two-entry directory layout |
+| Controlled worker service | Same syndrome object delivered to both decoders; exact failure/mismatch semantics; 18 ns simulated complete-service latency including failure handling, excluding simulated sampling/truth-comparison time; exact/null OSD preservation |
+| `scripts/build_dependencies.sh --check` | passed; existing native hashes current |
+| `python python_scripts/validate_config.py config/search_bp.yaml.example` | passed |
+| Source audit | search_bp_stage5_source_audit.json; physics/sampling/seed/label/native inputs verified unchanged |
+| `git diff --check` | passed |
+
+The first config-boundary tests exposed a collision with the existing hybrid's
+zero-allowing NativeCount alias. SEARCH-BP now uses a separate PositiveNativeCount;
+zero counts reject cleanly before the history overflow guard. Initial failing logs
+are preserved; the final full suite passes. Native Debug/sanitizer/restoration
+sources and binaries are unchanged from Stage 4's passing seven-target checks.
+
+Changed implementation: config.py, decoders/__init__.py, runner/worker.py and
+pipeline.py, storage/results.py, analysis/simple_search_bp.py, smoke template,
+focused integration/contract/storage tests and affected docs. See
+[docs/search_bp_stage5.md](docs/search_bp_stage5.md) for the complete native mapping,
+saved schema, example directory tree and source/test traceability.
+
+---
+
+# SEARCH-BP-2.0 Stage 4: recursive native decoder (2026-09-22)
+
+Completed Steps 5–7 as `_native.SearchBP2Decoder`: one global cycle pool,
+dual-score quotas, exact full-pattern deduplication and guide-first refill;
+strict descendant BP inheritance; post-BP R ranking and top-K_keep retention;
+fresh search each recursive cycle; direct OSD-0 fallback exactly once on exhaustion.
+K_run bounds the whole cycle, not each parent. The native result exposes only
+valid, correction, prediction, physical_cost and osd_called. The simulator adapter
+remains guarded, as requested. No simulator integration or production simulation.
+
+The user explicitly approved final signed posterior LLRs for OSD with fixed
+infinities replaced by signed DBL_MAX. Free LLRs are unchanged. Highest-R retained
+state supplies the vector, or physical channel priors if the final beam is empty.
+Every successful result is independently validated against original H/s and A.
+Locally contradictory instances cannot produce feasible descendants and have no
+full history; they are discarded before retention. Old parents are not preserved
+when a cycle produces no viable children.
+
+Admission ties: relevant score, canonical full pattern, parent ID, delta, then
+occurrence index. Quotas precede deduplication; the first selected occurrence is
+the donor. Retention ties: descending R, full pattern, state ID. No diversity rule
+beyond exact duplicate patterns. Snapshots move through partial selection; discarded
+states are destroyed immediately. Search pools/heaps never survive a cycle.
+One decoder object rejects overlapping/reentrant calls before mutating state.
+
+Source changes: new `native/search_bp_admission.hpp` and `search_bp_decoder.hpp`,
+small binding additions, source inventory/CMake, the seventh restoration/native
+test target, `tests/test_search_bp_stage4.py`, and affected documentation. No fork,
+patch, normative TeX or Stage-3 numerical/search implementation changed. The full
+stage contract, traceability and bounds are in [docs/search_bp_stage4.md](docs/search_bp_stage4.md).
+
+Actual commands in search_decimation (logs: docs/test_results/search_bp_stage4_*):
+
+| Command / check | Result |
+|---|---|
+| `python -m pip install --no-build-isolation --no-deps -e .` | rebuilt project extension; current source identities |
+| `python python_scripts/audit_dependencies.py` | passed; fork/patch unchanged |
+| `scripts/build_dependencies.sh --check` | passed |
+| `python -m pytest -q` | **299 passed, 1 skipped**, 25.93 s; 37 new Stage-4 Python tests |
+| CMake Debug + CTest, assets/build/search-bp-stage4-debug | **7/7 passed** |
+| CMake Debug + ASan/UBSan + CTest, assets/build/search-bp-stage4-sanitize | **7/7 passed**, detect_leaks=1 and halt_on_error=1 |
+| `python tests/check_hybrid_restoration.py` | clean fork/project builds, both fork bindings, installed source identities, **7/7 native tests passed** |
+| Source audit | search_bp_stage4_source_audit.json confirms unchanged TeX/fork/patch/Stage-3 algorithms and current installed project hash |
+| `git diff --check` | passed |
+
+Tests include an independent Python recursive controller using the scalar Stage-3
+reference and unchanged fork BP/OSD; an independent native full-sort admission
+reference; three actual recursive cycles with two retained parents and globally
+four candidate executions per cycle; exact donor inheritance and R selection;
+early BP/search/decimated-BP exits; retained and channel OSD inputs; successful and
+invalid OSD results; reset, exception recovery and deterministic reentrancy checks.
+Native assertion callbacks are a compile-time test seam, not production telemetry.
+The initial focused Python test used exact equality between log(9) and the fork's
+log1p(-p)-log(p) expression; its expectation was corrected to the physical convention.
+The initial log is preserved. The native algorithm needed no change for that test.
+
+Work bound: at most `max_cycles * K_run` descendant BP executions and
+`T_initial + max_cycles * K_run * T_candidate` complete BP rounds. Candidate
+searches have at most `M_s * B(m,q) * [1 + (max_cycles-1)*K_keep]` generated
+occurrences, where B is the explicit fixed-root/refresh bound in the stage document.
+At most K_keep parent plus K_run evaluated-child snapshots coexist, besides the
+working session and bounded search scratch; OSD is a separate single direct call.
+
+---
+
+# SEARCH-BP-2.0 Stage 3: native Steps 1–4 (2026-09-22)
+
+Implemented the native `SearchBPStage3` partial service. Initial parallel min-sum
+runs in the Stage-2 ldpc session; project C++ independently checks original H/s,
+uses the fork's trailing clipped mean, computes c/Q/A and exact solve/guide
+scores, and emits compact hard-fixation candidates. Successful initial BP or
+direct search returns immediately with the original A prediction. The full runner
+remains guarded; admission, K_run/K_keep recursion and OSD fallback are not yet
+implemented. No production simulation or performance/decoder advantage claim.
+
+User-directed local-variable policy is now configurable in strict config and native
+settings: `refresh_descendant` (default) refreshes the most ambiguous hypothetical
+residual-unsatisfied check and its free bottom-m set; `fixed_root` retains the root
+set and uses the lowest-index residual-unsatisfied check. q counts all new zero/one
+fixations. Refresh mode permits q > m; fixed_root retains q <= m. Each anchored
+tree deduplicates canonical patterns. Search scratch/frontiers are discarded after
+each expansion and must not persist across future recursive BP cycles. The
+refresh-tree count differs from N_pat(m,q), as documented explicitly.
+
+Hypothetical ambiguity retains the parent's free-count denominator and substitutes
+zero ambiguity for newly fixed variables. Only touched check probabilities are
+recomputed. Physical fractional cover uses all free variables; empty minima yield
+infinity and cannot expand. Candidate storage is O(Pq), scoring scratch O(N+M),
+and one failed initial parent owns one Stage-2 BP snapshot. There are no per-node
+BP runs, full H copies, diagnostic strings or per-iteration telemetry.
+
+Files: five `native/search_bp_*.hpp` modules, module.cpp, native_sources.py,
+CMakeLists.txt, strict config/example, focused Python/native tests, restoration
+machinery and affected documentation. No fork bytes changed. Re-running the
+required dependency audit retained the exact Stage-2 patch digest. Root TeX,
+upstream BP/OSD, soft-hint BP and all Stage-2 fork inputs are hash-verified unchanged.
+See [API, equations, bounds and traceability](docs/search_bp_stage3.md).
+
+Actual commands in search_decimation (logs: docs/test_results/search_bp_stage3_*):
+
+| Command / check | Result |
+|---|---|
+| `python python_scripts/audit_dependencies.py` | passed; fork patch unchanged |
+| `python -m pip install --no-build-isolation --no-deps -e .` | project extension rebuilt; current aggregate hashes |
+| `scripts/build_dependencies.sh --check` | passed |
+| `python -m pytest -q` | **262 passed, 1 skipped**, 24.14 s; includes 35 new Stage-3 cases |
+| CMake Debug + CTest, assets/build/search-bp-stage3-debug | **6/6 passed** |
+| CMake Debug + ASan/UBSan + CTest, assets/build/search-bp-stage3-sanitize | **6/6 passed**, detect_leaks=1 and halt_on_error=1 |
+| `python tests/check_hybrid_restoration.py` | clean fork/project builds, both bindings, source identities and **6/6 native tests passed** |
+| `python python_scripts/validate_config.py config/search_bp.yaml.example` | passed; default refresh policy resolves explicitly |
+| Source audit | search_bp_stage3_source_audit.json; TeX/fork/patch unchanged and current installed project identity verified |
+| `git diff --check` | passed |
+
+The first focused run had eight test-reference sorting failures (Python cannot
+compare None and float for candidates shared by satisfied/unsatisfied roots).
+The reference sort key was corrected; no native formula change was needed for
+those failures. Its log is preserved as search_bp_stage3_focused_initial.log.
+The intermediate focused run passed 38 tests; the final full suite also includes
+the subsequent explicit refresh, fresh-state and BP-then-search success cases.
+Existing upstream warning diagnostics remain in native logs; no new project
+warnings or sanitizer findings were observed.
+
+---
+
+# SEARCH-BP-2.0 Stage 2: fork BP API (2026-09-22)
+
+Implemented `ldpc::decimated::Session` in the opt-in fork header decimated_bp.hpp,
+exported through `ldpc.hybrid_bp.DecimatedMinSumSession`. API and numerical/ownership
+contracts: [docs/decimated_bp.md](docs/decimated_bp.md). The new session provides
+channel reset, structural hard fixation and residual syndrome, local contradiction,
+exact requested/actual/total iteration accounting, owned opaque snapshots,
+continuation/restore and strict descendant inheritance, and bounded clipped LLR
+history. It shares immutable precomputed adjacency and allocates reusable state
+buffers once. The iteration loop performs no allocation or Python callback.
+
+Snapshots contain q, posterior LLRs, fixed mask, original syndrome, history ring
+and running sums, with compatibility/cursor/counter metadata. Logical vector
+payload is 8(E + NW + 2N) + N + M bytes; graph, check-message workspace, decisions
+and residuals are not copied. Ring updates are O(N) work and O(NW) space. Short
+history averages actual completed samples and exposes the count; zero history
+returns clipped current beliefs without adding a synthetic iteration. Descendants
+retain free-edge messages/posteriors and start fresh instance history/counters.
+
+Numerics: physical log(P0/P1), binary64 parallel min-sum, scaling in (0,1], zero
+LLR ties to one, history-only L_c clipping. Extreme message additions saturate at
+binary64 limits; fixed posteriors are +/-infinity and have an explicit mask. The
+later project-native OSD fallback still needs a finite fixed-column reliability
+policy; the unchanged OSD bridge rejects infinite input. No confidence transform,
+check ranking, F_solve/F_guide, candidate selection, recursive controller or OSD
+call is implemented in the new BP API. SEARCH-BP-2.0 decoder execution stays gated.
+
+Fork files: new src_cpp/decimated_bp.hpp; updated hybrid_bp bindings.cpp,
+__init__.py, __init__.pyi and source_files.py. The existing opt-in build script is
+reused. The new source is covered by the transitive hash/patch/audit inventory.
+Ordinary bp.hpp/osd.hpp, the old soft-hint session, OSD bridge and refined.tex are
+byte-identical to their pre-stage hashes. No simulation physics or output schema
+changed in Stage 2. The fork branch and upstream remote were preserved.
+
+Actual commands in search_decimation (logs: docs/test_results/search_bp_stage2_*):
+
+| Command/check | Outcome |
+|---|---|
+| `(cd external_lib/ldpc && python setup_hybrid.py build_ext --inplace)` | New fork binding built, C++17/no fast-math/no contraction |
+| `python -m pytest -q tests/test_decimated_bp.py tests/test_hybrid_bp.py` | 16 passed in 0.81 s; pinned BP, scalar excluded-edge/history oracle, masks, continuation, inheritance, empty/zero/contradictory cases, ownership and boundary checks |
+| `python python_scripts/audit_dependencies.py` | Regenerated required fork patch/manifest; ignored bindings and new header included |
+| `python -m pip install --no-build-isolation --no-deps -e .` | Project rebuilt with refreshed transitive fork identity |
+| `scripts/build_dependencies.sh --check` | Passed |
+| `python -m pytest -q` | 227 passed, 1 skipped in 35.13 s, including preserved baseline regressions |
+| CMake Debug + CTest, assets/build/search-bp-stage2-debug | 5/5 passed; new native test includes 360 pinned parallel min-sum comparisons |
+| CMake Debug + ASan/UBSan + CTest, assets/build/search-bp-stage2-sanitize | 5/5 passed with detect_leaks=1 and halt_on_error=1 |
+| `python tests/check_hybrid_restoration.py` | Patch applied to pristine upstream worktree; both opt-in bindings and project compiled without old binaries; source identities, new decimation/history transfers and 5/5 native tests passed |
+| Source audit | Unchanged baseline/TeX bytes, current hashed sources and patch verified; search_bp_stage2_source_audit.json |
+
+Native configuration used -DQEC_BUILD_TESTS=ON, Debug, the active conda Python and
+pybind11 CMake directory; sanitizer configuration additionally used
+-DQEC_SANITIZE=ON. All five test targets were built with -j2. Commands follow
+docs/build.md. Initial focused validation recorded one incorrect test expectation:
+a parallel degree-one propagation fixture converges in two rounds, not one; its
+assertion was corrected. The initial log is retained. No numerical implementation
+was changed to satisfy that assertion. Compiler warnings came from unchanged
+upstream headers, not a changed baseline kernel.
+
+No production simulations or new decoder orchestration were run. Full-suite
+integration uses only bounded temporary existing-decoder tests. Clean restoration
+reused search_decimation and other installed dependencies; no fresh conda/full
+upstream build or performance claim is made. Stage-1 historical evidence and
+immutable scientific snapshots remain unchanged. Remaining SEARCH-BP scoring,
+admission, recursion and fallback policies are outside this stage.
+
+---
+
 # SEARCH-BP-2.0 architectural migration (2026-09-22)
 
 This stage defines contracts and retires SEARCH-BP-1.0; it does **not** implement
@@ -829,3 +1151,41 @@ Actual bounded checks in `search_decimation`:
   The removed tests exercised only the retired manifest/replay/report workflow;
   algorithm, circuit, native, schema, telemetry, dependency, and new result-layout
   coverage remain active.
+# Current minimal-result analysis and notebook (2026-09-22)
+
+Updated `analysis.benchmark_plots` to consume `search_bp_results/1`
+`*_results.parquet` files directly, deriving exact conditions and enabled decoder
+labels from `config_resolved.json`. Current public figures now cover logical-error
+rate with Wilson bands, all-shot mean wall latency with Student-t bands, and
+per-decoder wall-latency histograms. `decoder_event_rate_table` reports OSD-call
+rates over known saved flags for every current decoder. Historical wide readers
+remain as fallback. Current CPU-clock requests raise because the five-field schema
+does not save CPU time.
+
+Replaced the maintained and local benchmark notebooks with a current-layout
+workflow targeting `assets/runs/2026_09_22_19_37_199b4d87`. The notebook displays
+a nine-row BB72 d6 condition/decoder summary, saves logical-error, mean wall-latency
+and p=.002 latency-distribution figures as PNG/PDF under
+`assets/analysis/2026_09_22_19_37_199b4d87/`, and displays exact OSD-call rates.
+It documents unavailable metrics and makes no decoder-advantage claim.
+
+Focused current/historical plotting, minimal-reader and Stage-5 tests passed
+39/39. The local notebook executed all six code cells without error through
+`nbclient` in `search_decimation`; the environment lacks the `jupyter-nbconvert`
+command. Evidence is in `docs/test_results/search_bp_current_analysis_*`.
+# SEARCH-BP-2.1 search-outcome and optional-fallback migration (2026-09-23)
+
+The active identity is now `SEARCH-BP-2.1` / `search_bp_config/4` /
+`search_bp_results/2`. Native results and saved rows include exact
+`correction_by_search`, true only for a valid correction constructed directly by
+local combinatorial search. Initial BP, inherited descendant BP, OSD and failure
+are false. Strict `osd_fallback` defaults true; false skips OSD after all BP/search
+work and returns declared failure. Historical SEARCH-BP-2.0 results/1 remain
+readable with the new indicator unavailable and are documented under legacy.
+
+Validation in `search_decimation`: editable native rebuild and config dry-run
+passed; focused migration tests passed 84/84; the full Python suite passed **332
+tests with 1 historical-artifact skip**; native Debug and ASan/UBSan passed **7/7**
+each; dependency checks and `git diff --check` passed. The maintained notebook
+JSON and its legacy-results branch were checked directly. Full notebook execution
+was unavailable because this environment does not provide `jupyter-nbconvert`.

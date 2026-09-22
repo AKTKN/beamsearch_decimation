@@ -28,15 +28,41 @@ data/output destinations when moving configs.
 Use the search_decimation conda environment for all programs. Production
 physical rates remain user-supplied; do not launch a production sweep implicitly.
 
-SEARCH-BP-2.0 reserves kind/profile/name `search_bp`; it is contract-only.
+SEARCH-BP-2.0's active implementation/audit map is docs/search_bp_implementation.md.
+The final pass preserves the root TeX and changes only search vector reservations;
+decoder-only synthetic timings do not demonstrate a speedup or decoder advantage.
+Do not conflate these measurements with complete-service simulation latency.
+Final evidence: 330 Python tests passed, one unavailable historical-artifact skip;
+12 upstream BP tests; native Debug and ASan/UBSan 7/7 each; clean fork/patch
+restoration and paired serial/two-worker Surface d3 + BB72 d6 smoke passed.
+SEARCH-BP-2.0 uses kind/profile/name `search_bp` and is integrated with the simulator
+(Stage 5, docs/search_bp_stage5.md). Strict config maps directly to SearchBP2Settings,
+including bp.scaling_factor; simulator q <= m applies to both local policies.
+OSD-0, binary64 and no-fast-math are fixed (no fallback/numerics config sections).
+New files are data/<condition>_results.parquet with the same five-field schema.
+Workers transport minimal rows only; raw samples and wide telemetry remain legacy.
+Stage 4 completes native Steps 5–7 as SearchBP2Decoder (docs/search_bp_stage4.md):
+global dual-score admission, inherited decimated BP, R retention, fresh searches
+each cycle and exactly one OSD-0 fallback. K_run is global across all parents.
+The result has only valid/correction/prediction/physical_cost/osd_called. Final
+posterior LLRs supply OSD, with fixed infinities mapped to signed DBL_MAX.
+Stage 3 implements native Steps 1–4 (docs/search_bp_stage3.md), using the Stage-2
+fork BP API. local_variable_policy defaults to refresh_descendant; fixed_root is
+also supported. q counts all additional zero/one fixations. Search state is fresh
+per parent expansion and must not persist across future recursive BP cycles.
+Keep scoring/search/retention native; the Python adapter passes syndrome only.
+Stage 2 supplies ldpc.hybrid_bp.DecimatedMinSumSession (docs/decimated_bp.md):
+parallel min-sum, structural fixation, opaque snapshots and bounded clipped history.
+Keep search/scoring/orchestration outside the fork. The existing hybrid, reference
+and upstream kernels are unchanged; fixed posterior infinities are not OSD inputs.
 Root `refined.tex` is normative; docs/search_bp_v2_design.md maps its equations
-and records unresolved policies. Do not implement it during the architectural
-migration stage. Strict configs use search_bp_config/3 and explicit
-algorithm_version SEARCH-BP-2.0. Execution deliberately fails before run creation.
+and records unresolved policies. Stage-3/4 policy resolutions are documented
+separately; do not silently change them. Strict configs use search_bp_config/3 and explicit
+algorithm_version SEARCH-BP-2.0. Native source identities are checked before decoder setup.
 SEARCH-BP-1.0 sources/contracts/tests live in named legacy/search_bp_v1 areas and
 are excluded from the active build/test suite. New results use search_bp_results/1:
 shot_id, decoder_name, logical_error, latency_ns, osd_called. No raw samples or
-telemetry tables. Use validate_config.py for the contract-only template.
+telemetry tables. Use validate_config.py for dry runs; the example is smoke-sized, never a production sweep.
 
 Directory responsibilities: src/ importable Python and native implementation;
 python_scripts/ thin CLIs; scripts/ shell launchers; config/ strict YAML;

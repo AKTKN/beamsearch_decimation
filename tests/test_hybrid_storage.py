@@ -126,7 +126,7 @@ def test_paired_workers_and_warmup_minimal_output(tmp_path):
     def rows(run, suffix):
         tables=[pq.read_table(file) for file in sorted((run/'data').glob(f'*_{suffix}.parquet'))]
         return [row for table in tables for row in table.to_pylist()]
-    one_decodes=rows(one,'logicalerror');two_decodes=rows(two,'logicalerror')
+    one_decodes=rows(one,'results');two_decodes=rows(two,'results')
     normalize=lambda values: sorted(json.dumps({k:v for k,v in row.items() if k!='latency_ns'},
                                                sort_keys=True) for row in values)
     assert normalize(one_decodes)==normalize(two_decodes)

@@ -1,0 +1,17 @@
+Obtaining file:///home/quantum_teresheys/workspace/beamsearch_decimation
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: qec-bp-benchmark
+  Building editable for qec-bp-benchmark (pyproject.toml): started
+  Building editable for qec-bp-benchmark (pyproject.toml): finished with status 'done'
+  Created wheel for qec-bp-benchmark: filename=qec_bp_benchmark-0.1.0-cp312-cp312-linux_x86_64.whl size=205067 sha256=609475239fcc2f95542ec3f8723e7baaf0ba3a2fca8a9bf5df1f44b9d3315fee
+  Stored in directory: /tmp/pip-ephem-wheel-cache-7wt60mb6/wheels/8d/61/05/e6434af06441b434dc5cca49b3fdfca7f12228eadb57efbcf1
+Successfully built qec-bp-benchmark
+Installing collected packages: qec-bp-benchmark
+  Attempting uninstall: qec-bp-benchmark
+    Found existing installation: qec-bp-benchmark 0.1.0
+    Uninstalling qec-bp-benchmark-0.1.0:
+      Successfully uninstalled qec-bp-benchmark-0.1.0
+Successfully installed qec-bp-benchmark-0.1.0

@@ -2,16 +2,66 @@
 
 Normative algorithm: root [refined.tex](../refined.tex), section
 `sec:search_guided_recursive_bp`. Its bytes and equations are unchanged. This
-document maps definitions; it does not replace them. No SEARCH-BP-2.0 decoding
-behavior is implemented. Public kind/profile/name remain `search_bp`, with required
+document maps definitions; it does not replace them. Stage 5 integrates the completed native SEARCH-BP-2.0 decoder with the simulator. Stage 3 supplies the reusable Steps 1–4 partial service. Public kind/profile/name remain `search_bp`, with required
 `algorithm_version: SEARCH-BP-2.0` and strict `search_bp_config/3`.
-Execution fails before native loading or run creation. Validation remains usable.
+Execution and dry-run validation are available; native source checks remain mandatory.
+
+## Stage 5 update
+
+[search_bp_stage5.md](search_bp_stage5.md) documents the active strict config,
+exact native settings mapping, truth-free simulator adapter and five-field output.
+The simulator requires q <= m for both local policies. bp.scaling_factor is exposed;
+OSD-0/binary64/no-fast-math remain fixed and the fallback/numerics config sections
+are removed. New filenames end in `_results.parquet`, with old files remaining
+readable. Physics, sampling/seeding/pairing, logical failure labels and all native
+sources are hash/AST-verified unchanged. The historical stage notes below retain
+their original boundaries; they are superseded by this integration status.
+
+## Stage 4 update
+
+[search_bp_stage4.md](search_bp_stage4.md) documents completed Steps 5–7 and their
+native-only binding. Admission quotas apply to the global occurrence pool before
+full-pattern deduplication; the first selected occurrence donates its state.
+Tie order is score, full pattern, parent ID, delta and occurrence index. Retention
+uses only descending R, then full pattern and state ID. Contradictory states cannot
+be retained; no viable children means no parents and channel fallback. The user
+explicitly chose final posterior LLRs for OSD, with only fixed infinities mapped
+to signed DBL_MAX. These settle the remaining Stage-1 items 6–7 and empty-state
+cases. Root TeX is unchanged. Search trees never survive a BP cycle. The simulator
+adapter remains unavailable until a later integration stage is authorized.
+
+## Stage 3 update
+
+[search_bp_stage3.md](search_bp_stage3.md) documents the implemented equations,
+native API and user-authorized policy resolutions. Scoring retains the parent
+free-count denominator for hypothetical ambiguity. Empty normalized sums are zero;
+empty fractional minima are contradictions (+infinity). Top/bottom ties use index.
+`local_variable_policy` defaults to `refresh_descendant` with hypothetical-A check
+selection and parent-c bottom-m refresh; `fixed_root` is also available. q counts
+all new zero/one fixations; refresh mode permits q > m. Canonical patterns are
+deduplicated per anchored tree. All search state is discarded after each parent
+expansion and must never survive into a subsequent recursive BP cycle. These
+resolve the Step-4 parts of ambiguity items 3–5 below; items about later stages
+remain deferred. The original Stage-1 ownership/map/list below records that stage's
+planning context. Implemented files use flat `native/search_bp_*.hpp` names.
+
+## Stage 2 update
+
+The fork BP API is now implemented in `decimated_bp.hpp`, exported as
+`ldpc.hybrid_bp.DecimatedMinSumSession`. See [the complete API and conventions](decimated_bp.md).
+Stage 2 explicitly selects parallel minimum-sum with scaling, the pinned zero-sign
+convention and a documented binary64 overflow policy. It adds owned continuation
+snapshots and bounded clipped history. Short history is exposed with its actual
+count; descendants reset history while inheriting free messages. These generic API
+choices resolve the BP portions of items 1–2 below without implementing any search
+or changing the TeX. Full SEARCH-BP execution remains unavailable. Fixed-column
+OSD reliability and the other scoring/orchestration ambiguities remain deferred.
 
 ## Proposed source ownership
 
 | Location (future unless stated otherwise) | Responsibility |
 |---|---|
-| `external_lib/ldpc/src_cpp/decimated_bp.hpp` | BP numerical/message kernel, structural fixation, bounded posterior history and owned snapshots only |
+| `external_lib/ldpc/src_cpp/decimated_bp.hpp` (implemented) | BP numerical/message kernel, structural fixation, bounded posterior history and owned snapshots only |
 | `external_lib/ldpc/src_cpp/osd0_bridge.hpp` (existing) | Direct OSD-CS order-zero service on original H and syndrome, no implicit BP |
 | `src/qec_bp_benchmark/native/search_bp/model.hpp` | Immutable original H/A, physical priors, canonical assignments; reuse generic hybrid graph/model where compatible |
 | `native/search_bp/reliability.hpp` | Clipped time average, confidence, check ambiguity and BP-state reliability |
@@ -45,9 +95,9 @@ the locator; do not replace those definitions with historical SEARCH-BP-1.0 rule
 | 6: retention | `reliability.hpp` and `decoder.hpp`: recompute `eq:average_llr`, `eq:variable_confidence`, then `eq:bp_reliability` and `eq:beam_retention`. Larger R is better; retain at most K_keep <= K_run from unsuccessful new instances. Repeat at most C_max cycles. Do not carry old parents merely because the old controller did. |
 | 7: fallback | `decoder.hpp`: `Step 7: OSD Fallback`, B-star argmax R and original-H validation equation. Use that state's full signed LLR vector, or physical channel priors if no retained state exists. Proposed first implementation calls existing OSD-0 bridge. |
 
-## Fork API contract to implement later
+## Stage-1 fork API contract (implemented by Stage 2)
 
-Current fork audit: `reference_bp.hpp::ReferenceBp::decode` has structural masks
+Stage-1 fork audit: `reference_bp.hpp::ReferenceBp::decode` has structural masks
 and terminal history, but cold-start flooding sum-product only. `stateful_min_sum.hpp`
 has `reset`, `replace_fields/replace_hint`, `advance`, `snapshot/restore`, `llrs` and
 `decision`; its snapshot owns q/z, LLRs, decisions and model/shot/numeric identities.
@@ -75,7 +125,8 @@ each shot and becomes true exactly when fallback is invoked.
 |---|---|
 | `bp.initial_iterations`, `bp.candidate_iterations` | Positive BP execution budgets; TeX does not supply defaults |
 | `bp.history_window`, `bp.average_llr_clip` | W and L_c > 0; W cannot exceed either configured iteration budget |
-| `search.selected_checks`, `search.local_variables`, `search.max_fixations` | Top-check count, m, q; positive integers with q <= m |
+| `search.selected_checks`, `search.local_variables`, `search.max_fixations` | Top-check count, m, q; positive integers; q <= m for fixed_root |
+| `search.local_variable_policy` | Stage-3 choice: refresh_descendant (default) or fixed_root |
 | `search.max_cycles` | Positive C_max; no old direct-OSD zero-cycle identity |
 | `search.beta`, `search.guidance_strength` | Finite nonnegative beta and lambda |
 | `admission.k_run`, `admission.k_keep` | Independent positive limits with K_keep <= K_run |
@@ -136,5 +187,5 @@ Historical tests are outside active pytest collection and CMake targets.
 Generic graph/model, screened-reference search, hybrid HSBP code, upstream BP-OSD
 and beam adapters, sampler, circuit/DEM/model preparation, scheduler, ResultStore
 and ShotChunkBuffer remain active because they serve independent profiles or
-generic infrastructure. The fork's source bytes and historical scientific runs
-are unchanged. Actual validation results are recorded in STATUS.md.
+generic infrastructure. Stage 1 left fork source bytes unchanged; Stage 2 adds the opt-in BP API. Historical
+scientific runs remain unchanged. Actual validation results are recorded in STATUS.md.
