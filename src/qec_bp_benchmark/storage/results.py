@@ -169,7 +169,7 @@ class ResultStore:
             table = table_factory(rows)
             self._add_timing("arrow_table_conversion", started)
             started = time.perf_counter_ns()
-            # Every append is one deliberate row group.  The search_bp caller
+            # Every append is one deliberate row group.  The runner
             # coalesces a configured number of complete shots before arriving
             # here, so row-group boundaries never split a shot flush group.
             self._writers[(condition_id, dataset)].write_table(

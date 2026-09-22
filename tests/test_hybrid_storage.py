@@ -126,17 +126,14 @@ def test_paired_workers_and_warmup_minimal_output(tmp_path):
     def rows(run, suffix):
         tables=[pq.read_table(file) for file in sorted((run/'data').glob(f'*_{suffix}.parquet'))]
         return [row for table in tables for row in table.to_pylist()]
-    one_samples=rows(one,'samples');one_decodes=rows(one,'logicalerror')
-    two_samples=rows(two,'samples');two_decodes=rows(two,'logicalerror')
-    sample_drop={'run_id','source_hash','config_hash'}
-    decode_drop=sample_drop|{'cpu_ns','wall_ns','workers','concurrent_load','oversubscribed'}
-    normalize=lambda values,drop:sorted(json.dumps({k:(v.hex() if isinstance(v,bytes) else v)
-        for k,v in row.items() if k not in drop and not k.endswith(('_cpu_ns','_wall_ns'))
-        and k!='phases_json'},sort_keys=True) for row in values)
-    assert normalize(one_samples,sample_drop)==normalize(two_samples,sample_drop)
-    assert normalize(one_decodes,decode_drop)==normalize(two_decodes,decode_drop)
-    assert len(one_decodes)==len(one_samples)*5==40
-    assert all(len(row['actual_observables'])==12 for row in one_samples if row['family']=='bb72')
+    one_decodes=rows(one,'logicalerror');two_decodes=rows(two,'logicalerror')
+    normalize=lambda values: sorted(json.dumps({k:v for k,v in row.items() if k!='latency_ns'},
+                                               sort_keys=True) for row in values)
+    assert normalize(one_decodes)==normalize(two_decodes)
+    assert len(one_decodes)==len(two_decodes)==40
+    assert len({row['shot_id'] for row in one_decodes})==8
+    assert all(type(row['osd_called']) is bool for row in one_decodes)
+    assert not rows(one,'samples') and not rows(two,'samples')
     assert sorted(item.name for item in one.iterdir())==['config_resolved.json','data']
 
 

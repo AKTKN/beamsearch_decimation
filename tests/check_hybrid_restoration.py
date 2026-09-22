@@ -68,7 +68,7 @@ print('Both restored bindings, complete source digests, stateful BP and direct O
             subprocess.run(['cmake','-S',str(project),'-B',str(build),'-DCMAKE_BUILD_TYPE=Release',
                 '-DQEC_BUILD_TESTS=ON',f'-DPython_EXECUTABLE={sys.executable}',f'-Dpybind11_DIR={pybind11.get_cmake_dir()}'],check=True)
             subprocess.run(['cmake','--build',str(build),'--target','_native','test_reference_bp','test_search',
-                'test_hybrid_bp','test_hybrid','test_frontier','-j2'],check=True)
+                'test_hybrid_bp','test_hybrid','-j2'],check=True)
             subprocess.run(['ctest','--test-dir',str(build),'--output-on-failure'],check=True)
             program='''
 from pathlib import Path

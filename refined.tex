@@ -1,0 +1,979 @@
+\section{Search-Guided Recursive Decimated-BP Decoder}
+\label{sec:search_guided_recursive_bp}
+
+\subsection{目的と基本的な考え方}
+
+本節では、Belief Propagation (BP) と correction search を組み合わせた
+探索型復号器を定式化する。
+本手法の目的は、単純に BP の不確かな variable node を順番に固定することではなく、
+以下の二つの処理を同一の探索過程の中で同時に行うことである。
+
+\begin{enumerate}
+    \item 低コストの valid correction に直接到達する可能性の高い探索を行う。
+    \item valid correction が探索予算内に得られない場合でも、
+    次に実行する decimated BP に適した hard-fixation pattern を取得する。
+\end{enumerate}
+
+したがって、本手法では search node に二種類の役割を持たせる。
+第一は correction search としての価値であり、
+これを solve score $F_{\mathrm{solve}}$ により評価する。
+第二は、次の BP instance を生成するための decimation pattern としての価値であり、
+これを guide score $F_{\mathrm{guide}}$ により評価する。
+
+この二つを分離することが本手法の基本的な設計方針である。
+Tesseract~\cite{tesseract} は前者に相当する correction search を行う一方、
+Beam Search Decoder~\cite{beamsearch} は BP posterior を用いて
+decimation path を選択する。
+本手法はこれらを直接混合するのではなく、
+一つの BP state から多数の search node を低コストに評価し、
+その中の少数のみについて実際に decimated BP を実行する階層構造を採用する。
+
+
+\subsection{問題設定と記法}
+
+binary decoding matrix を
+\begin{equation}
+    H \in \mathbb{F}_2^{M\times N}
+\end{equation}
+とし、観測 syndrome を
+\begin{equation}
+    \bm{s}\in\mathbb{F}_2^M
+\end{equation}
+とする。
+variable node の集合を
+\begin{equation}
+    \mathcal{V}=\{1,\ldots,N\},
+\end{equation}
+check node の集合を
+\begin{equation}
+    \mathcal{C}=\{1,\ldots,M\}
+\end{equation}
+とする。
+
+variable $j$ の physical error probability を $p_j$ とし、
+対応する physical weight を
+\begin{equation}
+    w_j
+    =
+    \log\frac{1-p_j}{p_j}
+\end{equation}
+と定義する。
+
+check $a$ に接続する variable 集合を
+\begin{equation}
+    \mathcal{N}(a)
+    =
+    \{j:H_{aj}=1\}
+\end{equation}
+とする。
+
+本手法では複数の BP instance を保持する。
+BP instance を $B$ と書き、その instance において既に hard-fix された
+variable assignment の集合を
+\begin{equation}
+    D_B
+    =
+    \{(j,b_j):j\in\mathcal{F}_B,\;b_j\in\{0,1\}\}
+\end{equation}
+とする。
+ここで $\mathcal{F}_B$ は fixed variable の集合である。
+free variable 集合を
+\begin{equation}
+    \mathcal{U}_B
+    =
+    \mathcal{V}\setminus\mathcal{F}_B
+\end{equation}
+とする。
+
+hard-fix された $b_j=1$ の寄与を元の syndrome に吸収し、
+BP instance $B$ の residual syndrome を
+\begin{equation}
+    s_a^{(B)}
+    =
+    s_a
+    \oplus
+    \bigoplus_{\substack{(j,b_j)\in D_B\\H_{aj}=1}}
+    b_j
+\end{equation}
+と定義する。
+したがって、fixed variable は BP message passing から除外され、
+その既知の parity contribution のみが residual syndrome に反映される。
+
+
+\subsection{Step 1: Initial BP}
+
+最初に hard fixation を含まない通常の BP を実行し、
+初期 BP instance $B_0$ を得る。
+
+BP が valid correction $\hat{\bm e}$ を生成し、
+\begin{equation}
+    H\hat{\bm e}=\bm{s}
+\end{equation}
+を満たす場合には、探索を行う必要はないため直ちに復号を終了する。
+
+BP が収束しない場合には、その posterior LLR の履歴を
+以降の探索 guidance として利用する。
+
+この設計の目的は、BP が容易に解ける decoding instance に対して
+探索 overhead を発生させないことである。
+
+
+\subsection{Step 2: Time-Averaged Variable Reliability}
+
+BP instance $B$ における iteration $t$ の posterior LLR を
+\begin{equation}
+    L_{j,B}^{(t)}
+\end{equation}
+とする。
+
+loopy BP では LLR が iteration ごとに大きく振動する場合がある。
+したがって、最終 iteration の LLR のみを使用せず、
+直近 $W$ iterations にわたる clipped average を
+\begin{equation}
+    \bar L_j^{(B)}
+    =
+    \frac{1}{W}
+    \sum_{t=T-W+1}^{T}
+    \operatorname{clip}
+    \left(
+        L_{j,B}^{(t)},-L_{\mathrm c},L_{\mathrm c}
+    \right)
+    \label{eq:average_llr}
+\end{equation}
+と定義する。
+
+ここで $L_{\mathrm c}>0$ は clipping parameter である。
+clipping は少数の非常に大きな LLR が reliability score を支配することを防ぐ。
+
+さらに、LLR を $[0,1]$ に正規化した variable confidence を
+\begin{equation}
+    c_j^{(B)}
+    =
+    \left|
+        \tanh\frac{\bar L_j^{(B)}}{2}
+    \right|
+    \label{eq:variable_confidence}
+\end{equation}
+と定義する。
+$c_j^{(B)}\simeq 1$ は BP が $x_j$ の値について高い confidence を持つことを、
+$c_j^{(B)}\simeq0$ は $x_j$ が曖昧であることを意味する。
+
+Beam Search Decoder~\cite{beamsearch} でも、
+複数 iteration にわたる posterior LLR の和の絶対値が
+variable reliability として利用されている。
+本手法では同じ考え方を採用しつつ、
+window averaging、clipping、および $\tanh$ による規格化を行う。
+
+
+\subsection{Step 3: Check-Level Ambiguity}
+
+variable 単位の ambiguity だけで探索位置を決定すると、
+Tanner graph 上の parity constraint の構造を利用できない。
+そこで、各 check が現在の BP posterior の下で
+どの程度 syndrome constraint と整合しているかを評価する。
+
+LLR convention を
+\begin{equation}
+    L_j
+    =
+    \log
+    \frac{P(x_j=0)}{P(x_j=1)}
+\end{equation}
+とすると、
+\begin{equation}
+    \mathbb{E}[(-1)^{x_j}]
+    =
+    \tanh\frac{L_j}{2}
+\end{equation}
+である。
+
+BP posterior の独立近似の下で、
+check $a$ が residual syndrome $s_a^{(B)}$ を満たす確率を
+\begin{equation}
+    Q_a^{(B)}
+    =
+    \frac{1}{2}
+    \left[
+        1
+        +
+        (-1)^{s_a^{(B)}}
+        \prod_{j\in\mathcal{N}(a)\cap\mathcal{U}_B}
+        \tanh\frac{\bar L_j^{(B)}}{2}
+    \right]
+    \label{eq:check_probability}
+\end{equation}
+と定義する。
+
+対応する check ambiguity を
+\begin{equation}
+    A_a^{(B)}
+    =
+    1-Q_a^{(B)}
+    \label{eq:check_ambiguity}
+\end{equation}
+とする。
+
+$A_a^{(B)}$ が大きい check は、
+現在の BP posterior がその parity constraint と十分整合していない
+局所領域を表す。
+
+各 BP instance $B$ について、
+\begin{equation}
+    \mathcal{C}_B^{(M)}
+    =
+    \operatorname{TopM}_{a\in\mathcal{C}}
+    A_a^{(B)}
+\end{equation}
+を探索対象 check とする。
+
+ここで重要なのは、
+\begin{equation}
+    s_a^{(B)}=1
+\end{equation}
+である residual-unsatisfied check だけでなく、
+\begin{equation}
+    s_a^{(B)}=0
+\end{equation}
+である satisfied check も候補に含めることである。
+
+Tesseract~\cite{tesseract} や通常の Decision Tree Decoder
+(DTD)~\cite{dtd} では、
+unsatisfied check が correction search の起点となる。
+本手法ではこれを拡張し、
+BP posterior 上で曖昧な satisfied check も
+decimation candidate を探索する情報源として利用する。
+
+
+\subsection{Step 4: Bounded Local Search Around Ambiguous Checks}
+
+\subsubsection{Local variable restriction}
+
+selected check $a\in\mathcal{C}_B^{(M)}$ ごとに、
+その近傍の全 variable を探索するのではなく、
+confidence の低い $m$ variables のみを候補とする。
+
+\begin{equation}
+    \mathcal{V}_{a,B}^{(m)}
+    =
+    \operatorname{BottomM}_{
+        j\in\mathcal{N}(a)\cap\mathcal{U}_B
+    }
+    c_j^{(B)}.
+    \label{eq:local_variables}
+\end{equation}
+
+さらに一つの local search における追加 hard fixation の最大数を
+$q$ とする。
+
+したがって、$m$ は search width を、
+$q$ は search depth を制御する。
+
+一般的な hard-assignment enumeration の最大候補数は
+\begin{equation}
+    N_{\mathrm{pat}}(m,q)
+    =
+    \sum_{d=1}^{q}
+    {m\choose d}2^d
+\end{equation}
+であり、$m$ と $q$ によって local search cost を明示的に制限できる。
+
+この段階では別個の max-child や max-leaf parameter は導入せず、
+$m$ と $q$ を基本的な探索予算とする。
+
+
+\subsubsection{Search node}
+
+parent BP instance $B$ から生成された search node $u$ が
+新しく追加する hard assignment を
+\begin{equation}
+    \Delta D_u
+\end{equation}
+とする。
+
+node $u$ の全 hard assignment は
+\begin{equation}
+    D_u
+    =
+    D_B\cup\Delta D_u
+\end{equation}
+である。
+
+対応する residual syndrome は
+\begin{equation}
+    s_a^{(u)}
+    =
+    s_a^{(B)}
+    \oplus
+    \bigoplus_{\substack{(j,b_j)\in\Delta D_u\\H_{aj}=1}}
+    b_j
+    \label{eq:node_residual}
+\end{equation}
+で与えられる。
+
+
+\subsubsection{Unsatisfied check: solution search}
+
+selected check が
+\begin{equation}
+    s_a^{(B)}=1
+\end{equation}
+である場合には、
+その check は correction search の起点として利用できる。
+
+この場合には Tesseract~\cite{tesseract} および
+DTD~\cite{dtd} と同様に、
+partial correction を incrementally に構成する tree search を行う。
+
+最初の branching は selected check $a$ に anchor する。
+$\mathcal{V}_{a,B}^{(m)}$ 内の variable を physical weight
+$w_j$、次いで index の順に並べ、
+canonical branching を構成する。
+その後の descendant では residual syndrome に対して
+同様の correction-search rule を適用し、
+maximum depth $q$ で探索を停止する。
+
+node $u$ までに $1$ に固定された variable の physical cost を
+\begin{equation}
+    g(u)
+    =
+    \sum_{\substack{(j,1)\in D_u}} w_j
+\end{equation}
+とする。
+
+さらに、node $u$ における residual-unsatisfied checks を
+\begin{equation}
+    \mathcal{R}(u)
+    =
+    \{a:s_a^{(u)}=1\}
+\end{equation}
+とする。
+
+free variable $j$ が現在いくつの residual-unsatisfied checks を
+同時に cover できるかを
+\begin{equation}
+    k_j(u)
+    =
+    \left|
+        \{a\in\mathcal{R}(u):H_{aj}=1\}
+    \right|
+\end{equation}
+と定義する。
+
+Tesseract の fractional-cover heuristic に対応して、
+\begin{equation}
+    h_{\mathrm{frac}}(u)
+    =
+    \sum_{a\in\mathcal{R}(u)}
+    \min_{\substack{
+        j\in\mathcal{N}(a)\\
+        j\notin\mathcal{F}_u
+    }}
+    \frac{w_j}{k_j(u)}
+    \label{eq:fractional_heuristic}
+\end{equation}
+を用いる。
+
+solution-search score を
+\begin{equation}
+    \boxed{
+    F_{\mathrm{solve}}(u)
+    =
+    g(u)+h_{\mathrm{frac}}(u)
+    }
+    \label{eq:fsolve}
+\end{equation}
+と定義する。
+
+$g(u)$ は既に採用した fault の physical cost、
+$h_{\mathrm{frac}}(u)$ は残りの syndrome を満たすために
+最低限必要と推定される追加 cost を意味する。
+
+したがって $F_{\mathrm{solve}}$ は
+「この node の descendant に低 physical-cost solution が存在しそうか」
+を評価する score である。
+
+Tesseract~\cite{tesseract} では、
+この種の $g+h$ score が search ordering 自体を決定する。
+本手法でも correction search についてはこの原理を保持する。
+
+
+\subsubsection{Satisfied check: decimation probe}
+
+selected check が
+\begin{equation}
+    s_a^{(B)}=0
+\end{equation}
+の場合、その check を満たすために
+必ず新たな fault を追加する必要はない。
+
+したがって satisfied check に対して
+Tesseract 型の solution-search tree を構成することには
+直接的な論理的根拠がない。
+
+そこで satisfied check は
+\emph{decimation probe} としてのみ利用する。
+
+$\mathcal{V}_{a,B}^{(m)}$ 上で depth $q$ 以下の
+hard-assignment patterns を生成し、
+各 pattern に対して後述する
+$F_{\mathrm{guide}}$ のみを計算する。
+
+ここでは、一時的に selected check を unsatisfied にする assignment も
+排除しない。
+そのような assignment であっても、
+他の free variable が後から parity を補償できるためである。
+
+
+\subsubsection{Guide score}
+
+$F_{\mathrm{guide}}$ の目的は、
+node $u$ が valid correction に直接近いかを評価することではない。
+その hard assignment を次の BP に与えたときに、
+BP の ambiguity を減らす可能性が高いかを評価することである。
+
+まず parent BP posterior の下で、
+variable $j$ を $b$ に固定する確率を
+\begin{equation}
+    P_B(x_j=b)
+    =
+    \frac{
+        1
+    }{
+        1+\exp[(2b-1)\bar L_j^{(B)}]
+    }
+\end{equation}
+とする。
+
+node $u$ の追加 fixation 数を
+\begin{equation}
+    d_u=|\Delta D_u|
+\end{equation}
+とし、
+posterior surprisal の平均を
+\begin{equation}
+    J_{\mathrm{var}}(u|B)
+    =
+    \frac{1}{d_u}
+    \sum_{(j,b)\in\Delta D_u}
+    -\log P_B(x_j=b)
+    \label{eq:variable_surprisal}
+\end{equation}
+と定義する。
+
+$J_{\mathrm{var}}$ が小さい pattern は、
+parent BP posterior と大きく矛盾しない fixation である。
+一方、$\bar L_j\simeq0$ の ambiguous variable では
+$b=0,1$ の双方が類似した cost を持つため、
+両 branch を自然に探索できる。
+
+
+次に、hard fixation を適用した場合の ambiguity reduction を
+BP を再実行せずに近似する。
+
+parent BP instance の overall ambiguity を
+\begin{equation}
+    \mathcal{U}(B)
+    =
+    \frac{1}{|\mathcal{U}_B|}
+    \sum_{j\in\mathcal{U}_B}
+    \left(1-c_j^{(B)}\right)
+    +
+    \beta
+    \frac{1}{M}
+    \sum_{a=1}^{M}
+    A_a^{(B)}
+    \label{eq:overall_ambiguity}
+\end{equation}
+とする。
+
+第一項は variable-level ambiguity、
+第二項は check-level inconsistency を表す。
+$\beta\ge0$ は両者の relative weight である。
+
+candidate node $u$ に含まれる新しい fixed variables は、
+仮想的には完全に決定されたものとして confidence $1$ を与える。
+free variables の LLR は parent BP の値をそのまま使用する。
+
+また、Eq.~\eqref{eq:node_residual} により residual syndrome を更新し、
+free variables のみを使って
+\begin{equation}
+    \widetilde Q_a(u|B)
+    =
+    \frac{1}{2}
+    \left[
+        1
+        +
+        (-1)^{s_a^{(u)}}
+        \prod_{
+            j\in\mathcal{N}(a)\setminus\mathcal{F}_u
+        }
+        \tanh\frac{\bar L_j^{(B)}}{2}
+    \right]
+\end{equation}
+を計算する。
+
+対応する hypothetical ambiguity
+$\widetilde{\mathcal U}(u|B)$ は、
+Eq.~\eqref{eq:overall_ambiguity} において
+新たに fixed された variable の ambiguity を $0$ とし、
+$A_a^{(B)}$ を
+$1-\widetilde Q_a(u|B)$ に置き換えることで定義する。
+
+decimation による ambiguity reduction を
+\begin{equation}
+    G_{\mathrm{amb}}(u|B)
+    =
+    \frac{
+        \mathcal U(B)
+        -
+        \widetilde{\mathcal U}(u|B)
+    }{
+        d_u
+    }
+    \label{eq:ambiguity_gain}
+\end{equation}
+とする。
+
+$d_u$ で割る理由は、
+単純に多くの variables を固定した deep node が
+常に有利になることを防ぐためである。
+
+最終的に guide score を
+\begin{equation}
+    \boxed{
+    F_{\mathrm{guide}}(u|B)
+    =
+    J_{\mathrm{var}}(u|B)
+    -
+    \lambda
+    G_{\mathrm{amb}}(u|B)
+    }
+    \label{eq:fguide}
+\end{equation}
+と定義する。
+
+ここで $\lambda\ge0$ は guidance strength である。
+
+Eq.~\eqref{eq:fguide} の第一項は
+``posterior に照らして不自然な fixation を避ける''
+役割を持つ。
+第二項は
+``その fixation により BP の ambiguity がどの程度解消されそうか''
+を評価する。
+
+したがって $F_{\mathrm{guide}}$ が小さいほど、
+posterior 上 plausible であり、
+かつ BP の曖昧さを効率よく解消すると予測される
+decimation pattern である。
+
+なお、hard fixation によって変化する check probability は
+固定 variable に隣接する checks のみである。
+したがって、実装上は全 $M$ checks の
+$\widetilde Q_a$ を再計算する必要はなく、
+\begin{equation}
+    \mathcal{C}(\Delta D_u)
+    =
+    \bigcup_{(j,b)\in\Delta D_u}\mathcal{N}(j)
+\end{equation}
+に対してのみ incremental update を行えばよい。
+
+$F_{\mathrm{guide}}$ は heuristic score であり、
+Tesseract の admissible heuristic のような
+minimum-weight guarantee を与えるものではない。
+
+
+\subsection{Step 5: Selection and Execution of Decimated BP Instances}
+
+Step 4 により、一つの parent BP instance から多数の search nodes が得られる。
+さらに recursive cycle では複数の parent BP instances が存在する。
+
+cycle $c$ の parent BP beam を
+\begin{equation}
+    \mathcal{B}_c
+    =
+    \{B_1,\ldots,B_{K_{\mathrm{keep}}}\}
+\end{equation}
+とする。
+
+各 $B\in\mathcal{B}_c$ から生成された search nodes を全て統合し、
+global candidate pool
+\begin{equation}
+    \mathcal{P}_c
+    =
+    \bigcup_{B\in\mathcal{B}_c}
+    \mathcal{P}(B)
+\end{equation}
+を構成する。
+
+ここで、
+\begin{equation}
+    K_{\mathrm{run}}
+\end{equation}
+を cycle あたり実際に実行する decimated BP の総数とする。
+
+重要なのは、各 parent BP instance ごとに
+$K_{\mathrm{run}}$ 個を実行するのではなく、
+全 parent から生成された candidate pool 全体から
+合計 $K_{\mathrm{run}}$ 個のみを選ぶことである。
+これにより recursive search の計算量の指数的増大を防ぐ。
+
+
+\subsubsection{Dual-score admission}
+
+correction search と decimation guidance の両方を保持するため、
+\begin{equation}
+    K_{\mathrm{s}}
+    =
+    \left\lfloor
+    \frac{K_{\mathrm{run}}}{2}
+    \right\rfloor,
+    \qquad
+    K_{\mathrm{g}}
+    =
+    K_{\mathrm{run}}-K_{\mathrm{s}}
+\end{equation}
+とする。
+
+$F_{\mathrm{solve}}$ を持つ unsatisfied-check search nodes のうち
+上位 $K_{\mathrm{s}}$ 個を
+\begin{equation}
+    \mathcal{S}_c
+    =
+    \operatorname{Top}_{K_{\mathrm{s}}}
+    \left(
+        -F_{\mathrm{solve}}
+    \right)
+\end{equation}
+とする。
+
+また、unsatisfied/satisfied の双方を含む全 candidate から
+$F_{\mathrm{guide}}$ 上位 $K_{\mathrm{g}}$ 個を
+\begin{equation}
+    \mathcal{G}_c
+    =
+    \operatorname{Top}_{K_{\mathrm{g}}}
+    \left(
+        -F_{\mathrm{guide}}
+    \right)
+\end{equation}
+とする。
+
+ここでは両 score とも小さい方が良いため、
+$\operatorname{Top}(-F)$ と表記している。
+
+初期 selected set を
+\begin{equation}
+    \mathcal{E}_c
+    =
+    \operatorname{Unique}
+    \left(
+        \mathcal{S}_c
+        \cup
+        \mathcal{G}_c
+    \right)
+\end{equation}
+とする。
+
+両 ranking に同じ decimation pattern が含まれていた場合、
+それは一つの BP instance としてのみ実行する。
+
+重複によって
+\begin{equation}
+    |\mathcal{E}_c|<K_{\mathrm{run}}
+\end{equation}
+となった場合には、
+未選択候補を $F_{\mathrm{guide}}$ の順に追加する。
+$F_{\mathrm{guide}}$ 候補を使い切った場合にのみ
+$F_{\mathrm{solve}}$ の次順位から補充する。
+
+この guide-priority refill を採用する理由は、
+Step 5 の直接的な目的が
+``次に実行する BP instance を選ぶこと''
+だからである。
+$F_{\mathrm{solve}}$ は correction search の観点から重要であるが、
+$F_{\mathrm{guide}}$ は BP admission 自体を目的として設計された score である。
+
+
+\subsubsection{Execution of hard-decimated BP}
+
+選択された各 candidate $u\in\mathcal{E}_c$ に対して、
+hard-fixation $D_u$ を課した decimated BP を実行する。
+
+candidate $u$ が parent BP instance $B$ から生成された場合には、
+可能な限り $B$ の message state を継承し、
+新たに固定された variables とその incident edges のみを
+message passing から除外する。
+
+これは毎回 channel prior から BP を cold restart するよりも、
+parent BP が既に獲得した局所情報を保持できるためである。
+
+Beam Search Decoder~\cite{beamsearch} でも、
+各 path が BP message state を保持し、
+branch 後の masked BP に引き継ぐ構造が用いられている。
+
+decimated BP の開始直後および各 iteration 後に
+\begin{equation}
+    H\hat{\bm e}=\bm{s}
+\end{equation}
+を確認し、
+valid correction が得られた場合には直ちに終了する。
+
+
+\subsection{Step 6: BP-State Retention and Recursive Cycles}
+
+$K_{\mathrm{run}}$ 個の decimated BP のうち、
+valid correction を得られなかった instances について、
+次 cycle に残す parent BP instances を選択する。
+
+BP instance $B_u$ の final LLR history から
+Eq.~\eqref{eq:average_llr} と
+Eq.~\eqref{eq:variable_confidence} を再計算し、
+global BP reliability を
+\begin{equation}
+    \boxed{
+    R(B_u)
+    =
+    \frac{1}{
+        |\mathcal{U}_{B_u}|
+    }
+    \sum_{j\in\mathcal{U}_{B_u}}
+    c_j^{(B_u)}
+    }
+    \label{eq:bp_reliability}
+\end{equation}
+と定義する。
+
+$R(B_u)\in[0,1]$ であり、
+値が大きいほど free variables 全体について
+BP posterior が decisive であることを意味する。
+
+Beam Search Decoder~\cite{beamsearch} では、
+unmasked variables の accumulated LLR reliability の総和を
+path score として用い、
+高 score の paths のみを beam width まで保持する。
+Eq.~\eqref{eq:bp_reliability} はこの考え方を
+normalized confidence として採用したものである。
+
+次 cycle に保持する BP instance 数を
+\begin{equation}
+    K_{\mathrm{keep}}
+    \le
+    K_{\mathrm{run}}
+\end{equation}
+とし、
+\begin{equation}
+    \boxed{
+    \mathcal{B}_{c+1}
+    =
+    \operatorname{Top}_{K_{\mathrm{keep}}}
+    R(B_u)
+    }
+    \label{eq:beam_retention}
+\end{equation}
+とする。
+
+したがって一 cycle の情報 flow は
+\begin{equation}
+\begin{split}
+    \{\text{parent BP states}\}
+    &\longrightarrow
+    \{\text{many cheap search nodes}\}
+    \\
+    &\longrightarrow
+    K_{\mathrm{run}}\text{ selected patterns}
+    \\
+    &\longrightarrow
+    K_{\mathrm{run}}\text{ decimated BP runs}
+    \\
+    &\longrightarrow
+    K_{\mathrm{keep}}\text{ retained BP states}.
+\end{split}
+\end{equation}
+
+この処理を最大 $C_{\max}$ cycles 繰り返す。
+
+ここで
+$K_{\mathrm{run}}$ は一 cycle に評価する BP candidate 数、
+$K_{\mathrm{keep}}$ は recursive search の width を表す。
+
+両者を分離することで、
+一時的には複数の candidate を評価しつつ、
+次 cycle に伝播する state 数を小さく保つことができる。
+
+
+\subsection{Step 7: OSD Fallback}
+
+最大 $C_{\max}$ cycles を実行しても valid correction が得られない場合には、
+OSD fallback を実行する。
+
+最後に保持された BP states のうち
+\begin{equation}
+    B^\star
+    =
+    \arg\max_{B\in\mathcal{B}_{C_{\max}}}
+    R(B)
+\end{equation}
+を選択し、
+その full signed LLR vector を OSD の reliability input とする。
+
+初期実装では OSD-0 を用いることができる。
+
+OSD が生成した correction は、
+それ以前の search/BP solution と同様に
+original decoding problem に対して
+\begin{equation}
+    H\hat{\bm e}=\bm{s}
+\end{equation}
+を満たすことを最終的に検証する。
+
+retained BP state が存在しない場合には、
+physical channel prior を OSD input とする。
+
+
+\subsection{先行研究との関係}
+
+\paragraph{Tesseract.}
+Tesseract~\cite{tesseract} は error-set space 上の
+A$^\ast$ search として decoding を定式化し、
+physical cost $g$ と residual syndrome に対する
+admissible heuristic $h$ を用いる。
+本手法の $F_{\mathrm{solve}}$ はこの考え方を継承している。
+
+一方、本手法では探索位置自体を BP posterior から得られる
+check ambiguity $A_a$ で決定し、
+さらに satisfied checks からも decimation patterns を生成する。
+また、search result は correction candidate だけでなく、
+次の BP instance を生成する hard-fixation pattern としても利用される。
+
+
+\paragraph{Decision Tree Decoder.}
+DTD~\cite{dtd} では partial correction ごとに cost を与え、
+最小 cost の live node を逐次探索する。
+Height-bound DTD では syndrome-height lower bound を primary cost とし、
+decimated BP の LLR を tie-breaker として使用する。
+BP-DTD では decimated BP LLR を直接 tree cost update に使用する。
+
+本手法も BP posterior を search guidance に利用する点では共通するが、
+各 search node で BP を再実行しない。
+一つの parent BP state から多数の search nodes を
+$F_{\mathrm{solve}}$ と $F_{\mathrm{guide}}$ により安価に評価し、
+global pool から選択された $K_{\mathrm{run}}$ nodes のみについて
+BP を実行する。
+したがって、search と BP evaluation を二段階に分離している。
+
+
+\paragraph{Beam Search Decoder.}
+Beam Search Decoder~\cite{beamsearch} は、
+BP accumulated LLR から least-reliable variable を選択し、
+その variable を $0/1$ に branch した後、
+各 branch で masked BP を実行する。
+BP 後の path reliability score により beam width 個まで prune する。
+
+本手法は
+Eq.~\eqref{eq:average_llr} と
+Eq.~\eqref{eq:bp_reliability} において
+この temporal-LLR reliability の考え方を採用する。
+
+ただし、branching unit は単一の least-reliable variable ではない。
+check ambiguity $A_a$ により局所領域を選択し、
+その周囲で bounded correction search と
+decimation-pattern search を行う。
+さらに、BP 実行前には
+$F_{\mathrm{solve}}$ と $F_{\mathrm{guide}}$ による screening を行うため、
+生成された全 branch に対して BP を実行する必要がない。
+
+
+\subsection{アルゴリズム全体の要約}
+
+本手法は次の三段階の score hierarchy を持つ。
+
+\begin{equation}
+    \boxed{
+    A_a:
+    \quad
+    \text{どの check 周辺を探索するか}
+    }
+\end{equation}
+
+\begin{equation}
+    \boxed{
+    F_{\mathrm{solve}},
+    F_{\mathrm{guide}}:
+    \quad
+    \text{どの decimation pattern に BP を実行するか}
+    }
+\end{equation}
+
+\begin{equation}
+    \boxed{
+    R(B):
+    \quad
+    \text{実行後のどの BP state を次 cycle に残すか}
+    }
+\end{equation}
+
+したがって全体の処理は
+\begin{equation}
+\boxed{
+\begin{aligned}
+\text{BP}
+&\rightarrow
+\text{time-averaged LLR}
+\\
+&\rightarrow
+\text{check ambiguity selection}
+\\
+&\rightarrow
+\text{bounded local search}
+\\
+&\rightarrow
+\text{dual-score candidate selection}
+\\
+&\rightarrow
+K_{\mathrm{run}}\text{ decimated BPs}
+\\
+&\rightarrow
+K_{\mathrm{keep}}\text{ BP-state beam}
+\\
+&\rightarrow
+\text{recursive search}
+\\
+&\rightarrow
+\text{OSD fallback}.
+\end{aligned}
+}
+\end{equation}
+
+この構造では、correction search と BP decimation search を
+同一の search nodes 上で実行しつつ、
+両者の目的関数を意図的に分離している。
+$F_{\mathrm{solve}}$ は低 physical-cost solution の発見を目的とし、
+$F_{\mathrm{guide}}$ は BP ambiguity の解消を目的とする。
+その後、実際に BP を実行した結果は
+$R(B)$ によって独立に評価される。
+
+この三段階の分離により、
+search score の誤差がそのまま recursive BP beam の選択誤差になることを避け、
+``solution を探す search'' と
+``次に有効な decimation を探す search''
+を一つの decoder 内で共存させる。
+
+
+\begin{thebibliography}{9}
+
+\bibitem{tesseract}
+L.~A.~Beni, O.~Higgott, and N.~Shutty,
+``Tesseract: A Search-Based Decoder for Quantum Error Correction,''
+arXiv:2503.10988, 2025.
+
+\bibitem{dtd}
+K.~R.~Ott, B.~Het\'enyi, and M.~E.~Beverland,
+``Decision-Tree Decoders for General Quantum LDPC Codes,''
+arXiv:2502.16408, 2025.
+
+\bibitem{beamsearch}
+M.~Ye, D.~Wecker, and N.~Delfosse,
+``Beam Search Decoder for Quantum LDPC Codes,''
+arXiv:2512.07057, 2025.
+
+\end{thebibliography}

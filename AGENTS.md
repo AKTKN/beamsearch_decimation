@@ -28,12 +28,15 @@ data/output destinations when moving configs.
 Use the search_decimation conda environment for all programs. Production
 physical rates remain user-supplied; do not launch a production sweep implicitly.
 
-SEARCH-BP-1.0 is implemented as `search_bp`; normative sources are
-`docs/specifications/search_bp_specification.md` and the adjacent Parquet contract.
-New runs use schema-version 3 and 14 separate typed datasets.
-Use `config/search_bp.yaml.example` for bounded validation and
-`python python_scripts/validate_config.py` for dry runs. Do not launch the production
-starter implicitly or claim an advantage over beam8 from smoke data.
+SEARCH-BP-2.0 reserves kind/profile/name `search_bp`; it is contract-only.
+Root `refined.tex` is normative; docs/search_bp_v2_design.md maps its equations
+and records unresolved policies. Do not implement it during the architectural
+migration stage. Strict configs use search_bp_config/3 and explicit
+algorithm_version SEARCH-BP-2.0. Execution deliberately fails before run creation.
+SEARCH-BP-1.0 sources/contracts/tests live in named legacy/search_bp_v1 areas and
+are excluded from the active build/test suite. New results use search_bp_results/1:
+shot_id, decoder_name, logical_error, latency_ns, osd_called. No raw samples or
+telemetry tables. Use validate_config.py for the contract-only template.
 
 Directory responsibilities: src/ importable Python and native implementation;
 python_scripts/ thin CLIs; scripts/ shell launchers; config/ strict YAML;
@@ -70,7 +73,7 @@ scripts/build_dependencies.sh --check
 python -m pip install --no-build-isolation --no-deps -e .
 python -m pytest -q
 scripts/run_benchmark.sh config/legacy/stage5_validation.yaml
-scripts/run_benchmark.sh config/search_bp.yaml.example
+python python_scripts/validate_config.py config/search_bp.yaml.example
 python -c "from analysis.simple_search_bp import summarize_run; print(summarize_run('SOURCE_RUN'))"
 ```
 

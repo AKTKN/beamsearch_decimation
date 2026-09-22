@@ -29,6 +29,6 @@ the preserved Stage 1 decision record; its planned interfaces are superseded the
   validation, paired hypothesis APIs and reproducible Stage 4–5 workflows.
 - hybrid_acceptance.md: final source restoration, Release/Debug/sanitizer and E2E
   commands, contract review, evidence scope and handoff limitations.
-- specifications/search_bp_specification.md: active hard-fixation algorithm.
-- data_dictionary.md and specifications/search_bp_parquet_schema.json: typed data contract.
+- search_bp_v2_design.md: root refined.tex map and unresolved numerical policies.
+- simulation_output.md and data_dictionary.md: active five-field contract.
 - legacy/hybrid_frontier_bp_beam/: preserved HSBP-FB-2.0 sources and evidence.

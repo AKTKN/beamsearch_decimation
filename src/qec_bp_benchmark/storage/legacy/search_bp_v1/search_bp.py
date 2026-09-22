@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import uuid
 
-from . import atomic_json, sha256
+from qec_bp_benchmark.storage import atomic_json, sha256
 from .search_bp_schema import PARTITIONS, PRIMARY_KEYS, SCHEMAS, SCHEMA_VERSION, table, unpack_bits
 
 DATASETS = tuple(SCHEMAS)

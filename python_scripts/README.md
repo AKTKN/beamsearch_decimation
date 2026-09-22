@@ -43,3 +43,7 @@ and legacy analysis implementation remain preserved in docs and `analysis.legacy
 
 Simulation/build CLIs remain shared. The pre-migration analysis and notebook entry
 points are preserved under python_scripts/legacy/ and route to analysis.legacy.
+
+SEARCH-BP-2.0 validation is contract-only: validate_config.py intentionally does
+not call the execution availability guard. run_benchmark rejects this decoder
+before side effects. See docs/search_bp_v2_design.md.

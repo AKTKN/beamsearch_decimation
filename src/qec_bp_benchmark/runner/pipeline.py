@@ -7,7 +7,6 @@ import json
 import multiprocessing
 from pathlib import Path
 import sys
-import threading
 import time
 from typing import Callable, Iterable, Iterator, MutableMapping, TypeVar
 
@@ -78,61 +77,6 @@ def _prepared_instances(config, report) -> list[dict]:
                                                config.experiment.memory_basis),
                 })
     return instances
-
-
-def _frontier_static_rows(config, run_id: str, sampling_id: str, instances: list[dict],
-                          decoders: list[dict]) -> tuple[dict[str, dict], list[dict]]:
-    """Build small typed rows stored beside each condition's simulation data."""
-    import numpy
-    from ..artifacts import load_problem
-
-    conditions = {}
-    for instance in instances:
-        artifact_path = instance["artifact"]
-        artifact = json.loads((artifact_path / "manifest.json").read_text())
-        metadata = instance["metadata"]
-        problem = load_problem(artifact_path)
-        degrees = numpy.diff(problem.H.tocsc().indptr)
-        conditions[instance["id"]] = {
-            "run_id": run_id,
-            "condition_id": instance["id"],
-            "family": metadata["family"],
-            "distance": metadata["distance"],
-            "rounds": metadata["rounds"],
-            "physical_rate": metadata["p"],
-            "memory_basis": config.experiment.memory_basis,
-            "sector": config.experiment.sector,
-            "num_data_qubits": metadata["n"],
-            "num_detectors": problem.H.shape[0],
-            "num_fault_variables": problem.H.shape[1],
-            "num_observables": problem.A.shape[0],
-            "circuit_sha256": artifact["hashes"]["circuit"],
-            "dem_sha256": artifact["hashes"]["dem"],
-            "model_sha256": content_hash(problem.hashes),
-            "noise_config_sha256": content_hash(metadata["noise"]),
-            "sampling_id": sampling_id,
-            "model_metadata_path": str(artifact_path / "instance.json"),
-            "column_degree_histogram": numpy.bincount(degrees).astype("uint32").tolist(),
-        }
-    profiles = []
-    for detail in decoders:
-        decoder = detail["config"]
-        profiles.append({
-            "run_id": run_id,
-            "decoder_id": detail["id"],
-            "name": decoder["name"],
-            "kind": decoder.get("kind", decoder["profile"]),
-            "profile": decoder["profile"],
-            "algorithm_version": decoder.get("algorithm_version", decoder["profile"]),
-            "resolved_config_sha256": content_hash(decoder),
-            "resolved_config_path": "config_resolved.json",
-            "native_build_sha256": detail["implementation"]["native_sha256"],
-            "source_commit": "not-recorded",
-            "dirty_patch_sha256": None,
-            "native_threads": 1,
-            "v2_telemetry_available": decoder["profile"] == "search_bp",
-        })
-    return conditions, profiles
 
 
 def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None = None,
@@ -236,9 +180,9 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                    f"workers={config.execution.workers}, timing={config.timing.mode}; "
                    f"oversubscribed={execution['oversubscribed']}")
 
-            frontier_output = isinstance(config.output, SearchBPOutput)
+            configured_parquet = isinstance(config.output, SearchBPOutput)
             compression = config.output.compression
-            compression_level = (config.output.parquet.compression_level if frontier_output else None)
+            compression_level = (config.output.parquet.compression_level if configured_parquet else None)
             completed_batches = 0
             completed_shots = 0
             seen = set()
@@ -246,56 +190,25 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
             with ResultStore(directory, prefixes,
                              benchmark_timings=_simulation_timings) as store:
                 phase_started = time.perf_counter_ns()
-                if frontier_output:
-                    from ..storage.search_bp_schema import SCHEMAS, table as frontier_table
-
-                    conditions, profiles = _frontier_static_rows(
-                        config, run_id, sampling_id, instances, decoders
-                    )
-                    for instance in instances:
-                        condition_id = instance["id"]
-                        for name, schema in SCHEMAS.items():
-                            store.ensure(condition_id, name, schema, compression=compression,
-                                         compression_level=compression_level)
-                        store.append(condition_id, "conditions", [conditions[condition_id]],
-                                     SCHEMAS["conditions"],
-                                     lambda rows: frontier_table("conditions", rows),
-                                     compression=compression, compression_level=compression_level)
-                        store.append(condition_id, "decoder_profiles", profiles,
-                                     SCHEMAS["decoder_profiles"],
-                                     lambda rows: frontier_table("decoder_profiles", rows),
-                                     compression=compression, compression_level=compression_level)
-                else:
-                    from ..storage.schema import DECODER_PHASES, DECODES_V2, HYBRID_ROUNDS, SAMPLES
-
-                    schemas = {"samples": SAMPLES, "decodes": DECODES_V2}
-                    if config.timing.profiling == "phases":
-                        schemas.update(hybrid_rounds=HYBRID_ROUNDS, decoder_phases=DECODER_PHASES)
-                    for condition_id in prefixes:
-                        for name, schema in schemas.items():
-                            store.ensure(condition_id, name, schema, compression=compression)
+                from ..storage.minimal import SCHEMA, result_table, minimal_record
+                for condition_id in prefixes:
+                    store.ensure(condition_id, "decodes", SCHEMA, compression=compression,
+                                 compression_level=compression_level)
                 if _simulation_timings is not None:
                     _simulation_timings["static_output_setup"] = (
                         _simulation_timings.get("static_output_setup", 0)
                         + time.perf_counter_ns() - phase_started
                     )
 
-                def write_frontier_group(message: dict) -> None:
-                    from ..storage.search_bp_schema import SCHEMAS, table as frontier_table
-                    condition_id = message["condition_id"]
-                    for name, columns in message["tables"].items():
-                        store.append(condition_id, name, columns, SCHEMAS[name],
-                                     lambda values, dataset=name: frontier_table(dataset, values),
-                                     compression=compression,
-                                     compression_level=compression_level)
+                def write_group(message: dict) -> None:
+                    store.append(message["condition_id"], "decodes", message["tables"]["results"],
+                                 SCHEMA, result_table, compression=compression,
+                                 compression_level=compression_level)
 
-                frontier_buffer = (ShotChunkBuffer(
-                    config.output.parquet.shots_per_flush, write_frontier_group
-                ) if frontier_output else None)
-
-                def write_frontier_chunk(message: dict) -> None:
-                    assert frontier_buffer is not None
-                    frontier_buffer.append(message)
+                buffer = ShotChunkBuffer(
+                    config.output.parquet.shots_per_flush if configured_parquet else config.sampling.batch_size,
+                    write_group,
+                )
 
                 def consume(result):
                     nonlocal completed_batches, completed_shots
@@ -308,31 +221,20 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                     key = (task.instance_id, task.batch_id)
                     if key in seen:
                         raise ValueError("duplicate task completion")
-                    if frontier_output:
-                        if result["frontier_tables"] is not None:
-                            write_frontier_chunk({"condition_id": task.instance_id,
-                                                  "tables": result["frontier_tables"]})
-                    else:
-                        from ..storage.schema import DECODER_PHASES, DECODES_V2, HYBRID_ROUNDS, SAMPLES, table
-
-                        batch_rows = {"samples": result["samples"], "decodes": result["decodes"]}
-                        batch_schemas = {"samples": SAMPLES, "decodes": DECODES_V2}
-                        if config.timing.profiling == "phases":
-                            batch_rows.update(hybrid_rounds=result["hybrid_rounds"],
-                                              decoder_phases=result["decoder_phases"])
-                            batch_schemas.update(hybrid_rounds=HYBRID_ROUNDS,
-                                                 decoder_phases=DECODER_PHASES)
-                        for name, rows in batch_rows.items():
-                            schema = batch_schemas[name]
-                            store.append(task.instance_id, name, rows, schema,
-                                         lambda values, selected=schema: table(values, selected),
-                                         compression=compression)
+                    rows = [minimal_record(row) for row in result["decodes"]]
+                    by_shot = {}
+                    for row in rows:
+                        by_shot.setdefault(row["shot_id"], []).append(row)
+                    for shot in by_shot.values():
+                        buffer.append({"condition_id": task.instance_id, "tables": {
+                            "results": {name: [row[name] for row in shot] for name in SCHEMA.names}
+                        }})
                     seen.add(key)
                     completed_batches += 1
                     completed_shots += task.count
                     if verbose:
                         sample = result["progress"]
-                        report(f"Saved batch {completed_batches}/{expected} "
+                        report(f"Completed batch {completed_batches}/{expected} "
                                f"({100 * completed_batches / expected:.1f}%); "
                                f"shots={completed_shots}/{total_shots}; "
                                f"{sample['family']} d={sample['distance']}, "
@@ -351,7 +253,7 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                                   - (storage_after - storage_before))
                         )
 
-                report("Starting decoding; progress updates after each saved batch")
+                report("Starting decoding; progress updates after each completed batch")
                 worker_config = config.model_dump(mode="json")
                 if config.config_schema_version is not None:
                     worker_config["config_schema_version"] = config.config_schema_version
@@ -359,51 +261,15 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                 if config.execution.workers == 1:
                     initialize(worker_config, context)
                     for task in tasks:
-                        consume(process_batch(
-                            task, chunk_sink=write_frontier_chunk if frontier_output else None
-                        ))
+                        consume(process_batch(task))
                 else:
                     mp_context = multiprocessing.get_context("spawn")
-                    stream_queue = mp_context.Queue(maxsize=max(2, 2 * config.execution.workers)) if frontier_output else None
-                    stream_errors: list[BaseException] = []
-                    consumer_thread = None
-                    if stream_queue is not None:
-                        def drain_stream() -> None:
-                            while True:
-                                message = stream_queue.get()
-                                if message is None:
-                                    return
-                                if stream_errors:
-                                    continue
-                                try:
-                                    write_frontier_chunk(message)
-                                except BaseException as error:
-                                    stream_errors.append(error)
-                        consumer_thread = threading.Thread(target=drain_stream,
-                                                           name="qec-parquet-writer")
-                        consumer_thread.start()
-                    try:
-                        with ProcessPoolExecutor(
-                            max_workers=config.execution.workers,
-                            mp_context=mp_context,
-                            initializer=initialize,
-                            initargs=(worker_config, context, stream_queue),
-                        ) as executor:
-                            for result in bounded_results(executor, tasks, config.execution.max_pending):
-                                consume(result)
-                    finally:
-                        if stream_queue is not None:
-                            stream_queue.put(None)
-                            assert consumer_thread is not None
-                            consumer_thread.join()
-                            stream_queue.close()
-                            stream_queue.join_thread()
-                    if stream_errors:
-                        raise stream_errors[0]
-                if frontier_buffer is not None:
-                    frontier_buffer.flush_all()
-                if len(seen) != expected:
-                    raise ValueError("incomplete task count")
+                    with ProcessPoolExecutor(max_workers=config.execution.workers,
+                                             mp_context=mp_context, initializer=initialize,
+                                             initargs=(worker_config, context)) as executor:
+                        for result in bounded_results(executor, tasks, config.execution.max_pending):
+                            consume(result)
+                buffer.flush_all()
                 if _simulation_timings is not None:
                     _simulation_timings["batch_execution_and_consumption"] = (
                         time.perf_counter_ns() - execution_started

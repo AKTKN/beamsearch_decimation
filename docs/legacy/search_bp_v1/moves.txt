@@ -1,0 +1,17 @@
+src/qec_bp_benchmark/native/search_bp_search.hpp -> src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_search.hpp
+src/qec_bp_benchmark/native/search_bp_bindings.hpp -> src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_bindings.hpp
+src/qec_bp_benchmark/native/search_bp_model.hpp -> src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_model.hpp
+src/qec_bp_benchmark/native/search_bp.hpp -> src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp.hpp
+src/qec_bp_benchmark/native/search_bp_telemetry.hpp -> src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_telemetry.hpp
+src/qec_bp_benchmark/native/hard_fixed_min_sum.hpp -> src/qec_bp_benchmark/native/legacy/search_bp_v1/hard_fixed_min_sum.hpp
+src/qec_bp_benchmark/storage/search_bp.py -> src/qec_bp_benchmark/storage/legacy/search_bp_v1/search_bp.py
+src/qec_bp_benchmark/storage/search_bp_schema.py -> src/qec_bp_benchmark/storage/legacy/search_bp_v1/search_bp_schema.py
+docs/specifications/search_bp_specification.md -> docs/legacy/search_bp_v1/search_bp_specification.md
+docs/specifications/search_bp_parquet_schema.json -> docs/legacy/search_bp_v1/search_bp_parquet_schema.json
+config/search_bp.yaml.example -> config/legacy/search_bp_v1/search_bp.yaml.example
+tests/test_search_bp_decoder.py -> tests/legacy/search_bp_v1/test_search_bp_decoder.py
+tests/test_search_bp_storage.py -> tests/legacy/search_bp_v1/test_search_bp_storage.py
+tests/test_search_bp_config.py -> tests/legacy/search_bp_v1/test_search_bp_config.py
+tests/native/test_search_bp.cpp -> tests/legacy/search_bp_v1/native/test_search_bp.cpp
+analysis/simple_search_bp.py -> analysis/legacy/search_bp_v1/simple_search_bp.py
+docs/data_dictionary.md -> docs/legacy/search_bp_v1/data_dictionary.md

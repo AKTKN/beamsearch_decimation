@@ -1,11 +1,12 @@
 # Build and test
 
-search_bp uses the existing hybrid build. After a watched ldpc hybrid source changes,
-run `(cd external_lib/ldpc && python setup_hybrid.py build_ext --inplace)`, then
-`python python_scripts/audit_dependencies.py`, then reinstall the project editable.
-The aggregate project identity includes every `native/frontier*.hpp`. Configure
-with `-DQEC_SANITIZE=ON` to run the `frontier` and `hybrid_bp` ownership targets
-under ASan+UBSan. All v2 native targets disable fast-math and contraction.
+SEARCH-BP-2.0 is contract-only: no search_bp native target exists yet. The old
+headers/bindings are archived and excluded. Existing screened and hybrid native
+targets retain C++17, no fast-math and no contraction. After a watched ldpc hybrid
+source changes, rebuild its opt-in extension, audit dependencies, then reinstall
+the project editable. `native_sources.py` lists the active project hash inputs.
+`python tests/check_hybrid_restoration.py` rebuilds both opt-in bindings and the
+four active native test targets from restored sources in an isolated directory.
 
 Create the locked environment and build every required native dependency from its
 pinned checkout. The helper also installs the optimized project extension and

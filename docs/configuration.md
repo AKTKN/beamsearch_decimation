@@ -1,22 +1,15 @@
 # Complete YAML interface
 
-## SEARCH-BP-1.0
+## SEARCH-BP-2.0 (contract only)
 
-The active kind and profile are both `search_bp`. Nested
-search/BP/stopping/fallback/numerics objects reject unknown keys and nonfinite
-values. `search.expansions_per_cycle` is one scalar used in every cycle. There is
-no `max_generated_nodes`: expanded search work is bounded only by
-`max_cycles * expansions_per_cycle`, while each expanded Tanner-graph node may
-generate all of its finite canonical children.
-`bp.beam_width` controls both new pattern admission and retained BP states, while
-`bp.max_iteration` is the fixed request for each candidate visit. There are no
-`max_expansions`, `max_generated_nodes`, `admissions_per_cycle`,
-`max_total_iterations`, soft-hint, LLR clip, or hard-decision-zero settings.
-`max_cycles: 0` selects direct CS0.
-
-Typed output requires `search_bp_config/2`, layout `typed_datasets` and data schema
-`search_bp_parquet/2`. Validate without executing using
-`python python_scripts/validate_config.py CONFIG`.
+`kind`, `profile`, and `name` are `search_bp`. An explicit
+`algorithm_version: SEARCH-BP-2.0` and `config_schema_version: search_bp_config/3`
+are required. Old versions and keys fail validation. The proposed fields and
+unresolved numerical policies are in [the design map](search_bp_v2_design.md).
+`output.layout: minimal_results` uses `search_bp_results/1`; no telemetry keys
+are accepted. `python python_scripts/validate_config.py config/search_bp.yaml.example`
+validates without checking execution availability. Running an enabled search_bp
+raises NotImplementedError before imports, artifact preparation or run creation.
 
 `load_config(path)` safely reads YAML, rejects duplicate/unknown keys, validates
 parameters and resolves all paths relative to the YAML file. Config models are
@@ -33,10 +26,10 @@ An empty production grid is a validation error; no production rates are invented
 | decoders | List of unique named enabled instances. profile=screened_reference accepts T0,Tpost,history_window,M,q,K positive integers and 0<Lmax<=30; fixed sum_product/flooding/binary64 and disabled damping/warm_start/fallback. q<=min(M,n) is enforced at native preparation without silent reduction; the exactly empty normalized model is handled algebraically. |
 | bposd profile | profile=bposd_ms30_cs10, max_iter=30, minimum_sum/parallel, ms_scaling_factor=1.0, OSD_CS, osd_order=10, omp_thread_count=1. Budgets may be changed in separately named instances. |
 | beam profiles | profile=beam8 defaults max_rounds=10,beam_width=8,num_results=1,initial_iters=30,iters_per_round=20. beam32 defaults width=32,initial=40,per-round=30 and disabled. Only these five algorithm controls are supported. Generic bp_method is rejected. |
-| sampling | shots_per_point, batch_size, master_seed, warmup_seed, warmup_count, store_raw_samples=true. Counts are positive except warmup may be zero. Physical sample identity excludes warmup. |
+| sampling | shots_per_point, batch_size, master_seed, warmup_seed, warmup_count, store_raw_samples=false. Counts are positive except warmup may be zero. Physical sample identity excludes warmup. |
 | execution | workers=4, start_method=spawn, max_pending=2*workers if omitted, worker_cache_size=2, native_threads=blas_threads=1, optional unique nonnegative CPU affinity. |
 | timing | throughput or isolated_latency (requires one worker), both process_time_ns/perf_counter_ns timers, cyclic decoder order, profiling=none/phases. |
-| output | root path, compression=zstd/snappy/none, shard_policy=paired_atomic_batch, retain_traces=false, retain_corrections=false. Typed search_bp output adds compression_level, positive shots_per_flush (default 1024), atomic_batch_commit=true and telemetry controls. |
+| output | root path, compression=zstd/snappy/none, shard_policy=paired_atomic_batch, retain_traces=false, retain_corrections=false. Minimal output adds compression_level and positive shots_per_flush (default 1024). No telemetry, corrections or raw samples are written. |
 
 The preparation CLI consumes only circuit-related settings; run_benchmark.py executes
 the full decoder comparison, and analyze_benchmark.py consumes saved datasets.

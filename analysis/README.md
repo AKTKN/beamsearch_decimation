@@ -122,19 +122,12 @@ including uncommitted shards; this API is not the verified report reader.
 Scientific/run/decoder/execution grouping and physical-shot denominators remain.
 No bootstrap, hybrid details or shared all-data cache is used.
 
-Schema-version 3 loading verifies the search_bp inventory before joining its typed
-tables into the stable record surface. `RunData.frontier_tables` retains access to
-candidate/event diagnostics. Run comparison includes all non-timing v2 telemetry
-and keys physical shots by condition plus shot ID, so BB/surface indices cannot collide.
+## Current minimal results
 
-## Lightweight frontier comparison
-
-`analysis.simple_search_bp` is the intentionally small consumer used by the local
-`notebook/benchmark_analysis.ipynb`. It reads only inventory-committed
-`decode_results` columns, so incomplete v3 runs can be inspected without loading
-patterns, cycles, BP updates, phase timings or other telemetry. It reports
-block failure over all physical shots (including decoder failures and logical
-mismatches) and complete adapter CPU/wall service time, including failed outputs.
-Its plotting API returns in-memory Matplotlib figures for notebook display and
-does not write image files. It does not replace the verified report workflow or
-establish a performance advantage from one run.
+`simple_search_bp.summarize_run` reads the five-field result file directly and
+obtains condition/decoder/execution context from config_resolved.json. It reports
+logical error over all physical shots, failure-inclusive wall latency, and exact
+OSD call counts over known flags with unknown counts separate. It never merges
+runs. Old 14-dataset and standard-file reads dispatch to
+`legacy/search_bp_v1/simple_search_bp.py`. Historical plotting/report APIs above
+still consume their original schemas; use the minimal reader for new results.

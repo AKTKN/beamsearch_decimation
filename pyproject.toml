@@ -18,3 +18,4 @@ cmake.build-type = "Release"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["legacy"]

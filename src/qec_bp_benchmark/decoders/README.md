@@ -35,15 +35,13 @@ empty models. `DecodeResult.hybrid_summary` owns scalar counters/times. Call
 `export_telemetry()` after timing and before reuse for owned phase/cycle records.
 Per-node `diagnostics=True` is rejected; profiling collects compact events. Session
 lifetimes and error/reset behavior are in docs/hybrid_native.md. No truth is passed
-to the service. Workers now export and label telemetry outside the timer for v2
-tables; see docs/hybrid_data.md.
+to the service. Historical v2 telemetry is described in docs/hybrid_data.md.
 
-`SearchBP` dispatches to the `SEARCH-BP-1.0` hard-fixation native controller. Its
-`DecodeResult.frontier_summary` and `export_telemetry()` data own their contents.
-The adapter passes only H, A, physical priors and syndrome; sampled truth remains
-worker-side and is attached to each solution event after service timing. It passes
-scalar `max_cycles` and `expansions_per_cycle`; there is no generated-node cap.
-SearchBP's active telemetry adapter is column-oriented. `export_telemetry_columns`
-is called only after the opaque decoder service timer and before the next shot;
-truth labels and storage hashes remain Python-side. The row-oriented export method
-is compatibility-only and is not used by the current search_bp runner.
+`SearchBP` is now the SEARCH-BP-2.0 configuration contract. Its adapter raises
+NotImplementedError before loading a backend; no v1 fallback is permitted.
+`DecodeResult.osd_called` is false for screened/beam and algebraic empty-model
+paths, exact from the hybrid invocation flag, and exact for upstream BP-OSD from
+its nonzero-syndrome BP-fallback branch. A zero-syndrome early return never uses
+a stale upstream convergence flag. Native baseline algorithms are unchanged.
+The active runner saves only this flag, logical error and full service latency
+with shot/decoder keys. Telemetry export remains a historical hybrid API.

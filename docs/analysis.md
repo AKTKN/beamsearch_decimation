@@ -1,3 +1,10 @@
+# Current five-field results
+
+Use `analysis.simple_search_bp.summarize_run(run)` for new runs: logical error,
+complete wall latency and OSD-call fraction, grouped within one run/condition/
+decoder/execution context. No raw samples or event diagnostics are available.
+The plotting and report APIs below remain readers of historical wider schemas.
+
 # Saved-data analysis
 
 The current interactive workflow is

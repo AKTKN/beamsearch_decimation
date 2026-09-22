@@ -21,14 +21,16 @@ through `DecoderAdapter` and paired run/replay with v2 storage and reports. See
 [the native API](docs/hybrid_native.md) and [current status](STATUS.md).
 The upstream `bposd_ms30_cs0` baseline remains runnable through the existing runner.
 
-The active search/BP decoder is `search_bp` (`SEARCH-BP-1.0`). Search assignments
-are hard fixations: fixed variable nodes and all incident edges are removed from
-BP and fixed ones are folded into the residual syndrome. Beam width controls new
-candidate admission and retained BP states; cycle expansion and candidate iteration
-work are scalar settings with no independent global expansion/iteration cap. See
-[the specification](docs/specifications/search_bp_specification.md). Validate the
-bounded template with `python python_scripts/validate_config.py
-config/search_bp.yaml.example`.
+The public `search_bp` identity now denotes **SEARCH-BP-2.0**, currently a strict
+configuration and architecture contract only. Execution raises an explicit error
+until the new algorithm is implemented. [Root refined.tex](refined.tex) is normative;
+[the design map](docs/search_bp_v2_design.md) records the component boundaries and
+open numerical policies. SEARCH-BP-1.0 sources, bindings, contracts and tests are
+preserved under `legacy/search_bp_v1` areas and excluded from the active build.
+
+New simulations save one five-column result file per condition: shot identity,
+decoder name, logical error, full service wall latency, and OSD-called flag.
+Baseline decoder kernels and simulation physics are unchanged.
 
 ```bash
 # Create once; use the existing environment if already installed.
@@ -40,7 +42,8 @@ python python_scripts/audit_dependencies.py
 scripts/build_dependencies.sh --check
 python -m pytest -q
 
-scripts/run_benchmark.sh config/search_bp.yaml.example
+python python_scripts/validate_config.py config/search_bp.yaml.example
+# For a runnable baseline check: scripts/run_benchmark.sh config/bposd_cs0_smoke.yaml.example
 python -c "from analysis.simple_search_bp import summarize_run; print(summarize_run('/path/to/run'))"
 ```
 
@@ -48,10 +51,10 @@ Add `-v` or `--verbose` to simulation commands for preparation and saved-batch
 progress on stderr, for example `scripts/run_benchmark.sh config/hybrid_smoke.yaml.example --verbose`.
 stdout remains the completed run directory. Progress updates once per saved batch.
 
-The search_bp template runs search_bp, upstream BP-OSD-CS10 and published beam
-on surface d=3 and BB [[72,12,6]], with bounded smoke counts. BB retains all twelve
-logical Z observables. Historical soft-hint and HSBP-FB configurations are under
-`config/legacy/hybrid/`.
+The search_bp template is for contract validation only. Its bounded physical grid
+is not production guidance. Baseline-only configurations remain runnable. BB
+retains all twelve logical Z observables. Historical soft-hint and HSBP-FB
+configurations are under `config/legacy/hybrid/`.
 
 Historical screened-reference/CS10 configs and existing local main.yaml are in
 `config/legacy/`. Their scientific settings and resolved data/output paths are

@@ -239,81 +239,74 @@ class HybridNumerics(StrictModel):
 
 
 class SearchBPSearch(StrictModel):
-    """Persistent physical-search limits for ``search_bp``.
+    """Step 3/4/6 budgets; names distinguish check count from matrix row count."""
+    selected_checks: Positive = 2
+    local_variables: Positive = 4
+    max_fixations: Positive = 2
+    max_cycles: Positive = 2
+    beta: Annotated[float, Field(strict=True, ge=0)] = 1.0
+    guidance_strength: Annotated[float, Field(strict=True, ge=0)] = 1.0
 
-    ``None`` disables the corresponding depth, detector-beam, or process-CPU
-    limit. Search expansion work is controlled only by ``max_cycles`` and the
-    fixed ``expansions_per_cycle`` allowance.
-    """
-
-    max_depth: NativeCount | None = None
-    max_cycles: Annotated[int, Field(strict=True, ge=0, le=65536)] = 8
-    expansions_per_cycle: WorkCount = 8
-    detector_order: Literal["canonical_index"] = "canonical_index"
-    branch_order: Literal["physical_weight_then_index"] = "physical_weight_then_index"
-    heuristic: Literal["residual_fractional_cover"] = "residual_fractional_cover"
-    goal_test: Literal["on_generation", "on_pop"] = "on_generation"
-    det_beam: WorkCount | None = None
-    guidance_selection: Literal["best_unused_generated_pattern"] = "best_unused_generated_pattern"
-    prefix_cpu_budget_ns: Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)] | None = None
-    cost_bound_pruning: Literal[False] = False
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.max_fixations > self.local_variables:
+            raise ValueError("max_fixations must not exceed local_variables")
+        return self
 
 
 class SearchBPBP(StrictModel):
-    """Hard-fixation BP beam settings.
+    """Proposed iteration budgets and Step 2 history, not message clipping."""
+    initial_iterations: Positive = 30
+    candidate_iterations: Positive = 20
+    history_window: Positive = 8
+    average_llr_clip: Annotated[float, Field(strict=True, gt=0)] = 25.0
 
-    Every admitted pattern removes all fixed variable-node edges and XORs fixed
-    ones into the residual syndrome. ``max_iteration`` is applied independently
-    to each candidate visit.  The beam width is also the per-cycle admission
-    width; there is no separate pooled or shot-wide iteration cap.
-    """
-
-    enabled: Annotated[bool, Field(strict=True)] = True
-    method: Literal["minimum_sum"] = "minimum_sum"
-    schedule: Literal["parallel"] = "parallel"
-    beam_width: NativeCount = 2
-    max_iteration: WorkCount = 20
-    retention_score: Literal["residual_then_physical", "physical_only"] = "residual_then_physical"
-    state_inheritance: Literal["retained_ancestor", "cold"] = "retained_ancestor"
-    scaling_factor: Annotated[float, Field(strict=True, gt=0, le=1)] = 1.0
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.history_window > min(self.initial_iterations, self.candidate_iterations):
+            raise ValueError("history_window exceeds a BP iteration budget")
+        return self
 
 
-class SearchBPStopping(StrictModel):
-    mode: Literal["first_valid", "bounded_improve"] = "first_valid"
-    post_solution_cycles: Positive = 1
+class SearchBPAdmission(StrictModel):
+    k_run: Positive = 4
+    k_keep: Positive = 2
+
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.k_keep > self.k_run:
+            raise ValueError("k_keep must not exceed k_run")
+        return self
 
 
 class SearchBPFallback(StrictModel):
     backend: Literal["ldpc_osd_only"] = "ldpc_osd_only"
-    osd_method: Literal["OSD_CS"] = "OSD_CS"
     osd_order: Annotated[int, Field(strict=True, ge=0, le=0)] = 0
-    llr_source: Literal["best_retained", "channel_only"] = "best_retained"
-    ordering: Literal["pinned_ldpc_signed_llr"] = "pinned_ldpc_signed_llr"
+
+
+class SearchBPNumerics(StrictModel):
+    dtype: Literal["float64"] = "float64"
+    fast_math: Literal[False] = False
 
 
 class SearchBP(StrictModel):
-    """Strict hard-decimation search/BP decoder configuration."""
+    """SEARCH-BP-2.0 contract only; execution is deliberately unavailable.
 
+    Exact numerical edge policies must be resolved against refined.tex before
+    implementing the native service. An explicit version prevents old defaults
+    from acquiring a new algorithm identity.
+    """
     kind: Literal["search_bp"] = "search_bp"
     profile: Literal["search_bp"] = SEARCH_BP_PROFILE
-    name: str = SEARCH_BP_PROFILE
+    name: Literal["search_bp"] = "search_bp"
     enabled: Annotated[bool, Field(strict=True)] = True
-    algorithm_version: Literal["SEARCH-BP-1.0"] = "SEARCH-BP-1.0"
+    algorithm_version: Literal["SEARCH-BP-2.0"]
     search: SearchBPSearch = SearchBPSearch()
     bp: SearchBPBP = SearchBPBP()
-    stopping: SearchBPStopping = SearchBPStopping()
+    admission: SearchBPAdmission = SearchBPAdmission()
     fallback: SearchBPFallback = SearchBPFallback()
-    numerics: HybridNumerics = HybridNumerics()
+    numerics: SearchBPNumerics = SearchBPNumerics()
     native_threads: Annotated[int, Field(strict=True, ge=1, le=1)] = 1
-
-    @model_validator(mode="after")
-    def check(self) -> Self:
-        if self.bp.enabled:
-            if self.bp.beam_width < 1:
-                raise ValueError("enabled BP requires beam_width >= 1")
-        elif self.bp.beam_width or self.bp.max_iteration:
-            raise ValueError("disabled BP requires zero beam_width and max_iteration")
-        return self
 
 
 def _cycle_budgets(value: int | tuple[int, ...], cycles: int, field: str) -> tuple[int, ...]:
@@ -382,7 +375,9 @@ class Hybrid(StrictModel):
 
 def require_available_decoder(profile: str) -> None:
     """Reject unknown profiles without numerical imports or mutation (ValueError)."""
-    if profile in HYBRID_PROFILES or profile == SEARCH_BP_PROFILE:
+    if profile == SEARCH_BP_PROFILE:
+        raise NotImplementedError("SEARCH-BP-2.0 is contract-only; decoding is not implemented")
+    if profile in HYBRID_PROFILES:
         return
     if profile not in ("screened_reference", "bposd_ms30_cs10", "bposd_ms30_cs0", "beam8", "beam32"):
         raise ValueError(f"unsupported decoder profile: {profile}")
@@ -416,7 +411,7 @@ class Sampling(StrictModel):
     master_seed: Nonnegative = 20260920
     warmup_seed: Nonnegative = 20260921
     warmup_count: Nonnegative = 4
-    store_raw_samples: Literal[True] = True
+    store_raw_samples: Literal[False] = False
 
 
 class Execution(StrictModel):
@@ -454,34 +449,22 @@ class Output(StrictModel):
     root: Path = Path("../assets/runs")
     compression: Literal["zstd", "snappy", "none"] = "zstd"
     shard_policy: Literal["paired_atomic_batch"] = "paired_atomic_batch"
-    retain_traces: bool = False
-    retain_corrections: bool = False
+    retain_traces: Literal[False] = False
+    retain_corrections: Literal[False] = False
 
 
 class ParquetOutput(StrictModel):
     compression: Literal["zstd", "snappy", "none"] = "zstd"
     compression_level: Annotated[int, Field(strict=True, ge=1, le=22)] = 3
     shots_per_flush: Positive = 1024
-    atomic_batch_commit: Literal[True] = True
-
-
-class SearchBPTelemetry(StrictModel):
-    candidate_updates: Literal[True] = True
-    beam_membership: Literal[True] = True
-    solution_events: Literal[True] = True
-    trace_search_nodes: bool = False
-    raw_bp_messages: Literal[False] = False
-    per_iteration_trace: Literal[False] = False
 
 
 class SearchBPOutput(StrictModel):
-    """Mandatory separate typed datasets for new search_bp runs."""
-
+    """Five-column per-condition result contract; no telemetry or raw samples."""
     root: Path = Path("../assets/runs")
-    layout: Literal["typed_datasets"] = "typed_datasets"
-    data_schema_version: Literal["search_bp_parquet/2"] = "search_bp_parquet/2"
+    layout: Literal["minimal_results"] = "minimal_results"
+    data_schema_version: Literal["search_bp_results/1"] = "search_bp_results/1"
     parquet: ParquetOutput = ParquetOutput()
-    telemetry: SearchBPTelemetry = SearchBPTelemetry()
 
     @property
     def compression(self) -> str:
@@ -489,11 +472,11 @@ class SearchBPOutput(StrictModel):
 
     @property
     def retain_traces(self) -> bool:
-        return self.telemetry.trace_search_nodes
+        return False
 
     @property
     def retain_corrections(self) -> bool:
-        return True
+        return False
 
 
 class Analysis(StrictModel):
@@ -525,7 +508,7 @@ class Analysis(StrictModel):
 
 
 class Config(StrictModel):
-    config_schema_version: Literal["search_bp_config/2"] | None = Field(
+    config_schema_version: Literal["search_bp_config/3"] | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     experiment: Experiment = Experiment()
@@ -546,10 +529,12 @@ class Config(StrictModel):
         if len(set(names)) != len(names) or not any(d.enabled for d in self.decoders):
             raise ValueError("decoder names must be unique, with at least one enabled")
         has_search_bp = any(isinstance(d, SearchBP) for d in self.decoders)
-        if has_search_bp != isinstance(self.output, SearchBPOutput):
-            raise ValueError("search_bp requires typed_datasets output, and that layout requires search_bp")
-        if has_search_bp and self.config_schema_version != "search_bp_config/2":
-            raise ValueError("search_bp requires config_schema_version: search_bp_config/2")
+        if has_search_bp and not isinstance(self.output, SearchBPOutput):
+            raise ValueError("search_bp requires minimal_results output")
+        if has_search_bp and self.config_schema_version != "search_bp_config/3":
+            raise ValueError("search_bp requires config_schema_version: search_bp_config/3")
+        if has_search_bp and self.timing.profiling != "none":
+            raise ValueError("search_bp does not emit phase profiling")
         return self
 
     def resolved(self) -> dict:
@@ -577,14 +562,8 @@ class Config(StrictModel):
                     "converge_flag": "BP stage only; validate correction after OSD",
                 }
             elif decoder["profile"] == SEARCH_BP_PROFILE:
-                decoder["implementation_properties"] = {
-                    "decimation": "structural hard fixation",
-                    "residual_syndrome": "xor fixed-one columns",
-                    "fixed_edges": "excluded from BP updates",
-                    "hard_decision": "native min-sum L<=0",
-                    "message_clip": "no configurable clip",
-                    "native_threads": 1,
-                }
+                decoder["implementation_properties"] = {"availability": "contract_only"}
+
         return data
 
 

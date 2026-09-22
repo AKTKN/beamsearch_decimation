@@ -55,12 +55,17 @@ def test_adapters_native_and_shot_reset(cfg):
 @pytest.mark.parametrize('config', [Bposd(max_iter=1,osd_order=1), Bposd0(max_iter=1)])
 def test_osd_valid_despite_bp_failure_and_empty_model(config):
     p=convert_dem(stim.DetectorErrorModel('error(0.1) D0 L0\nerror(0.1) D0'))
-    r=DecoderAdapter(p,config).decode(np.array([1]))
+    adapter=DecoderAdapter(p,config)
+    r=adapter.decode(np.array([1]))
     assert r.status=='SUCCESS' and r.native_status=='OSD_AFTER_BP_NONCONVERGENCE'
+    assert r.osd_called is True
+    assert adapter.decode(np.array([0])).osd_called is False
+    assert adapter.decode(np.array([1])).osd_called is True
     empty=convert_dem(stim.DetectorErrorModel('detector D0\nlogical_observable L11'))
     for cfg in [Screened(),Bposd(),Bposd0(),Beam()]:
         d=DecoderAdapter(empty,cfg)
         r=d.decode(np.array([0])); assert r.prediction.tolist()==[0]*12
+        assert r.osd_called is False
         r=d.decode(np.array([1])); assert r.status=='DECLARED_FAILURE' and r.cost is None
 
 

@@ -5,7 +5,7 @@ Top-level templates cover the active workflow:
 - analysis.yaml.example: saved-data-only settings; no simulation parameters required.
 
 - bposd_cs0_smoke.yaml.example: current upstream CS0/CS10/beam baseline comparison.
-- search_bp.yaml.example: bounded surface d=3/BB72 hard-fixation validation.
+- search_bp.yaml.example: SEARCH-BP-2.0 contract-only dry run; decoding is unavailable.
 
 `python python_scripts/validate_config.py CONFIG` prints resolved JSON without
 preparing circuits or executing decoders.
@@ -14,13 +14,13 @@ Historical screened-reference/CS10 templates are in `legacy/`; soft-hint hybrid
 and HSBP-FB templates are in `legacy/hybrid/`. They preserve their source settings
 but are intentionally not accepted as current `search_bp` configurations.
 
-Simulation/replay entry scripts are shared: choose a decoder workflow through YAML.
+Simulation entry scripts are shared: choose a decoder workflow through YAML.
 Current analysis accepts only its independent analysis YAML; simulation YAML does
 not contain analysis settings. Legacy analysis entry points remain under
 scripts/legacy/.
-For example, scripts/run_benchmark.sh config/hybrid_smoke.yaml.example runs the
+For example, scripts/run_benchmark.sh config/legacy/hybrid/hybrid_smoke.yaml.example runs the
 hybrid, while scripts/run_benchmark.sh config/legacy/smoke.yaml.example runs the
-historical comparison. Both create new run directories and use current v2 storage.
+historical comparison. Both create new run directories using the five-field minimal output.
 
 Editable .yaml/.yml files are ignored at both levels. scripts/setup_local_files.sh
 creates missing working copies beside templates in config/, config/legacy/ and

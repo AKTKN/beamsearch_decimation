@@ -1,0 +1,144 @@
+{
+  "normative_tex": "refined.tex",
+  "normative_tex_sha256": "5addef23e2a2476d319baed8764d745f0b7fb2d114a6ab579481dc56a7958c15",
+  "moves": [
+    {
+      "original": "src/qec_bp_benchmark/native/search_bp_search.hpp",
+      "legacy": "src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_search.hpp",
+      "original_sha256": "04cae73525218c91cd227a811c8c7235bff093607a8ee95a5e2451c326ab5da5",
+      "legacy_sha256": "04cae73525218c91cd227a811c8c7235bff093607a8ee95a5e2451c326ab5da5",
+      "byte_preserved": true
+    },
+    {
+      "original": "src/qec_bp_benchmark/native/search_bp_bindings.hpp",
+      "legacy": "src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_bindings.hpp",
+      "original_sha256": "c3d3bf6fe786763a688d0763cbc4630d2b0f7a0b89c49c305d6fea6da2970822",
+      "legacy_sha256": "c3d3bf6fe786763a688d0763cbc4630d2b0f7a0b89c49c305d6fea6da2970822",
+      "byte_preserved": true
+    },
+    {
+      "original": "src/qec_bp_benchmark/native/search_bp_model.hpp",
+      "legacy": "src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_model.hpp",
+      "original_sha256": "259e66a7427321a959d98ea327c6df8d5bf2546a631b338d2c2327747a17d0ba",
+      "legacy_sha256": "259e66a7427321a959d98ea327c6df8d5bf2546a631b338d2c2327747a17d0ba",
+      "byte_preserved": true
+    },
+    {
+      "original": "src/qec_bp_benchmark/native/search_bp.hpp",
+      "legacy": "src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp.hpp",
+      "original_sha256": "39e8acb585dc5f50ec798adf328b279e2a767aedbc143cc19f4a141da81327e2",
+      "legacy_sha256": "39e8acb585dc5f50ec798adf328b279e2a767aedbc143cc19f4a141da81327e2",
+      "byte_preserved": true
+    },
+    {
+      "original": "src/qec_bp_benchmark/native/search_bp_telemetry.hpp",
+      "legacy": "src/qec_bp_benchmark/native/legacy/search_bp_v1/search_bp_telemetry.hpp",
+      "original_sha256": "67bbfe174d24e24ddbb0cd0eb3862d8c9bc64817550977955a6347afb3a47797",
+      "legacy_sha256": "67bbfe174d24e24ddbb0cd0eb3862d8c9bc64817550977955a6347afb3a47797",
+      "byte_preserved": true
+    },
+    {
+      "original": "src/qec_bp_benchmark/native/hard_fixed_min_sum.hpp",
+      "legacy": "src/qec_bp_benchmark/native/legacy/search_bp_v1/hard_fixed_min_sum.hpp",
+      "original_sha256": "ddddfb1c00e63b5c317f0389521d879b646b748718e4b83e7ada02ab14d8370b",
+      "legacy_sha256": "ddddfb1c00e63b5c317f0389521d879b646b748718e4b83e7ada02ab14d8370b",
+      "byte_preserved": true
+    },
+    {
+      "original": "src/qec_bp_benchmark/storage/search_bp.py",
+      "legacy": "src/qec_bp_benchmark/storage/legacy/search_bp_v1/search_bp.py",
+      "original_sha256": "f8e11408734cdff92b480d63b586ec61dfe32f964389e19550b4cda577d10115",
+      "legacy_sha256": "aaea7de97dec2c35f58b5fc984bb8e284714ab3ccea7840bdaa020a922e82e5d",
+      "byte_preserved": false
+    },
+    {
+      "original": "src/qec_bp_benchmark/storage/search_bp_schema.py",
+      "legacy": "src/qec_bp_benchmark/storage/legacy/search_bp_v1/search_bp_schema.py",
+      "original_sha256": "5e7be67aea338d99766e47c101bccc08517c73a3d249eeff3783774b4fc85577",
+      "legacy_sha256": "8d731cfcf7849304ffc3a9803ba7e0a2a2e1830f0d97ab0846ff945c6a49ed72",
+      "byte_preserved": false
+    },
+    {
+      "original": "docs/specifications/search_bp_specification.md",
+      "legacy": "docs/legacy/search_bp_v1/search_bp_specification.md",
+      "original_sha256": "6eccdea40049582e281f57cbfca2450140a5a65719917f7599dd6afe74280f05",
+      "legacy_sha256": "6eccdea40049582e281f57cbfca2450140a5a65719917f7599dd6afe74280f05",
+      "byte_preserved": true
+    },
+    {
+      "original": "docs/specifications/search_bp_parquet_schema.json",
+      "legacy": "docs/legacy/search_bp_v1/search_bp_parquet_schema.json",
+      "original_sha256": "03bb5e7dcdd94ad2d280987b947f8a8a2b6f6bc168afc0b6dac081dab81c4744",
+      "legacy_sha256": "03bb5e7dcdd94ad2d280987b947f8a8a2b6f6bc168afc0b6dac081dab81c4744",
+      "byte_preserved": true
+    },
+    {
+      "original": "config/search_bp.yaml.example",
+      "legacy": "config/legacy/search_bp_v1/search_bp.yaml.example",
+      "original_sha256": "ba965852920043db73c66364c4d1e29a5498056b19ec2398a3084619cf651d48",
+      "legacy_sha256": "2030059d20e4745844f75c7d3f78593bceff5fbd275f40053f2219c8842fbedb",
+      "byte_preserved": false
+    },
+    {
+      "original": "tests/test_search_bp_decoder.py",
+      "legacy": "tests/legacy/search_bp_v1/test_search_bp_decoder.py",
+      "original_sha256": "279b894d7836fdf1b90e355cf88a7c2725f8c9b15491abff2351aba77365256e",
+      "legacy_sha256": "279b894d7836fdf1b90e355cf88a7c2725f8c9b15491abff2351aba77365256e",
+      "byte_preserved": true
+    },
+    {
+      "original": "tests/test_search_bp_storage.py",
+      "legacy": "tests/legacy/search_bp_v1/test_search_bp_storage.py",
+      "original_sha256": "9ec0fdd8522fb0cae4f1bde83266097ff11000915e5c2cb58edebf7cfff9c536",
+      "legacy_sha256": "9ec0fdd8522fb0cae4f1bde83266097ff11000915e5c2cb58edebf7cfff9c536",
+      "byte_preserved": true
+    },
+    {
+      "original": "tests/test_search_bp_config.py",
+      "legacy": "tests/legacy/search_bp_v1/test_search_bp_config.py",
+      "original_sha256": "ba1d3a121f2f2a73394ad2ff8ceb26900222d8509b0ab5812201fa033be3d557",
+      "legacy_sha256": "ba1d3a121f2f2a73394ad2ff8ceb26900222d8509b0ab5812201fa033be3d557",
+      "byte_preserved": true
+    },
+    {
+      "original": "tests/native/test_search_bp.cpp",
+      "legacy": "tests/legacy/search_bp_v1/native/test_search_bp.cpp",
+      "original_sha256": "baa1aff2180ac7624def7003b8d1e1cf3573768b1cf2ac19f4beb0d2d4d15e07",
+      "legacy_sha256": "baa1aff2180ac7624def7003b8d1e1cf3573768b1cf2ac19f4beb0d2d4d15e07",
+      "byte_preserved": true
+    },
+    {
+      "original": "analysis/simple_search_bp.py",
+      "legacy": "analysis/legacy/search_bp_v1/simple_search_bp.py",
+      "original_sha256": "5412de4a3aac72deca1fa223ebc3ba2af335ca7b6770830c0ec705fc2ecc5fe6",
+      "legacy_sha256": "ffb9712f5230548011b8d281d5557793306f6cc4be1ecfcc5c062f1f8bc68ec6",
+      "byte_preserved": false
+    },
+    {
+      "original": "docs/data_dictionary.md",
+      "legacy": "docs/legacy/search_bp_v1/data_dictionary.md",
+      "original_sha256": "df3dfebc68a37fd1b29ac2a238c9629280a6013df1b538acbbd2c794997a5779",
+      "legacy_sha256": "df3dfebc68a37fd1b29ac2a238c9629280a6013df1b538acbbd2c794997a5779",
+      "byte_preserved": true
+    }
+  ],
+  "active_project_native_sources": [
+    "src/qec_bp_benchmark/native/hybrid_model.hpp",
+    "src/qec_bp_benchmark/native/hybrid_search.hpp",
+    "src/qec_bp_benchmark/native/hybrid_telemetry.hpp",
+    "src/qec_bp_benchmark/native/hybrid.hpp",
+    "src/qec_bp_benchmark/native/hybrid_bindings.hpp",
+    "src/qec_bp_benchmark/native/module.cpp",
+    "CMakeLists.txt",
+    "src/qec_bp_benchmark/native_sources.py"
+  ],
+  "archived_native_bytes_preserved": true,
+  "old_native_binding_absent": true,
+  "fork_source_changes": false,
+  "notes": [
+    "Legacy config changes only preserve relative cache/output destinations.",
+    "Legacy Python import/contract paths were adjusted to their archive locations.",
+    "Shared config/adapter/worker/pipeline pre-migration bytes are saved as reference-only snapshots.",
+    "No scientific run snapshots or circuit/noise/DEM/sampling implementations changed."
+  ]
+}

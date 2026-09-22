@@ -56,3 +56,8 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
+
+# Versioned SEARCH-BP-1.0 architectural archive.
+!/src/qec_bp_benchmark/legacy/
+!/src/qec_bp_benchmark/storage/legacy/
+!/tests/legacy/

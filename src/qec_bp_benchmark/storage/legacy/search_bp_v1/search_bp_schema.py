@@ -10,8 +10,8 @@ from typing import Iterable
 import pyarrow as pa
 
 SCHEMA_VERSION = "search_bp_parquet/2"
-ROOT = Path(__file__).resolve().parents[3]
-CONTRACT_PATH = ROOT / "docs/specifications/search_bp_parquet_schema.json"
+ROOT = Path(__file__).resolve().parents[5]
+CONTRACT_PATH = ROOT / "docs/legacy/search_bp_v1/search_bp_parquet_schema.json"
 CONTRACT = json.loads(CONTRACT_PATH.read_text())
 
 

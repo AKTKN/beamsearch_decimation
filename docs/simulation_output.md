@@ -1,63 +1,66 @@
-# Minimal simulation output
+# Minimal simulation output: search_bp_results/1
 
-The current runner saves one directory per invocation:
-
-```text
-output.root/
-  YYYY_MM_DD_HH_MM_<config-hash-8>/
-    config_resolved.json
-    data/
-      <code>_d<distance>_r<rounds>_p<rate>_<basis>_<dataset>.parquet
-```
-
-The timestamp uses the machine's local timezone. The final eight hexadecimal
-characters are the first eight characters of the SHA-256 content identity of
-the exact `config_resolved.json` value. A duplicate config in the same minute is
-rejected instead of overwriting data.
-
-The physical-rate tag removes `0.` without rounding: `0.003` becomes `p003`,
-`0.01` becomes `p01`, and `0.5` becomes `p5`. For example:
+Every new run contains exactly:
 
 ```text
-bb72_d6_r6_p003_Z_logicalerror.parquet
+YYYY_MM_DD_HH_MM_<config-hash-8>/
+  config_resolved.json
+  data/
+    <code>_d<distance>_r<rounds>_p<rate>_<basis>_logicalerror.parquet
 ```
 
-`logicalerror.parquet` contains the per-shot/per-decoder result and logical
-failure labels. `samples.parquet` contains sampled detector and observable data.
-Hybrid/frontier telemetry keeps its descriptive dataset suffix, such as
-`cycles`, `bp_updates`, or `solution_events`. Typed empty files are retained when
-a configured telemetry dataset produced no rows.
+The timestamp is local time. The suffix is the first eight hex digits of the
+resolved configuration content hash. A collision is rejected, never overwritten.
+Rate tags preserve decimal values without rounding: 0.003 is p003. The resolved
+configuration stores physical conditions, decoder parameters and algorithm version,
+noise, sampling plan, worker settings and timing mode once for the run. No schema
+file, manifest, inventory, source/model/circuit copy, summary or file log is emitted.
 
-Circuit text, detector-error models, check matrices, source archives, manifests,
-inventories, summaries, schemas, and log files are not copied into the result
-directory. Prepared circuit inputs remain in `circuit.cache` and are referenced
-only while the simulation runs. Worker errors are reported on stderr; after an
-error the result directory still has the same two-entry shape and may contain
-readable partial Parquet data.
+There is one result file per physical condition, including a typed empty file if
+execution fails before any row is saved. All enabled decoders share each physical
+shot. The Arrow schema metadata is `qec_schema=search_bp_results/1`:
 
-The runner does not perform an end-of-run read-back/checksum validation pass.
-Strict config validation, typed conversion when writing Parquet, and the decoder's
-truth-free H/A correctness boundary remain active. `analysis.simple_search_bp`
-reads the new files directly without manifests or inventories.
+| Field | Arrow type | Meaning |
+|---|---|---|
+| shot_id | nonnull string | Existing instance:sampling:index identity; unique within a condition for a physical shot |
+| decoder_name | nonnull string | Unique configured decoder name; parameters/version are in config_resolved.json |
+| logical_error | nonnull bool | Decoder failure (declared or invalid) OR any logical mismatch |
+| latency_ns | nonnull int64 | Nonnegative complete per-shot decoder service wall time |
+| osd_called | nullable bool | Whether this invocation called OSD; null only for a baseline API that cannot establish it |
 
-`analysis.simple_search_bp.summarize_run` reads both standard and frontier files
-directly; `summarize_frontier_run` remains as a compatibility alias.
+The primary key within a condition file is (shot_id, decoder_name). SEARCH-BP-2.0
+must provide an exact boolean OSD flag; null is rejected. Current baselines all
+expose exact information: screened/beam do not call OSD; hybrid supplies its
+native invocation flag; upstream BP-OSD calls OSD iff its nonzero-syndrome BP did
+not converge. Zero-syndrome and algebraic empty-model exits are false, independent
+of stale upstream flags. No convergence claim is inferred from OSD invocation.
 
-For `search_bp`, a worker emits one column-oriented chunk after all decoders for a
-physical shot finish. The worker delivers that chunk before its physical sampling
-batch completes. Multi-worker runs use a bounded queue with writer backpressure;
-they do not accumulate a complete batch of telemetry in each future. The parent
-coalesces the configured `shots_per_flush` completed shots independently for each
-condition. Every nonempty dataset in that group is written as one Parquet row group;
-a final smaller group is flushed before close. Empty typed files are still created
-once and contain no row groups.
+`latency_ns` uses perf_counter_ns around the entire DecoderAdapter.decode call,
+including syndrome input conversion, native decode, original-H validation,
+A prediction, and physical cost computation. Construction, warmup, sampling,
+truth comparison, result conversion and file I/O are outside that boundary.
+Failed decodes remain in all latency and logical-error denominators. Logical
+error is a block trial per physical shot, with no division by rounds or the 12
+BB observables. No truth enters the decoder service.
 
-The active path does not construct the historical generic `results`, `rounds`, or
-`phases` rows alongside typed search_bp data. Native search_bp events cross the
-binding as Arrow-compatible column mappings rather than accumulated per-event
-Python dictionaries. The schema and scientific fields are unchanged. Output memory
-is bounded by the queue plus the configured shot groups, but all telemetry produced
-by one such group must fit in memory; no decoder work limit is introduced here.
+No sample/syndrome/correction vectors, search nodes, BP iterations, candidate or
+beam tables, solution events, phase breakdowns or raw messages are persisted.
+The generic scheduler keeps bounded physical batch futures. Parent shot grouping
+uses output.parquet.shots_per_flush when minimal_results is configured, or the
+physical batch size for compatible baseline Output configs. It creates one row
+group per completed shot group plus the final partial group. Compression options
+remain explicit. A Parquet row group is not an atomic multi-file batch commit.
 
-The former manifest/shard/replay format is historical code under the existing
-legacy modules and is not emitted by the current runner.
+Interrupted runs may contain closed partial files; readers report saved rows,
+not completion. Buffered unsaved rows can be lost. There is no in-place resume,
+manifest-based replay or final read-back validation. Use a new output directory.
+Parent stderr progress reports completed batches, which may include buffered rows.
+
+`analysis.simple_search_bp.summarize_run` reads named result files and config
+without inventories. It reports logical-error count/rate/Wilson bounds, wall
+latency including failures, and OSD count/fraction over known flags with the
+unknown count separate. Zero-event intervals are bounds, not zero-risk claims;
+small samples cannot establish tail precision. It processes one run at a time,
+keeps physical conditions and decoder/execution settings separate, and rejects a
+CPU-clock request because CPU latency is not saved in this contract. Historical
+wide schemas dispatch to the legacy reader and are never relabeled as this schema.

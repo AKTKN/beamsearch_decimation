@@ -1,3 +1,18 @@
+# Active runner
+
+The scheduler, physical sampling, warmup, cyclic decoder order and complete
+DecoderAdapter.decode timing boundary are unchanged. New results use only
+`storage/minimal.py` fields, one Parquet file per physical condition. Parent
+ShotChunkBuffer groups complete shots; bounded process futures carry physical
+batches, with no telemetry stream or raw-sample file. Configured shots_per_flush
+controls row groups, with a final partial flush. Progress reports completed
+batches; a partial group may still be buffered. Failed shots retain their latency.
+
+SEARCH-BP-2.0 fails before run creation until decoding is implemented. Baseline
+runs remain supported. See docs/simulation_output.md and
+ docs/search_bp_v2_design.md at repository root. The material below is historical
+pipeline documentation; manifests, replay and event writes are not active.
+
 # Paired runner
 
 `pipeline.run_benchmark(config_path, verbose=False)` returns an exclusively
@@ -37,30 +52,6 @@ The parent retains at most max_pending tasks (default 2*workers), consumes compl
 order independently of task order, and is the sole Parquet writer. Exceptions cancel
 pending futures where possible and propagate; no traceback/log file is added to the
 result. There is no resume or manifest-based replay in the current runner.
-
-`search_bp` uses a separate streaming path. A worker exports one completed shot as
-dataset-specific columns and sends it through a bounded multiprocessing queue. A
-single parent writer thread drains the queue while physical batches are still
-running. Queue backpressure stops producers when storage falls behind. Serial runs
-invoke the same writer sink synchronously. Worker futures contain only completion
-metadata, not the shot telemetry already delivered to the sink. The parent owns a
-separate bounded buffer per condition and coalesces exactly
-`output.parquet.shots_per_flush` completed shots before appending one row group to
-each nonempty dataset. The final partial group is flushed before writers close.
-
-The developer-only `qec_bp_benchmark.benchmarking.simulation` entry point activates
-coarse wall-clock scopes around this pipeline. `DecoderAdapter.decode` remains one
-inclusive black-box phase. Ordinary runs do not activate these scopes, and the
-measurements never enter the scientific result schema. The benchmark uses one
-worker for additive accounting and temporary production-format Parquet output.
-
-verbose=True prints flushed parent-only preparation, plan, saved-batch progress,
-and completion/failure messages to stderr. Each line includes elapsed
-run wall seconds; batch messages show completed/total batches, percent, physical
-shots and code/distance/p. Counts advance only after rows are written. These messages stay outside
-per-shot decode timers; elapsed run time includes setup and I/O. There is no per-shot
-logging or heartbeat during a running batch. The CLI exposes -v/--verbose; stdout
-remains the final run path. Verbosity is presentation only, not a YAML experiment setting.
 
 
 ## Hybrid Stages 4–5

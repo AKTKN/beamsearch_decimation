@@ -1,20 +1,18 @@
 # Specification-to-implementation-to-test traceability
 
-SEARCH-BP-1.0 traces from `docs/specifications/search_bp_specification.md` and the
-adjacent JSON data contract to native `search_bp*.hpp` and
-`hard_fixed_min_sum.hpp`, `storage/search_bp*.py`, the three
-`tests/test_search_bp_*.py` modules and `tests/native/test_search_bp.cpp`.
+SEARCH-BP-2.0 is contract-only. The exact TeX references and future native/fork
+boundaries are in [search_bp_v2_design.md](search_bp_v2_design.md).
 
-| SEARCH-BP-1.0 requirement | Implementation | Behavioral evidence |
+| Migration requirement | Implementation | Evidence |
 |---|---|---|
-| Scalar per-cycle expansions; no global expansion or generated-node cap | `SearchBPSearch`, `SearchSession::advance` | removed-option rejection and native 96-child/one-expansion test |
-| Beam width replaces admissions and limits retained states | `search_bp.hpp` proposal/reconcile | `test_search_bp_decoder.py` beam/admission checks |
-| Fixed per-visit `max_iteration`; no total cap | `search_bp.hpp` visit loop | fixed quota and multi-cycle continuation tests |
-| Structural 0/1 fixation and residual syndrome | `hard_fixed_min_sum.hpp` | native fixed-edge/residual assertions |
-| Original-H validation and physical scoring | `search_bp.hpp::submit`, `Model::cost` | Python parity/repeatability and native tests |
-| Strict new identity and removed options | `config.SearchBP` | rejection matrix in `test_search_bp_config.py` |
-| Decoder-opaque simulation timing decomposition | `benchmarking/simulation.py`, runner/worker/storage opt-in scopes | `test_simulation_benchmark.py`; bounded JSON report |
-| Bounded search_bp shot streaming and grouped Parquet writes | native column export, bounded parent queue, `ShotChunkBuffer`, `ResultStore` column input | native row/column equality, full/final group unit test, serial and two-worker row-group tests |
+| Old algorithm excluded from active build | module.cpp, CMakeLists.txt, native_sources.py; native/legacy/search_bp_v1 | test_search_bp_v2_contract.py checks missing old symbols |
+| Explicit v2 identity, reject v1 | config.SearchBP, config schema /3 | old config and removed-option rejection tests |
+| No premature v2 execution | require_available_decoder | adapter and runner fail before filesystem effects |
+| Five-field output and failure-inclusive latency | storage/minimal.py, runner | independent label cases, serial/spawn baseline output tests |
+| No run/context pooling, exact OSD denominator | analysis/simple_search_bp.py | saved-data summary integration |
+
+Historical SEARCH-BP-1.0 traceability is preserved under legacy/search_bp_v1.
+The table below also includes historical acceptance evidence, not new-run output.
 
 | Contract/specification | Implementation | Behavioral evidence |
 |---|---|---|

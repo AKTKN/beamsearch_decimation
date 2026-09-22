@@ -1,3 +1,6 @@
+> SEARCH-BP-1.0 timing evidence below is historical. SEARCH-BP-2.0 decoding
+> is not implemented; the current timing harness can exercise baselines only.
+
 # Simulation timing benchmark
 
 `python_scripts/benchmark_simulation.py` measures the real simulation runner while
@@ -13,7 +16,7 @@ an optional JSON report is written outside the simulation run layout.
 
 ```bash
 conda activate search_decimation
-scripts/benchmark_simulation.sh config/search_bp.yaml.example \
+scripts/benchmark_simulation.sh config/bposd_cs0_smoke.yaml.example \
   --repeats 3 --shots 32 --batch-size 16 \
   --output assets/benchmarks/search_bp_simulation_timing.json
 ```

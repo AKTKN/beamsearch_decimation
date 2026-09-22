@@ -1,3 +1,60 @@
+# SEARCH-BP-2.0 architectural migration (2026-09-22)
+
+This stage defines contracts and retires SEARCH-BP-1.0; it does **not** implement
+SEARCH-BP-2.0 decoding. Root `refined.tex` is normative and unchanged. Its exact
+step/equation mapping, proposed fork/project APIs, config fields and unresolved
+numerical choices are in `docs/search_bp_v2_design.md`.
+
+Native v1 implementation, project-local masked min-sum, bindings, strict template,
+algorithm/14-dataset contracts, storage/analysis implementation and behavioral tests
+are preserved in named `legacy/search_bp_v1` areas. `moves.txt` lists git moves;
+mixed config/adapter/worker/pipeline snapshots preserve their old bytes. Legacy
+config cache/output destinations are preserved. CMake/module/source hashes no
+longer compile or expose SearchBPDecoder/SearchBPSettings. Generic screened/hybrid
+and upstream baseline implementations remain active. No dependency kernel changed.
+
+The reserved public kind/profile/name `search_bp` requires explicit
+SEARCH-BP-2.0 and search_bp_config/3. Old versions/settings fail validation. The
+contract-only template validates, but adapter/runner execution fails explicitly
+before native loading, circuit work or output creation. No v1 fallback is possible.
+
+Every new simulation now writes only config_resolved.json and one Parquet file
+per condition under data/. Schema search_bp_results/1 contains shot_id,
+decoder_name, logical_error, latency_ns and osd_called. Failure-inclusive wall
+latency wraps the complete existing adapter boundary. OSD invocation is exact
+for all current baselines, including BP-OSD zero-syndrome reuse. No raw samples,
+telemetry, phase tables, schema dumps, manifests or final read-back are emitted.
+The direct reader keeps conditions, decoders and execution contexts separate and
+provides logical-error/Wilson, latency/tail-support and OSD-fraction summaries.
+Historical wider readers are preserved; their plotting/report APIs have not been
+redesigned for the new five-field schema. Use simple_search_bp for new results.
+
+Actual commands in search_decimation:
+
+| Command | Result |
+|---|---|
+| `python -m pip install --no-build-isolation --no-deps -e .` | Project extension rebuilt successfully; old native symbols absent |
+| `python python_scripts/validate_config.py config/search_bp.yaml.example` | Contract validated without execution |
+| `python python_scripts/audit_dependencies.py` | Audit/patch generation passed; patches unchanged, environment inventory added installed pandas |
+| `scripts/build_dependencies.sh --check` | Passed |
+| `python tests/check_hybrid_restoration.py` | Fresh restored source tree, both opt-in bindings and project rebuilt; 4/4 native tests passed |
+| `python -m pytest -q` | Initial 215 passed, 1 skipped in 37.86 s; final 215 passed, 1 skipped in 33.33 s after OSD reuse assertions and cleanup |
+| Archive/source audit | All seven native source/test moves byte-identical; mixed snapshots byte-identical; circuit/DEM/artifact/plan/identity files unchanged |
+| `git diff --check` | Passed after whitespace cleanup |
+
+New evidence: `docs/test_results/search_bp_v2_architecture_*`. Existing logs,
+scientific artifacts and immutable run snapshots were not changed. Suite integration
+checks use bounded temporary baseline runs, including surface/BB paired equality
+across workers/warmup and five-column grouped spawn output. No production simulation
+was launched. Restoration reused the existing conda environment and other installed
+dependencies; this is not a new full-environment build or sanitizer acceptance.
+The reduced active test count reflects retirement of v1-specific tests, not removal
+of baseline numerical checks. Decoding implementation awaits the documented TeX
+ambiguities: BP numerical policy, short/inherited history, empty/normalized
+ambiguity, descendant branching/depth, duplicate donors/ties and full OSD LLRs.
+
+---
+
 # Direct benchmark plotting notebook (2026-09-22)
 
 The local `notebook/benchmark_analysis.ipynb` now contains only explicit path/filter
