@@ -66,15 +66,16 @@ index 0000000..1ddd6e3
 +numerics, shapes, test evidence and the explicit build. No search code lives here.
 diff --git a/src_cpp/hybrid_graph.hpp b/src_cpp/hybrid_graph.hpp
 new file mode 100644
-index 0000000..c452fd2
+index 0000000..09f51ef
 --- /dev/null
 +++ b/src_cpp/hybrid_graph.hpp
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,84 @@
 +#ifndef LDPC_HYBRID_GRAPH_HPP
 +#define LDPC_HYBRID_GRAPH_HPP
 +#include "bp.hpp"
 +#include <algorithm>
 +#include <climits>
++#include <cstring>
 +#include <stdexcept>
 +
 +namespace ldpc::hybrid {
@@ -95,6 +96,7 @@ index 0000000..c452fd2
 +// ldpc's graph infrastructure. No input buffer is borrowed. Sizes fit its int API.
 +struct Graph {
 +    int m,n;
++    uint64_t model_id=14695981039346656037ULL;
 +    std::vector<size_t> rp,cp;
 +    std::vector<int> col,row;
 +    std::vector<size_t> ce;
@@ -115,6 +117,12 @@ index 0000000..c452fd2
 +            if(!std::isfinite(x)||x<=0||x>.5) throw std::invalid_argument("priors must be finite in (0,0.5]");
 +            weights.push_back(finite(std::log1p(-x)-std::log(x)));
 +        }
++        auto mix=[this](uint64_t value) {
++            for(int k=0;k<8;++k) {model_id^=(value>>(8*k))&255;model_id*=1099511628211ULL;}
++        };
++        mix(uint64_t(m));mix(uint64_t(n));
++        for(const auto& r:rows) {mix(r.size());for(int i:r) mix(uint64_t(i));}
++        for(double x:p) {uint64_t bits=0;static_assert(sizeof bits==sizeof x);std::memcpy(&bits,&x,sizeof bits);mix(bits);}
 +        rp.push_back(0); cp.assign(size_t(n)+1,0);
 +        // Empty dimensions are handled algebraically, avoiding upstream allocation assumptions.
 +        if(m && n) {
@@ -411,17 +419,21 @@ index 0000000..a98fec6
 +#endif
 diff --git a/src_cpp/stateful_min_sum.hpp b/src_cpp/stateful_min_sum.hpp
 new file mode 100644
-index 0000000..08ffeea
+index 0000000..0d9425e
 --- /dev/null
 +++ b/src_cpp/stateful_min_sum.hpp
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,134 @@
 +#ifndef LDPC_STATEFUL_MIN_SUM_HPP
 +#define LDPC_STATEFUL_MIN_SUM_HPP
 +#include "hybrid_graph.hpp"
 +#include <functional>
 +
 +namespace ldpc::hybrid {
-+struct Snapshot { Reals fields,sums,llrs,q,z; Bits decision; uint64_t iterations; };
++struct Snapshot {
++    Reals fields,sums,llrs,q,z;
++    Bits decision,syndrome;
++    uint64_t iterations=0,model_id=0,shot_id=0,numeric_id=0;
++};
 +struct Advance { bool valid=false,cap_hit=false; uint64_t iterations=0; };
 +
 +// Mutable non-reentrant session; owned edge state, shared immutable graph.
@@ -431,6 +443,7 @@ index 0000000..08ffeea
 +    std::shared_ptr<const Graph> graph_;
 +    double limit_,alpha_;
 +    Bits syndrome_;
++    uint64_t shot_id_=0,numeric_id_=14695981039346656037ULL;
 +    bool ready_=false,fields_ready_=false;
 +    Snapshot state_;
 +    double clip(double x) const { x=finite(x); return x==0 ? 0.0 : std::max(-limit_,std::min(limit_,x)); }
@@ -451,11 +464,14 @@ index 0000000..08ffeea
 +        auto n=graph_->n; auto edges=graph_->col.size();
 +        state_.fields.resize(n); state_.sums.resize(n); state_.llrs.resize(n); state_.decision.resize(n);
 +        state_.q.resize(edges); state_.z.resize(edges); state_.iterations=0;
++        auto mix=[this](double x) {uint64_t bits=0;std::memcpy(&bits,&x,sizeof bits);
++            for(int k=0;k<8;++k) {numeric_id_^=(bits>>(8*k))&255;numeric_id_*=1099511628211ULL;}};
++        mix(limit_);mix(alpha_);
 +    }
-+    void reset(const Bits& s) {
++    void reset(const Bits& s,uint64_t shot_id=0) {
 +        ready_=fields_ready_=false; state_.iterations=0;
 +        std::fill(state_.q.begin(),state_.q.end(),0); std::fill(state_.z.begin(),state_.z.end(),0);
-+        binary(s,graph_->m); syndrome_=s; ready_=true;
++        binary(s,graph_->m); syndrome_=s;shot_id_=shot_id; ready_=true;
 +    }
 +    bool replace_fields(const Reals& fields) {
 +        if(!ready_) throw std::logic_error("reset required before fields");
@@ -509,7 +525,32 @@ index 0000000..08ffeea
 +        return out;
 +    }
 +    uint64_t completed_iterations() const {return state_.iterations;} // completed full iterations, even after an exception
-+    Snapshot snapshot() const { if(!ready_||!fields_ready_) throw std::logic_error("no active BP state"); return state_; }
++    Snapshot snapshot() const {
++        if(!ready_||!fields_ready_) throw std::logic_error("no active BP state");
++        Snapshot out=state_;out.syndrome=syndrome_;out.model_id=graph_->model_id;
++        out.shot_id=shot_id_;out.numeric_id=numeric_id_;return out;
++    }
++    void restore(const Snapshot& source,uint64_t shot_id) {
++        if(!ready_||syndrome_!=source.syndrome||shot_id_!=shot_id)
++            throw std::invalid_argument("reset with the matching syndrome and shot before restore");
++        fields_ready_=false;
++        if(source.model_id!=graph_->model_id||source.numeric_id!=numeric_id_||source.shot_id!=shot_id)
++            throw std::invalid_argument("snapshot model, numeric policy, or shot identity mismatch");
++        binary(source.syndrome,graph_->m);binary(source.decision,graph_->n);
++        const size_t edges=graph_->col.size(),columns=size_t(graph_->n);
++        if(source.fields.size()!=columns||source.sums.size()!=columns||source.llrs.size()!=columns||
++           source.q.size()!=edges||source.z.size()!=edges)
++            throw std::invalid_argument("snapshot buffer shape mismatch");
++        auto valid_reals=[](const Reals& values) {return std::none_of(values.begin(),values.end(),[](double x){return !std::isfinite(x);});};
++        if(!valid_reals(source.fields)||!valid_reals(source.sums)||!valid_reals(source.llrs)||
++           !valid_reals(source.q)||!valid_reals(source.z))
++            throw std::invalid_argument("snapshot contains nonfinite values");
++        state_=source;syndrome_=source.syndrome;shot_id_=shot_id;ready_=fields_ready_=true;
++    }
++    size_t snapshot_bytes() const {
++        return 5*size_t(graph_->n)*sizeof(double)+2*graph_->col.size()*sizeof(double)+
++               size_t(graph_->n)*sizeof(uint8_t)+size_t(graph_->m)*sizeof(uint8_t)+5*sizeof(uint64_t);
++    }
 +    const Reals& llrs() const {return state_.llrs;}
 +    const Bits& decision() const {return state_.decision;}
 +    const Bits& syndrome() const {return syndrome_;}
@@ -532,10 +573,10 @@ index 0000000..ce907b7
 +from .source_files import SOURCE_FILES, source_digest
 diff --git a/src_python/ldpc/hybrid_bp/__init__.pyi b/src_python/ldpc/hybrid_bp/__init__.pyi
 new file mode 100644
-index 0000000..cdcedbb
+index 0000000..754b9c9
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/__init__.pyi
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,36 @@
 +from typing import Sequence
 +class Snapshot:
 +    fields: list[float]
@@ -544,7 +585,11 @@ index 0000000..cdcedbb
 +    q: list[float]
 +    z: list[float]
 +    decision: list[int]
++    syndrome: list[int]
 +    iterations: int
++    model_id: int
++    shot_id: int
++    numeric_id: int
 +class Advance:
 +    valid: bool
 +    cap_hit: bool
@@ -554,11 +599,14 @@ index 0000000..cdcedbb
 +    valid: bool
 +class StatefulMinSumSession:
 +    def __init__(self, rows: Sequence[Sequence[int]], n: int, probabilities: Sequence[float], llr_clip: float = 25., scaling_factor: float = 1.) -> None: ...
-+    def reset(self, syndrome: Sequence[int]) -> None: ...
++    def reset(self, syndrome: Sequence[int], shot_id: int = 0) -> None: ...
 +    def replace_fields(self, fields: Sequence[float]) -> bool: ...
 +    def replace_hint(self, pattern: Sequence[tuple[int, int]], margin: float) -> bool: ...
 +    def advance(self, iterations: int) -> Advance: ...
 +    def snapshot(self) -> Snapshot: ...
++    def restore(self, snapshot: Snapshot, shot_id: int) -> None: ...
++    @property
++    def snapshot_bytes(self) -> int: ...
 +class Osd0Bridge:
 +    def __init__(self, rows: Sequence[Sequence[int]], n: int, probabilities: Sequence[float]) -> None: ...
 +    def decode(self, syndrome: Sequence[int], llrs: Sequence[float]) -> OsdResult: ...
@@ -567,10 +615,10 @@ index 0000000..cdcedbb
 +def build_identity() -> dict[str, str]: ...
 diff --git a/src_python/ldpc/hybrid_bp/bindings.cpp b/src_python/ldpc/hybrid_bp/bindings.cpp
 new file mode 100644
-index 0000000..3f7972d
+index 0000000..f1bb1c5
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/bindings.cpp
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,36 @@
 +#include <pybind11/pybind11.h>
 +#include <pybind11/stl.h>
 +#include "stateful_min_sum.hpp"
@@ -585,18 +633,22 @@ index 0000000..3f7972d
 +    py::class_<Snapshot>(m,"Snapshot")
 +        .def_readonly("fields",&Snapshot::fields).def_readonly("sums",&Snapshot::sums)
 +        .def_readonly("llrs",&Snapshot::llrs).def_readonly("q",&Snapshot::q).def_readonly("z",&Snapshot::z)
-+        .def_readonly("decision",&Snapshot::decision).def_readonly("iterations",&Snapshot::iterations);
++        .def_readonly("decision",&Snapshot::decision).def_readonly("syndrome",&Snapshot::syndrome)
++        .def_readonly("iterations",&Snapshot::iterations).def_readonly("model_id",&Snapshot::model_id)
++        .def_readonly("shot_id",&Snapshot::shot_id).def_readonly("numeric_id",&Snapshot::numeric_id);
 +    py::class_<Advance>(m,"Advance").def_readonly("valid",&Advance::valid)
 +        .def_readonly("cap_hit",&Advance::cap_hit).def_readonly("iterations",&Advance::iterations);
 +    py::class_<StatefulMinSumSession>(m,"StatefulMinSumSession")
 +        .def(py::init([](const Rows& rows,int n,const Reals& p,double clip,double alpha){
 +            return std::make_unique<StatefulMinSumSession>(std::make_shared<Graph>(rows,n,p),clip,alpha);}),
 +            py::arg("rows"),py::arg("n"),py::arg("probabilities"),py::arg("llr_clip")=25.,py::arg("scaling_factor")=1.)
-+        .def("reset",&StatefulMinSumSession::reset,py::call_guard<py::gil_scoped_release>())
++        .def("reset",&StatefulMinSumSession::reset,py::arg("syndrome"),py::arg("shot_id")=0,py::call_guard<py::gil_scoped_release>())
 +        .def("replace_fields",&StatefulMinSumSession::replace_fields,py::call_guard<py::gil_scoped_release>())
 +        .def("replace_hint",&StatefulMinSumSession::replace_hint,py::call_guard<py::gil_scoped_release>())
 +        .def("advance",[](StatefulMinSumSession& session,int count){return session.advance(count);},py::call_guard<py::gil_scoped_release>())
-+        .def("snapshot",&StatefulMinSumSession::snapshot);
++        .def("snapshot",&StatefulMinSumSession::snapshot)
++        .def("restore",&StatefulMinSumSession::restore,py::arg("snapshot"),py::arg("shot_id"),py::call_guard<py::gil_scoped_release>())
++        .def_property_readonly("snapshot_bytes",&StatefulMinSumSession::snapshot_bytes);
 +    py::class_<OsdResult>(m,"OsdResult").def_readonly("valid",&OsdResult::valid).def_readonly("correction",&OsdResult::correction);
 +    py::class_<Osd0Bridge>(m,"Osd0Bridge")
 +        .def(py::init([](const Rows& rows,int n,const Reals& p){return std::make_unique<Osd0Bridge>(std::make_shared<Graph>(rows,n,p));}))

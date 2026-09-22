@@ -1,5 +1,25 @@
 # Arrow and paired storage
 
+## Current minimal writer
+
+`results.py` is the current runner output path. It writes one Parquet file per
+condition and data kind directly below `data/`, using the human-readable
+`code_distance_rounds_rate_basis_dataset.parquet` name. The enclosing run contains
+only that directory and `config_resolved.json`. It creates typed empty telemetry
+files where applicable and closes partial files on errors. It intentionally writes
+no manifest, checksum inventory, copied circuit/matrix/source material, summary, or
+log, and performs no final read-back validation. The older storage implementation
+below remains for historical data readers and contracts.
+
+For typed search_bp output, `results.py` accepts exact column mappings and uses
+`Table.from_pydict`; it does not require a `list[dict]`. Each worker publishes a
+completed shot through a bounded queue. The parent combines
+`output.parquet.shots_per_flush` shots per condition and appends each nonempty
+dataset as exactly one row group, then flushes the final partial group. This keeps
+producer backpressure while bounding row-group metadata by groups rather than
+shots. Generic legacy decode/event rows are not constructed in parallel with the
+typed search_bp tables.
+
 `schema.py` defines explicit version 1 samples/decodes schemas (metadata includes
 little bit order). Identifiers and required values are non-null. Batch seeds/shot
 indices/candidate counts use uint64, durations use signed int64 nanoseconds. Raw
@@ -49,3 +69,11 @@ Final acceptance also checks the enumerated phase result, the successful termina
 phase's kind/position, OSD reach versus terminal stage, and separation of prefix
 phase intervals from the OSD interval. Corrupt event metadata is rejected even
 when its foreign keys, row counts and arithmetic duration sums are consistent.
+
+## search_bp typed datasets
+
+`search_bp_schema.py` implements the 14 exact `search_bp_parquet/2` Arrow schemas.
+`search_bp.py` writes separate partitioned shards and validates hashes, primary and
+foreign keys, packed lengths/padding, complete pairing, donor provenance, event
+counts and counter equations. Empty datasets remain declared in the inventory.
+See `docs/data_dictionary.md` and the active Parquet specification.

@@ -7,16 +7,20 @@ build_dependencies.py restores/builds pinned local sources; --check verifies ins
 Numerical/configuration behavior lives in src/, with tests under tests/. No scientific
 experiment parameters belong in these command wrappers.
 
-run_benchmark.py CONFIG.yaml executes the paired runner. replay_samples.py SOURCE_RUN
-CONFIG.yaml decodes the committed saved dataset with YAML decoder/execution/output
-settings. Both imports stay numerical-library-free until configuration/thread setup.
-Both accept -v/--verbose for flushed parent progress on stderr; stdout remains the
-completed run path. The flag changes no decoder/sampling configuration.
+run_benchmark.py CONFIG.yaml executes the current minimal-output runner. It accepts
+-v/--verbose for flushed parent progress on stderr; stdout remains the completed
+run path. The flag changes no decoder/sampling configuration. Manifest-based replay
+belongs to the historical workflow and is not accepted by the current runner.
 
-analyze_benchmark.py CONFIG --run RUN reads verified saved data and exports reports;
-execute_notebook.py CONFIG --run RUN --output NEW.ipynb runs the source notebook in
-an ephemeral active-environment IPC kernel. verify_benchmark.py RUN [--compare RUN]
-checks integrity and exact non-timing equality. clean_build.py OUTPUT_ROOT creates
+benchmark_simulation.py CONFIG measures startup, sampling, simulation-side row
+handling, Arrow conversion and Parquet I/O while keeping each decoder invocation
+opaque. It forces one worker, writes production-format output only under a temporary
+root, removes it after each repeat, and can save a standalone JSON engineering
+report with `--output`. See `docs/simulation_timing_benchmark.md`.
+
+analyze_benchmark.py CONFIG --run RUN and execute_notebook.py CONFIG --run RUN
+belong to the older report workflow. The current lightweight consumer is
+`analysis.simple_search_bp`. clean_build.py OUTPUT_ROOT creates
 independent source checkouts and a fresh conda prefix, then invokes the existing
 pinned build helper and audits imports; it runs no scientific sweep.
 
@@ -26,20 +30,16 @@ setup_hybrid.py compiles the new binding, --check verifies its aggregate digest,
 and audit exports ignored binding/stub files plus transitive header hashes. The
 clean_build.py workflow inherits these steps through build_dependencies.py.
 
-Hybrid Stages 4–5 use the same run/replay/analyze/execute-notebook CLIs. Run/replay
-now write v2 tables; analysis reads v1 and v2. The maintained `notebook/benchmark_analysis.ipynb.example` is now the default;
-use `--notebook` only to select an edited or alternative notebook.
 Use config/hybrid_smoke.yaml.example or hybrid_latency.yaml.example for bounded
-checks; the CLI still prints only the final output path on stdout.
+checks; the run CLI prints only the final output path on stdout.
 
-`accept_hybrid.py --output NEW_DIRECTORY` runs final bounded hybrid acceptance:
-fresh surface/BB artifacts, one/two workers, isolated timing, replay, no profiling,
-ablations, report CLI and notebook. It saves exact commands/logs and verification.json,
-checks all BB labels and scientific equality, and refuses existing output directories.
+`validate_config.py CONFIG` is the side-effect-free search_bp dry run: it validates
+strict YAML, resolves paths and cycle arrays, checks enabled registry profiles and
+prints JSON. Execution uses the current run CLI and direct named-Parquet reader.
 
-Simulation/replay/build CLIs remain shared. The pre-migration analysis and
-notebook entry points are preserved under python_scripts/legacy/ and route to
-analysis.legacy. Current consumers default to config/analysis.yaml.example, accept
-existing strictly validated benchmark configs, and never apply simulation affinity
-or thread settings. Analyze accepts -v/--verbose (stderr); notebook execution
-accepts --timeout SECONDS, or -1 to disable the cell limit.
+The historical acceptance, replay, and manifest-verification entry points were
+removed from the active CLI set during the minimal-output migration. Their evidence
+and legacy analysis implementation remain preserved in docs and `analysis.legacy`.
+
+Simulation/build CLIs remain shared. The pre-migration analysis and notebook entry
+points are preserved under python_scripts/legacy/ and route to analysis.legacy.

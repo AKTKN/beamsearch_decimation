@@ -18,6 +18,10 @@ def decoder_label(row: dict) -> str:
     elif profile in ('beam8', 'beam32'): text='beam min-sum; '+', '.join(f'{k}={d.get(k,"?")}' for k in ('beam_width','max_rounds','initial_iters','iters_per_round','num_results'))
     elif profile in ('hybrid_search_soft_ms_osd0_v1','search_osd0_v1','hybrid_search_soft_ms_osd0_cold_v1'):
         text=f"search D={d.get('search',{}).get('max_depth','?')}; BP enabled={d.get('bp',{}).get('enabled','?')}, warm={d.get('bp',{}).get('warm_start','?')}; direct OSD0"
+    elif profile == 'search_bp':
+        search=d.get('search',{});bp=d.get('bp',{})
+        text=(f"hard-fixation search E/cycle={search.get('expansions_per_cycle','?')}; "
+              f"BP beam W={bp.get('beam_width','?')}, T/visit={bp.get('max_iteration','?')}; direct OSD0")
     else: raise ValueError(f'unsupported decoder label profile: {profile}')
     return f'{row["decoder_name"]} [{row["decoder_id"][:8]}]\n{text}'
 

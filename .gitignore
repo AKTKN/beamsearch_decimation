@@ -16,6 +16,18 @@
 !/external_lib/manifest.lock.json
 !/external_lib/patches/
 
+legacy/
+!/config/legacy/
+!/config/legacy/hybrid/
+!/config/legacy/hybrid/*.yaml.example
+!/src/qec_bp_benchmark/native/legacy/
+!/src/qec_bp_benchmark/native/legacy/*.hpp
+!/docs/legacy/
+!/docs/legacy/hybrid_frontier_bp_beam/
+!/docs/legacy/hybrid_frontier_bp_beam/*
+!/analysis/legacy/
+!/analysis/legacy/simple_frontier.py
+
 # Build products and caches.
 __pycache__/
 *.py[cod]

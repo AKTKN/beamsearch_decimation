@@ -1,5 +1,23 @@
 # Complete YAML interface
 
+## SEARCH-BP-1.0
+
+The active kind and profile are both `search_bp`. Nested
+search/BP/stopping/fallback/numerics objects reject unknown keys and nonfinite
+values. `search.expansions_per_cycle` is one scalar used in every cycle. There is
+no `max_generated_nodes`: expanded search work is bounded only by
+`max_cycles * expansions_per_cycle`, while each expanded Tanner-graph node may
+generate all of its finite canonical children.
+`bp.beam_width` controls both new pattern admission and retained BP states, while
+`bp.max_iteration` is the fixed request for each candidate visit. There are no
+`max_expansions`, `max_generated_nodes`, `admissions_per_cycle`,
+`max_total_iterations`, soft-hint, LLR clip, or hard-decision-zero settings.
+`max_cycles: 0` selects direct CS0.
+
+Typed output requires `search_bp_config/2`, layout `typed_datasets` and data schema
+`search_bp_parquet/2`. Validate without executing using
+`python python_scripts/validate_config.py CONFIG`.
+
 `load_config(path)` safely reads YAML, rejects duplicate/unknown keys, validates
 parameters and resolves all paths relative to the YAML file. Config models are
 frozen. `config.resolved()` returns finite JSON with explicit expanded rate/code
@@ -18,8 +36,7 @@ An empty production grid is a validation error; no production rates are invented
 | sampling | shots_per_point, batch_size, master_seed, warmup_seed, warmup_count, store_raw_samples=true. Counts are positive except warmup may be zero. Physical sample identity excludes warmup. |
 | execution | workers=4, start_method=spawn, max_pending=2*workers if omitted, worker_cache_size=2, native_threads=blas_threads=1, optional unique nonnegative CPU affinity. |
 | timing | throughput or isolated_latency (requires one worker), both process_time_ns/perf_counter_ns timers, cyclic decoder order, profiling=none/phases. |
-| output | root path, compression=zstd/snappy/none, shard_policy=paired_atomic_batch, retain_traces=false, retain_corrections=false. |
-| analysis | confidence in (0,1), quantiles in [0,1], plots drawn from failure_rate/cpu_ecdf/wall_ecdf/cpu_survival/wall_survival, input/output paths, stratify_timing=false, min_expected_tail_count=10. |
+| output | root path, compression=zstd/snappy/none, shard_policy=paired_atomic_batch, retain_traces=false, retain_corrections=false. Typed search_bp output adds compression_level, positive shots_per_flush (default 1024), atomic_batch_commit=true and telemetry controls. |
 
 The preparation CLI consumes only circuit-related settings; run_benchmark.py executes
 the full decoder comparison, and analyze_benchmark.py consumes saved datasets.
@@ -27,7 +44,7 @@ Decoder sweep examples deliver each physical shot to all enabled configurations.
 Duplicate semantic decoder configurations are rejected even with distinct names.
 See pipeline.md for timing, storage, replay and source-provenance details.
 
-`analysis.quantiles` requests additional
+The independent analysis-only configuration's `analysis.quantiles` requests additional
 quantiles beyond the mandatory median/p90/p95/p99/p99.9 summaries; duplicate values
 are rejected. `analysis.plots` also accepts cpu_survival and wall_survival; duplicate
 plot requests are rejected. `analysis.stratify_timing` defaults false and optionally
@@ -68,8 +85,8 @@ to that acceptance run and are illustrative for a different checkout.
 
 `analysis.load_analysis_config(path)` accepts the strict `analysis` envelope in
 config/analysis.yaml.example without requiring any simulation grid or decoder.
-It returns immutable analysis settings with YAML-relative paths resolved. Full
-benchmark YAML remains supported with complete validation, but its execution
-settings are not applied to the analysis process. Current report/notebook CLIs
-default to the analysis-only template; legacy CLIs still expect benchmark YAML.
+It returns immutable analysis settings with YAML-relative paths resolved. Simulation
+YAML intentionally contains no `analysis` section and is rejected by the analysis
+loader. Current report/notebook CLIs default to the analysis-only template; legacy
+CLIs retain their historical interfaces under `scripts/legacy/`.
 See analysis_migration.md for compatibility, kernels, bootstrap and legacy paths.

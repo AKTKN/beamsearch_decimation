@@ -1,24 +1,23 @@
 # Configuration templates
 
-Top-level templates cover the active hybrid workflow:
+Top-level templates cover the active workflow:
 
 - analysis.yaml.example: saved-data-only settings; no simulation parameters required.
 
-- hybrid_smoke.yaml.example: bounded surface d=3/BB72 checks with hybrid, CS0 and beam.
-- hybrid_latency.yaml.example: separate one-worker isolated latency checks.
-- hybrid_ablations.yaml.example: warm/cold/no-BP comparisons.
-- hybrid_production_template.yaml.example: surface d=5,7,9 and BB72; supply rates
-  explicitly before use. It intentionally rejects the empty physical rate list.
 - bposd_cs0_smoke.yaml.example: current upstream CS0/CS10/beam baseline comparison.
+- search_bp.yaml.example: bounded surface d=3/BB72 hard-fixation validation.
 
-Historical screened-reference/CS10 experiment templates and local copies are in
-legacy/. The local main.yaml also moved there with all rates, seeds, budgets and
-comments preserved. Relative paths were rebased to keep the same circuit cache,
-run and analysis destinations. See legacy/README.md for the old configuration matrix.
+`python python_scripts/validate_config.py CONFIG` prints resolved JSON without
+preparing circuits or executing decoders.
+
+Historical screened-reference/CS10 templates are in `legacy/`; soft-hint hybrid
+and HSBP-FB templates are in `legacy/hybrid/`. They preserve their source settings
+but are intentionally not accepted as current `search_bp` configurations.
 
 Simulation/replay entry scripts are shared: choose a decoder workflow through YAML.
-Current analysis accepts its own analysis-only YAML or a validated benchmark YAML;
-legacy analysis entry points remain under scripts/legacy/.
+Current analysis accepts only its independent analysis YAML; simulation YAML does
+not contain analysis settings. Legacy analysis entry points remain under
+scripts/legacy/.
 For example, scripts/run_benchmark.sh config/hybrid_smoke.yaml.example runs the
 hybrid, while scripts/run_benchmark.sh config/legacy/smoke.yaml.example runs the
 historical comparison. Both create new run directories and use current v2 storage.

@@ -11,7 +11,8 @@ from types import ModuleType
 import time
 import numpy as np
 from ..bp import verified_backend, verified_hybrid_backend
-from ..config import Decoder, Screened, Bposd, Beam, Hybrid, HYBRID_PROFILES, require_available_decoder
+from ..config import (Decoder, Screened, Bposd, Beam, Hybrid, SearchBP,
+                      HYBRID_PROFILES, SEARCH_BP_PROFILE, require_available_decoder)
 from ..dem.model import DetectorProblem
 from ..identity import decoder_identity
 
@@ -53,7 +54,7 @@ def implementation_identity(kind: str) -> dict:
     if kind == 'screened_reference':
         module=native_search()
         detail=dict(module.source_identity(), build=module.build_identity())
-    elif kind in HYBRID_PROFILES:
+    elif kind in HYBRID_PROFILES or kind == SEARCH_BP_PROFILE:
         import platform
         module=native_hybrid()
         detail=dict(module.hybrid_source_identity(), build=module.build_identity(),
@@ -94,6 +95,7 @@ class DecodeResult:
     diagnostics: dict | None = None
     phases: dict | None = None
     hybrid_summary: dict | None = None
+    frontier_summary: dict | None = None
 
 
 class DecoderAdapter:
@@ -106,9 +108,9 @@ class DecoderAdapter:
     """
     def __init__(self, problem: DetectorProblem, config: Decoder, *, diagnostics: bool=False, profiling: bool=False) -> None:
         require_available_decoder(config.profile)
-        if isinstance(config,Hybrid) and diagnostics:
+        if isinstance(config,(Hybrid,SearchBP)) and diagnostics and not isinstance(config,SearchBP):
             raise ValueError("hybrid per-node traces are unsupported; use profiling and export_telemetry after decode")
-        if not isinstance(config, (Screened, Bposd, Beam, Hybrid)):
+        if not isinstance(config, (Screened, Bposd, Beam, Hybrid, SearchBP)):
             raise TypeError(f'unsupported decoder configuration: {type(config).__name__}')
         self.problem=problem
         self.config=config
@@ -121,6 +123,29 @@ class DecoderAdapter:
         n=problem.H.shape[1]
         # The exactly normalized empty model has a unique length-zero correction.
         # No native baseline accepts every empty shape, so handle it algebraically.
+        if isinstance(config,SearchBP):
+            native=native_hybrid();settings=native.SearchBPSettings()
+            values={
+                'max_depth': -1 if config.search.max_depth is None else config.search.max_depth,
+                'max_cycles': config.search.max_cycles,
+                'det_beam': -1 if config.search.det_beam is None else config.search.det_beam,
+                'prefix_cpu_budget_ns': config.search.prefix_cpu_budget_ns or 0,
+                'expansions_per_cycle': config.search.expansions_per_cycle,
+                'beam_width': config.bp.beam_width,
+                'max_iteration': config.bp.max_iteration,
+                'post_solution_cycles': config.stopping.post_solution_cycles,
+                'alpha': config.bp.scaling_factor,
+                'bp_enabled': config.bp.enabled,'trace_search_nodes': diagnostics,'profiling': profiling,
+            }
+            for key,value in values.items(): setattr(settings,key,value)
+            settings.set_goal_test(config.search.goal_test);settings.set_retention(config.bp.retention_score)
+            settings.set_inheritance(config.bp.state_inheritance)
+            settings.set_stop_mode(config.stopping.mode);settings.set_llr_policy(config.fallback.llr_source)
+            def rows(matrix):
+                csr=matrix.tocsr()
+                return [csr.indices[csr.indptr[a]:csr.indptr[a+1]].tolist() for a in range(csr.shape[0])]
+            self._native=native.SearchBPDecoder(rows(problem.H),n,problem.probabilities.tolist(),rows(problem.A),settings)
+            return
         if isinstance(config,Hybrid):
             native=native_hybrid(); settings=native.HybridSettings()
             for key,value in {'max_depth':config.search.max_depth,
@@ -164,6 +189,7 @@ class DecoderAdapter:
         counters={}
         diagnostics=None
         hybrid_summary=None
+        frontier_summary=None
         phases={} if self.profiling else None
         if self.profiling:
             now=time.perf_counter_ns(); phases['input_wall_ns']=now-phase_start; phase_start=now
@@ -171,6 +197,12 @@ class DecoderAdapter:
             candidate=np.zeros(0,dtype=np.uint8)
             declared=bool(s.any())
             native_status='EMPTY_MODEL_CONTRADICTION' if declared else 'EMPTY_MODEL_VALID'
+        elif isinstance(self.config,SearchBP):
+            r=self._native.decode(s.tolist())
+            candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None
+            declared=not r.valid
+            frontier_summary=self._native.summary(r)
+            native_status=r.status
         elif isinstance(self.config,Hybrid):
             r=self._native.decode(s.tolist(),self.profiling)
             candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None
@@ -215,7 +247,8 @@ class DecoderAdapter:
             prediction=np.asarray((self.problem.A@correction)%2,dtype=np.uint8)
             cost=sum(w for i,w in enumerate(self._weights) if correction[i])
         if self.profiling: phases['validation_prediction_cost_wall_ns']=time.perf_counter_ns()-phase_start
-        return DecodeResult(correction,prediction,valid,status,native_status,cost,counters,diagnostics,phases,hybrid_summary)
+        return DecodeResult(correction,prediction,valid,status,native_status,cost,counters,diagnostics,phases,
+                            hybrid_summary,frontier_summary)
 
 
     def export_telemetry(self) -> dict:
@@ -225,6 +258,17 @@ class DecoderAdapter:
         profiling=none yields empty event lists. Non-hybrid calls raise TypeError.
         Session use, including export, is non-reentrant.
         """
-        if not isinstance(self.config,Hybrid):
+        if not isinstance(self.config,(Hybrid,SearchBP)):
             raise TypeError('native event export requires a hybrid decoder')
         return self._native.export_telemetry()
+
+    def export_telemetry_columns(self) -> dict[str, dict[str, list]]:
+        """Return search_bp native events as Arrow-compatible column mappings.
+
+        The native binding reads its owned telemetry without first copying it into
+        a Python list of per-event dictionaries.  Historical hybrid decoders keep
+        the row-oriented compatibility API above.
+        """
+        if not isinstance(self.config, SearchBP):
+            raise TypeError('columnar telemetry export requires search_bp')
+        return self._native.export_telemetry_columns()

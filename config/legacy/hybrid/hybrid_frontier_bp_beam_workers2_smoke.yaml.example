@@ -1,0 +1,59 @@
+# Same scientific smoke plan and decoder set as the one-worker smoke, with two
+# spawn workers for deterministic non-timing output comparison.
+config_schema_version: hsbp_fb_config/1
+experiment:
+  name: hybrid_frontier_bp_beam_v2_smoke
+  purpose: Bounded two-worker determinism validation only; no performance claim
+  codes: [{family: surface, distances: [3]}, {family: bb72, distances: [6]}]
+  memory_basis: Z
+  sector: Z_checks
+  round_rule: distance
+circuit:
+  surface_provider: stim
+  bb_provider: qldpc
+  surface_schedule: rotated_memory_z
+  bb_schedule: edge_coloring
+  edge_coloring_strategy: smallest_last
+  boundary: noisy_prepare_extract_readout
+  cache: ../simulation_data
+dem: {decompose_errors: false, approximate_disjoint_errors: false, allow_gauge_detectors: false,
+  sector_mapping: measurement_provenance, merge: none, normalization: remove_zero_reject_above_half}
+noise:
+  profile: circuit_depolarizing
+  rates: [0.003]
+  multipliers: {one_qubit: 1.0, two_qubit: 1.0, idle: 1.0, reset: 1.0, measurement: 1.0}
+sampling: {shots_per_point: 8, batch_size: 4, master_seed: 20260922, warmup_seed: 20260923, warmup_count: 1}
+execution: {workers: 2}
+timing: {mode: throughput, profiling: none}
+output:
+  root: ../assets/runs
+  layout: typed_datasets
+  data_schema_version: hsbp_fb_parquet/1
+  parquet: {compression: zstd, compression_level: 3, shots_per_flush: 1024, atomic_batch_commit: true}
+  telemetry: {candidate_updates: true, beam_membership: true, solution_events: true,
+    trace_search_nodes: false, raw_bp_messages: false, per_iteration_trace: false}
+decoders:
+  - kind: hybrid_frontier_bp_beam_osd0
+    profile: hybrid_frontier_bp_beam_ms_osd0_v2
+    name: hybrid_frontier_bp_beam_ms_osd0_v2
+    search: {max_depth: null, max_cycles: 2, expansions_per_cycle: [2, 2],
+      max_expansions: 4, max_generated_nodes: 64, detector_order: canonical_index,
+      branch_order: physical_weight_then_index, heuristic: residual_fractional_cover,
+      goal_test: on_generation, det_beam: null,
+      guidance_selection: best_unused_generated_pattern, prefix_cpu_budget_ns: null,
+      cost_bound_pruning: false}
+    bp: {enabled: true, method: minimum_sum, schedule: parallel, beam_width: 2,
+      admissions_per_cycle: [2, 2], max_total_iterations: 64,
+      max_iterations_per_candidate_per_cycle: 4,
+      retention_score: residual_then_physical,
+      state_inheritance: retained_ancestor, hint_max_depth: 4, hint_mode: soft,
+      hint_policy: signed_channel_magnitude_plus_margin, hint_margin_llr: 8.0,
+      replace_previous_hint: true, scaling_factor: 1.0, llr_clip: 25.0,
+      hard_decision_zero: one}
+    stopping: {mode: first_valid, post_solution_cycles: 1}
+    fallback: {backend: ldpc_osd_only, osd_method: OSD_CS, osd_order: 0,
+      llr_source: best_retained_guided, ordering: pinned_ldpc_signed_llr}
+    numerics: {dtype: float64, heuristic_reduction: fixed_binary_tree, fast_math: false}
+    native_threads: 1
+  - {profile: beam8}
+  - {profile: bposd_ms30_cs10}

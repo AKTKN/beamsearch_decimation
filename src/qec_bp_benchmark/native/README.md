@@ -42,3 +42,20 @@ and ASan/UBSan configurations. The isolated restoration check additionally build
 a fresh project extension against the patched source-only ldpc tree and verifies
 its embedded project/fork digests before executing the service. See
 docs/hybrid_acceptance.md (from the repository root) for scope and reproducible commands.
+
+## SEARCH-BP-1.0
+
+`search_bp_search.hpp` owns independent persistent Q/G heaps and canonical physical
+search. `hard_fixed_min_sum.hpp` removes fixed-variable edges and recomputes the
+residual syndrome. `search_bp.hpp` carries owned candidate states across cycles,
+runs `max_iteration` work per visit and submits every original-H-valid result to one
+incumbent. Search has no independent generated-node or total-expansion cap;
+expanded-node work is bounded by `max_cycles * expansions_per_cycle`. The decoder
+is non-reentrant and clears all shot state on reuse. The
+previous `frontier*.hpp` implementation is source-preserved under `native/legacy/`.
+The active search_bp binding exposes `export_telemetry_columns()`. It reads the
+decoder-owned telemetry by const reference and builds dataset-specific column
+arrays; the runner never materializes a list of event dictionaries. The historical
+`export_telemetry()` row API remains for compatibility tests and external callers.
+Summary extraction also uses the const view and no longer copies the complete
+telemetry object.

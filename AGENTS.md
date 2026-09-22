@@ -1,5 +1,13 @@
 # QEC BP benchmark
 
+Current simulation output uses the minimal contract in docs/simulation_output.md.
+New runs contain only `data/` and `config_resolved.json`, use
+`YYYY_MM_DD_HH_MM_<config-hash-8>`, and prefix every Parquet filename with
+`code_distance_rounds_rate_basis`. Do not restore run manifests, copied
+circuit/matrix/source artifacts, inventories, summaries, file logs, final read-back
+validation, or manifest-based replay to the active runner. Historical contracts,
+readers, and evidence remain legacy-only.
+
 Maintain the historical contract in prompts/codex_bp_benchmark_implementation_prompts.md
 and docs/bp_decimation_screening_specification.md for screened_reference. Its seven
 stages are accepted. The authorized hybrid migration follows
@@ -8,21 +16,28 @@ docs/hybrid_search_soft_bp_osd0_specification.md (HSBP-ALG-1.0), and
 docs/hybrid_benchmark_data_and_hypothesis_specification.md (HSBP-EXP-1.0).
 Hybrid Stages 1-6 are implemented: configuration, audited fork sessions, native
 hybrid service, paired v2 telemetry/storage and saved-data hypothesis analysis.
-New runs write v2 while readers preserve v1. See docs/hybrid_native.md,
-docs/hybrid_data.md, docs/hybrid_acceptance.md and STATUS.md for final evidence.
-Use `python python_scripts/accept_hybrid.py --output NEW_DIRECTORY` for bounded E2E
-acceptance. The user explicitly authorized pushing the finalized migration to the
+Historical runs/readers preserve v1/v2. See docs/hybrid_native.md,
+docs/hybrid_data.md, docs/hybrid_acceptance.md and STATUS.md for prior evidence.
+The user explicitly authorized pushing the finalized migration to the
 existing GitHub origin; do not force-push or change historical scientific artifacts.
 Historical screened-reference/CS10 configs live in config/legacy/; top-level
-config templates cover the hybrid and current baseline checks. Simulation/replay CLIs remain shared. Current analysis uses analysis-only
-config/analysis.yaml.example; pre-migration consumers are preserved in analysis/legacy/,
-python_scripts/legacy/, scripts/legacy/ and notebook/legacy/. Preserve relative data/output destinations when moving configs.
+config templates cover the hybrid and current baseline checks. The current runner
+does not expose replay. Pre-migration consumers are preserved in analysis/legacy/,
+python_scripts/legacy/, scripts/legacy/ and notebook/legacy/. Preserve relative
+data/output destinations when moving configs.
 Use the search_decimation conda environment for all programs. Production
 physical rates remain user-supplied; do not launch a production sweep implicitly.
 
+SEARCH-BP-1.0 is implemented as `search_bp`; normative sources are
+`docs/specifications/search_bp_specification.md` and the adjacent Parquet contract.
+New runs use schema-version 3 and 14 separate typed datasets.
+Use `config/search_bp.yaml.example` for bounded validation and
+`python python_scripts/validate_config.py` for dry runs. Do not launch the production
+starter implicitly or claim an advantage over beam8 from smoke data.
+
 Directory responsibilities: src/ importable Python and native implementation;
 python_scripts/ thin CLIs; scripts/ shell launchers; config/ strict YAML;
-analysis/ installed readers/statistics/plots/report/validation; notebook/ API consumers;
+analysis/ direct minimal-layout readers/statistics plus legacy compatibility;
 external_lib/ pinned sources, local ldpc development branch and dependency manifest;
 simulation_data/ immutable scientific artifacts; assets/ mutable run/report outputs;
 tests/ behavioral/native checks; docs/ contracts, integration and acceptance evidence;
@@ -55,12 +70,8 @@ scripts/build_dependencies.sh --check
 python -m pip install --no-build-isolation --no-deps -e .
 python -m pytest -q
 scripts/run_benchmark.sh config/legacy/stage5_validation.yaml
-scripts/run_benchmark.sh config/hybrid_smoke.yaml.example
-scripts/run_benchmark.sh config/hybrid_latency.yaml.example
-scripts/replay_samples.sh SOURCE_RUN config/hybrid_ablations.yaml.example
-scripts/analyze_benchmark.sh config/analysis.yaml.example --run SOURCE_RUN
-python python_scripts/verify_benchmark.py SOURCE_RUN --compare OTHER_RUN
-scripts/execute_notebook.sh config/analysis.yaml.example --run SOURCE_RUN --output assets/notebook/new.ipynb
+scripts/run_benchmark.sh config/search_bp.yaml.example
+python -c "from analysis.simple_search_bp import summarize_run; print(summarize_run('SOURCE_RUN'))"
 ```
 
 Rebuild the project extension after native/search.hpp, native/module.cpp,
@@ -87,16 +98,16 @@ BP-OSD comparisons, 560 complete-search oracle comparisons, native 2/2 per build
 full all-four-code worker/mode/replay equality and executed analysis/notebook.
 
 Subsequent verbosity maintenance has 121 passing project tests (see STATUS.md).
-Run/replay accept -v/--verbose for parent-only stderr progress after committed batches.
+Run accepts -v/--verbose for parent-only stderr progress after saved batches.
 Keep stdout as the final run path; logging must remain outside per-shot timers and
 must not alter sample plans, decoder identities or scientific outputs.
 
-Analysis must validate manifests/shards, sum counts and use one block trial per
-physical shot. Preserve conditional denominators, null diagnostics and failed-shot
-timings. Never pool incompatible run/model/noise/decoder/sampling/execution contexts
-or interpret replayed shots as independent data. Keep isolated/concurrent timings
-separate; no division by R or 12. Label zero-event bounds and insufficient tails.
-Notebooks call analysis modules and contain no simulation/statistical implementation.
+Current analysis reads named Parquet data directly without manifests or final
+validation and uses one block trial per physical shot. Preserve conditional
+denominators, null diagnostics and failed-shot timings. Never pool incompatible
+run/model/noise/decoder/sampling/execution contexts. Keep isolated/concurrent
+timings separate; no division by R or 12. Label zero-event bounds and insufficient
+tails. Legacy notebooks remain historical consumers.
 
 Use new output directories after interruptions; there is no in-place resume. Update
 module READMEs, affected documentation, traceability, source audit and STATUS.md with

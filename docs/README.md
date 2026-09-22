@@ -10,6 +10,7 @@ configuration_audit.md map requirements to code/tests. acceptance_report.md reco
 final clean-build commands and evidence; test_results/ preserves historical logs.
 
 distribution.md documents the Git publication boundary and first-clone setup.
+simulation_output.md defines the current two-entry result directory and data naming.
 
 
 The historical algorithm/benchmark contracts above remain authoritative for the
@@ -23,6 +24,11 @@ inventories and engineering limits are in hybrid_native.md. hybrid_migration.md 
 the preserved Stage 1 decision record; its planned interfaces are superseded there.
 
 - hybrid_data.md: current v2 schema fields, atomic event policy, timing/label
+- simulation_timing_benchmark.md: developer-only end-to-end simulation timing
+  decomposition with decoder calls kept opaque.
   validation, paired hypothesis APIs and reproducible Stage 4–5 workflows.
 - hybrid_acceptance.md: final source restoration, Release/Debug/sanitizer and E2E
   commands, contract review, evidence scope and handoff limitations.
+- specifications/search_bp_specification.md: active hard-fixation algorithm.
+- data_dictionary.md and specifications/search_bp_parquet_schema.json: typed data contract.
+- legacy/hybrid_frontier_bp_beam/: preserved HSBP-FB-2.0 sources and evidence.

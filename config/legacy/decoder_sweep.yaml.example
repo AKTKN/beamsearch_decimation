@@ -10,4 +10,3 @@ decoders:
 # Explicit paths preserve destinations after moving this file into legacy/.
 circuit: {"cache": "../../simulation_data"}
 output: {"root": "../../assets/runs"}
-analysis: {"input": "../../assets/runs", "output": "../../assets/analysis"}

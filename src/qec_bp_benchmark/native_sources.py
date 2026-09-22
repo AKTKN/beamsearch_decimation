@@ -4,7 +4,9 @@ import hashlib
 
 HYBRID_PROJECT_FILES = tuple('src/qec_bp_benchmark/native/' + name for name in (
     'hybrid_model.hpp', 'hybrid_search.hpp', 'hybrid_telemetry.hpp', 'hybrid.hpp',
-    'hybrid_bindings.hpp', 'module.cpp',
+    'hybrid_bindings.hpp', 'search_bp_model.hpp', 'search_bp_search.hpp',
+    'search_bp_telemetry.hpp', 'hard_fixed_min_sum.hpp', 'search_bp.hpp',
+    'search_bp_bindings.hpp', 'module.cpp',
 )) + ('CMakeLists.txt', 'src/qec_bp_benchmark/native_sources.py')
 
 

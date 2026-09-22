@@ -43,3 +43,8 @@ Stage 6 supplies source-only restoration/build verification and a repeatable bou
 E2E CLI at python_scripts/accept_hybrid.py. Final logs and limits are indexed in
 STATUS.md and docs/hybrid_acceptance.md; required decoder/data/consumer paths are
 complete. Production rates remain an explicit user choice.
+
+`SearchBP` is the active persistent Q/G search plus hard-fixation BP-state beam.
+Fixed columns are excluded from native message updates and fixed ones modify the
+residual syndrome. Search, scheduling, state inheritance, ranking, solutions and
+direct CS0 stay native; Python owns preparation, persistence and offline labels.

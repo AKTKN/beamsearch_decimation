@@ -78,3 +78,22 @@ are indexed under docs/test_results/analysis_migration_*.
 
 `test_quick_plots.py` checks trusted on-demand column projection, all-shot timing
 row retention, and failure-count/Wilson-interval parity with the verified reader.
+
+search_bp coverage is in `test_search_bp_config.py`, `test_search_bp_decoder.py`,
+`test_search_bp_storage.py` and `native/test_search_bp.cpp`. It covers scalar cycle
+work, structural fixation/residual syndrome, fixed per-visit work, cold and ancestor
+paths, direct CS0, deterministic reuse, all 14 schemas and saved inventory.
+Current output-layout coverage is in `test_simple_results.py`: exact run/config
+hash naming, physical-rate tags, the two-entry directory contract, human-readable
+Parquet names, typed empty files, and a real one-shot end-to-end run. Historical
+manifest/replay/report integration tests were moved to the OS trash during the
+minimal-output migration; algorithm, native-boundary, circuit, schema, telemetry,
+and dependency tests remain active.
+`test_simulation_benchmark.py` verifies that the developer timing harness keeps
+decode as one opaque phase, exercises the actual result writer, reports ranked
+non-decoding phases, and leaves the configured scientific output root untouched.
+
+SearchBP storage tests also compare native row/column telemetry exactly, validate
+column-schema conversion, and run a two-worker spawn case whose four shots produce
+four sample/result row groups despite physical batches of two. This exercises
+pre-batch-completion streaming and bounded-queue parent writing.

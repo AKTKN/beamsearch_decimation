@@ -1,4 +1,69 @@
-# Loading, statistical analysis and notebooks
+# Saved-data analysis
+
+The current interactive workflow is
+[`notebook/benchmark_analysis.ipynb`](../notebook/benchmark_analysis.ipynb) with
+the direct readers in `analysis.benchmark_plots`:
+
+```python
+from analysis import (
+    decoder_event_rate_table,
+    plot_decode_time_histogram,
+    plot_logical_error_rate,
+    plot_mean_decode_time,
+)
+
+rate_figures = plot_logical_error_rate(
+    RUN_PATH,
+    codes=["surface", "bb72"],
+    physical_rates=[0.002, 0.0025, 0.003],
+    distances=None,
+    decoders=["search_bp", "beam8"],
+)
+time_figures = plot_mean_decode_time(
+    RUN_PATH,
+    codes="bb72",
+    distances=6,
+    decoders=None,
+    clock="wall",
+)
+histogram = plot_decode_time_histogram(
+    RUN_PATH, code="bb72", physical_rate=0.002, distance=6, clock="wall",
+)
+rates = decoder_event_rate_table(RUN_PATH)
+```
+
+Each argument may be a scalar or sequence; `None` includes all values. Decoder
+selection matches an exact saved ID, name, or profile. The run must use the current
+minimal `config_resolved.json` plus `data/` layout. The module reads the named
+condition/decoder files and projects only required columns from each
+`*_logicalerror.parquet`; it does not read samples or telemetry.
+
+Logical error is recomputed as decoding failure OR logical mismatch. The stored
+`block_failure` column is not read. The point denominator is the number of physical
+shots and the default shaded band is a 95% two-sided Wilson interval. Mean CPU/wall
+service time uses every shot, including failures. Since a Wilson interval has no
+definition for continuous durations, timing shading is a 95% Student-t interval
+for the arithmetic mean.
+
+The histogram API requires one code and physical rate. Distance is required for
+the topological surface code and whenever selection would otherwise leave multiple
+conditions. Times are shown in microseconds, one decoder per subplot, with mean,
+p95, and p99 vertical lines. The event-rate API returns a pandas DataFrame indexed
+by `(code, distance, physical_rate)`, with `(decoder, metric)` columns and rate
+values in the cells. `search_bp` uses its saved `osd_entered` flag, while beam
+profiles use `syndrome_valid == False`. Storage IDs and execution metadata are not
+included in the displayed table.
+
+Every code family gets a separate 3.4 x 2.55 inch figure at 300 dpi, intended for
+one column in a two-column RevTeX document. Functions return newly owned live
+Matplotlib `Figure` objects and write nothing. Notebook users can adjust
+`figure.axes[0]` and save in their desired format. There is no summary cell, data
+frame merge, bootstrap, report generation, or automatic output directory.
+
+## Historical manifest workflow
+
+The remainder of this document describes the preserved legacy/report consumers;
+it is not the workflow used by the current local benchmark notebook.
 
 ```bash
 conda activate search_decimation
@@ -89,7 +154,7 @@ ablations are compared using their distinct recorded decoder identities.
 ## Consumer migration and legacy
 
 Use analysis-only config/analysis.yaml.example for saved-data work. Current CLIs
-also accept validated full benchmark YAML but do not apply simulation execution
+do not accept simulation YAML; simulation configuration contains no analysis
 settings. See [analysis_migration.md](analysis_migration.md) for the independent
 settings API, exact faster bootstrap, runtime provenance, progress, notebook kernel
 selection and the preserved analysis.legacy entry points.

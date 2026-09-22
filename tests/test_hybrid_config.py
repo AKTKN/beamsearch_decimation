@@ -143,12 +143,25 @@ def test_cs0_identity_and_legacy_parameters():
         if template.name == 'analysis.yaml.example':
             from analysis import load_analysis_config
             assert load_analysis_config(template).analysis.bootstrap_count == 2000
-        elif 'production' in template.name:
+        elif 'production' in template.name or 'hybrid_frontier' in template.name:
             with pytest.raises(ValidationError):
                 load_config(template)
         else:
             loaded = load_config(template)
             assert Config.model_validate_json(loaded.model_dump_json()) == loaded
+
+
+def test_analysis_config_is_independent_from_simulation_yaml(tmp_path):
+    from analysis import load_analysis_config
+
+    settings = load_analysis_config(ROOT / "config/analysis.yaml.example")
+    assert settings.analysis.input == ROOT / "assets/runs"
+    with pytest.raises(ValidationError):
+        load_analysis_config(ROOT / "config/search_bp.yaml.example")
+    duplicate = tmp_path / "analysis.yaml"
+    duplicate.write_text("analysis: {confidence: 0.9, confidence: 0.8}\n")
+    with pytest.raises(ValueError, match="duplicate"):
+        load_analysis_config(duplicate)
 
 
 def test_setup_preserves_local_edits_and_symlinks(tmp_path):
@@ -158,11 +171,11 @@ def test_setup_preserves_local_edits_and_symlinks(tmp_path):
                         ignore=lambda path, names: [n for n in names if (Path(path)/n).is_file() and not n.endswith('.example')])
     script = tmp_path / 'scripts/setup_local_files.sh'
     shutil.copyfile(ROOT / 'scripts/setup_local_files.sh', script)
-    local = tmp_path / 'config/hybrid_smoke.yaml'
+    local = tmp_path / 'config/search_bp.yaml'
     local.write_text('noise: {rates: [0.0123, 0.0234]}\n# local experiment\n')
     legacy_local = tmp_path / 'config/legacy/smoke.yaml'
     legacy_local.write_text('noise: {rates: [0.013]}\n# preserved legacy experiment\n')
-    symlink = tmp_path / 'config/hybrid_production_template.yaml'
+    symlink = tmp_path / 'config/bposd_cs0_smoke.yaml'
     symlink.symlink_to(tmp_path / 'absent-user-file')
     for _ in range(2):
         subprocess.run(['bash', str(script)], check=True)

@@ -1,5 +1,11 @@
 # Circuit-level BP benchmark
 
+The current simulation runner uses a minimal result layout: a local-time
+`YYYY_MM_DD_HH_MM_<config-hash-8>` directory containing only `data/` and
+`config_resolved.json`. Data filenames begin with code, distance, rounds, physical
+rate and basis, for example `bb72_d6_r6_p003_Z_logicalerror.parquet`. See
+[minimal simulation output](docs/simulation_output.md).
+
 All seven historical implementation stages are complete: physical Z-memory circuits, canonical
 DEM artifacts, native screened-decimation search using the forked ldpc flooding
 kernel, unchanged BP-OSD and published beam baselines, paired serial/spawn simulation,
@@ -15,6 +21,15 @@ through `DecoderAdapter` and paired run/replay with v2 storage and reports. See
 [the native API](docs/hybrid_native.md) and [current status](STATUS.md).
 The upstream `bposd_ms30_cs0` baseline remains runnable through the existing runner.
 
+The active search/BP decoder is `search_bp` (`SEARCH-BP-1.0`). Search assignments
+are hard fixations: fixed variable nodes and all incident edges are removed from
+BP and fixed ones are folded into the residual syndrome. Beam width controls new
+candidate admission and retained BP states; cycle expansion and candidate iteration
+work are scalar settings with no independent global expansion/iteration cap. See
+[the specification](docs/specifications/search_bp_specification.md). Validate the
+bounded template with `python python_scripts/validate_config.py
+config/search_bp.yaml.example`.
+
 ```bash
 # Create once; use the existing environment if already installed.
 conda create -n search_decimation --file environment.conda.lock.txt
@@ -25,22 +40,18 @@ python python_scripts/audit_dependencies.py
 scripts/build_dependencies.sh --check
 python -m pytest -q
 
-scripts/run_benchmark.sh config/hybrid_smoke.yaml.example
-scripts/run_benchmark.sh config/hybrid_latency.yaml.example
-scripts/analyze_benchmark.sh config/analysis.yaml.example --run /path/to/run
-scripts/replay_samples.sh /path/to/run config/hybrid_ablations.yaml.example
-scripts/execute_notebook.sh config/analysis.yaml.example --run /path/to/run \
-  --output assets/notebook/smoke_executed.ipynb
+scripts/run_benchmark.sh config/search_bp.yaml.example
+python -c "from analysis.simple_search_bp import summarize_run; print(summarize_run('/path/to/run'))"
 ```
 
-Add `-v` or `--verbose` to simulation/replay commands for preparation and committed-batch
+Add `-v` or `--verbose` to simulation commands for preparation and saved-batch
 progress on stderr, for example `scripts/run_benchmark.sh config/hybrid_smoke.yaml.example --verbose`.
-stdout remains the completed run directory. Progress updates once per committed batch.
+stdout remains the completed run directory. Progress updates once per saved batch.
 
-The hybrid smoke template runs the hybrid, upstream BP-OSD-CS0 and published beam
-on surface d=3 and BB [[72,12,6]], with four shots each. BB retains all twelve logical
-Z observables. hybrid_latency.yaml.example uses one isolated worker;
-hybrid_ablations.yaml.example compares warm, cold and no-BP variants.
+The search_bp template runs search_bp, upstream BP-OSD-CS10 and published beam
+on surface d=3 and BB [[72,12,6]], with bounded smoke counts. BB retains all twelve
+logical Z observables. Historical soft-hint and HSBP-FB configurations are under
+`config/legacy/hybrid/`.
 
 Historical screened-reference/CS10 configs and existing local main.yaml are in
 `config/legacy/`. Their scientific settings and resolved data/output paths are
@@ -53,13 +64,10 @@ and execution workers for the requested experiment. The production template reje
 its empty physical grid until edited. The example p=0.001 is for implementation
 validation only; these smoke data establish no decoder advantage or tail precision.
 
-Immutable circuits/DEMs/matrices/maps go to simulation_data/. Every run copies its
-artifacts and sources into a UTC timestamp/nonce folder under output.root (default
-assets/runs/). Reports use analysis.output (default assets/analysis/), and executed
-notebooks use the requested new output path. Final clean acceptance artifacts are
-indexed in [stage_6_7_summary.json](docs/test_results/stage_6_7_summary.json).
-Interrupted runs expose committed subsets for reading/replay; in-place resume is
-not implemented. Analysis materializes selected finite datasets in memory.
+Immutable circuits/DEMs/matrices/maps remain execution inputs in `simulation_data/`
+and are never copied into a result. Runs write the minimal layout under output.root
+(default `assets/runs/`). Interrupted runs may contain readable partial Parquet
+data; in-place resume and manifest-based replay are not part of the current runner.
 
 [Build](docs/build.md), [fork maintenance](docs/fork_maintenance.md),
 [pipeline/replay/timing](docs/pipeline.md), [scientific contract](docs/benchmark_contract.md),
@@ -75,14 +83,6 @@ analysis notebooks, scientific artifacts, reports, caches and dependency checkou
 are local and ignored. Versioned `.example` templates initialize a new checkout
 without replacing local work. Dependency commits and fork patches remain versioned.
 
-Hybrid Stages 4–5 now support saved v2 telemetry and paired hypothesis reports.
-Use `config/hybrid_smoke.yaml.example` for bounded surface/BB checks and
-`config/hybrid_latency.yaml.example` for isolated timing. See
-[docs/hybrid_data.md](docs/hybrid_data.md) for exact schemas, bootstrap settings,
-replay semantics and the saved-data notebook. Smoke checks establish no performance
-or accuracy advantage. Final validation and limitations are recorded in
-[hybrid acceptance](docs/hybrid_acceptance.md). Reproduce the bounded E2E workflow:
-
-```bash
-python python_scripts/accept_hybrid.py --output assets/hybrid_acceptance_new
-```
+Historical Hybrid Stages 4–5 evidence and limitations remain documented in
+[hybrid acceptance](docs/hybrid_acceptance.md). Those manifest/replay acceptance
+commands are legacy evidence, not the current minimal-output workflow.

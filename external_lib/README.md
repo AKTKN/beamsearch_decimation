@@ -32,3 +32,8 @@ locked ldpc source hashes must match the pin plus patch before either opt-in bin
 is rebuilt. The fresh project extension/native tests consume that restored source.
 The local fork branch/upstream remote remain unchanged; GitHub distribution carries
 the pinned manifest and complete patch, not ignored dependency working directories.
+
+HSBP-FB-2.0 extends the opt-in stateful min-sum snapshot with full owned mutable
+buffers plus model, shot, numeric-policy and shape checks on restore. The immutable
+graph remains shared. `audit_dependencies.py` records these bytes and the rebuilt
+binding identity; ordinary upstream BP-OSD remains unchanged.

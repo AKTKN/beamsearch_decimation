@@ -9,7 +9,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Callable,Iterable,Sequence
 import numpy as np
-from qec_bp_benchmark.config import Analysis
+from .config import Analysis
 from .statistics import GROUP_KEYS,_checked_groups,_metric
 from .bootstrap import PairedBootstrap, STAGES
 

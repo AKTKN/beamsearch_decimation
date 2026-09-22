@@ -1,13 +1,24 @@
-"""Verified paired-run loading, block uncertainty, timing distributions and reports."""
-from .io import RunData,discover_runs,load_run,read_manifest,select_records
-from .statistics import aggregate_failures,aggregate_timings,empirical_distribution,timing_statistics,wilson_interval
-from .report import create_report
+"""Minimal plotting API for the current simulation result layout."""
+from .benchmark_plots import (
+    REVTEX_COLUMN_SIZE,
+    REVTEX_DOUBLE_COLUMN_WIDTH,
+    decoder_event_rate_table,
+    plot_decode_time_histogram,
+    plot_logical_error_rate,
+    plot_mean_decode_time,
+)
 from .config import AnalysisConfig, load_analysis_config
-from .runtime import analysis_runtime
+from .statistics import timing_statistics, wilson_interval
 
-__all__=['RunData','discover_runs','load_run','read_manifest','select_records','aggregate_failures',
-         'aggregate_timings','empirical_distribution','timing_statistics','wilson_interval','create_report']
-
-from .hybrid import stage_statistics,paired_rows,summarize_pair,paired_statistics
-__all__ += ['stage_statistics','paired_rows','summarize_pair','paired_statistics']
-__all__ += ['AnalysisConfig', 'load_analysis_config', 'analysis_runtime']
+__all__ = [
+    "REVTEX_COLUMN_SIZE",
+    "REVTEX_DOUBLE_COLUMN_WIDTH",
+    "decoder_event_rate_table",
+    "plot_decode_time_histogram",
+    "plot_logical_error_rate",
+    "plot_mean_decode_time",
+    "AnalysisConfig",
+    "load_analysis_config",
+    "timing_statistics",
+    "wilson_interval",
+]

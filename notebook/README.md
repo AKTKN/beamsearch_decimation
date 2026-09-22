@@ -56,12 +56,16 @@ or repository-relative. Its explicit path cell is intended for interactive use;
 for CLI-injected parameters, use the maintained `.ipynb.example` default instead.
 The local template contains no saved outputs or statistical implementation.
 
-### Local notebook: trusted, on-demand plotting
+### Local notebook: direct benchmark figures
 
-At the user's request, the local `benchmark_analysis.ipynb` now differs from the
-maintained `.ipynb.example`: setup reads configuration only. Each of five separate
-plot cells calls `analysis.quick_plots.plot_saved_data` to read just its required
-Parquet decode columns. Run only the desired plot cells. There is no shared load,
-summary table, integrity verification, bootstrap, hybrid comparison or timing-path
-stratification in this local notebook. PNG/PDF output uses a fresh per-plot folder.
-Input paths are retained. The maintained CLI template still uses verified loading.
+`benchmark_analysis.ipynb` is the current interactive notebook. Set `RUN_PATH` and
+optional `CODES`, `PHYSICAL_RATES`, `DISTANCES`, and `DECODERS` in its first code
+cell. Its plotting and event-rate cells call `analysis.benchmark_plots`, which
+performs the concrete Parquet reads; the notebook does not load data frames or
+build summary reports. Logical-error and mean-decode-time figures are separate,
+and each code family receives its own live Matplotlib figure. A third plot selects
+one code/rate/distance condition and gives every decoder its own decode-time
+histogram subplot with mean, p95, and p99 lines. The final pandas table reports
+search-BP OSD reach and beam-decoder nonconvergence with experiment conditions as
+its row index and decoder metrics as columns.
+Use the returned figure axes for final paper-specific adjustments before saving.

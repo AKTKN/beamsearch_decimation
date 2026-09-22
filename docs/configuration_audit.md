@@ -69,9 +69,9 @@ script entry points and algorithms remain unchanged.
 
 ## Saved-data consumer migration
 
-analysis/config.py validates the analysis-only envelope and resolves its paths;
-existing full benchmark configs retain strict Config validation. Analysis settings
-retain the same consumers and statistical definitions. Simulation execution fields
-are used only by simulation/replay, not by current report/notebook consumers.
+analysis/config.py independently validates the analysis-only envelope and resolves
+its paths. Simulation configs contain no analysis settings, and the analysis loader
+does not accept simulation YAML. Analysis settings retain the same consumers and
+statistical definitions.
 Notebook --timeout is an explicit orchestration setting; -v/--verbose controls only
 analysis progress on stderr. No simulation setting or decoder identity changes.

@@ -1,3 +1,194 @@
+# Direct benchmark plotting notebook (2026-09-22)
+
+The local `notebook/benchmark_analysis.ipynb` now contains only explicit path/filter
+settings and separate logical-error-rate and mean-decode-time plot cells. New
+`analysis.benchmark_plots` reads the required Parquet columns itself and returns one
+live Matplotlib figure per code family. Figures default to 3.4 x 2.55 inches and
+300 dpi for a one-column figure in a two-column RevTeX paper; notebook code can edit
+the returned axis before saving.
+
+Logical error is recomputed as decoder failure OR logical mismatch, including failed
+decodes without reading the stored `block_failure` field. Its shaded band is the
+95% Wilson interval over physical shots. Decode-time means include failed shots.
+Their shaded bands use the 95% Student-t mean interval because Wilson intervals do
+not apply to continuous durations. Code family, physical error rate, distance, and
+decoder ID/name/profile are exact plotting options. No telemetry, sample tables,
+run merging, bootstrap, report output, or notebook summary table is involved.
+
+The follow-up analysis adds a one-condition decode-time histogram in microseconds,
+with one subplot per decoder and vertical mean/p95/p99 lines. Surface-code plots
+require a distance. A pandas table indexed by code, distance, and physical rate
+reports `search_bp` OSD reach from `osd_entered` and beam-decoder failures from
+`syndrome_valid == False`; decoder and metric form the columns, while storage IDs
+and execution metadata are omitted.
+
+Validation in `search_decimation`: focused plotting tests passed **4/4 in 2.64 s**;
+the notebook executed all **10 cells** against
+`assets/runs/2026_09_22_14_04_28e7f898`; the complete project suite passed
+**229 tests with 2 skipped in 24.42 s**. `git diff --check` passed. No simulation or
+production sweep was launched.
+
+---
+
+# Grouped Parquet shot flushing and analysis-config separation (2026-09-22)
+
+The active `search_bp` parent writer now retains the bounded per-shot producer
+queue but coalesces each condition's typed columns according to the new positive
+`output.parquet.shots_per_flush` setting (default 1024). Every nonempty dataset is
+appended as exactly one row group per full shot group, and the final partial group
+is flushed before writer close. The removed `row_group_rows` and `max_buffer_rows`
+keys are rejected. Unit coverage checks independent conditions and full/final
+groups; the two-worker integration check verifies four shots with
+`shots_per_flush: 3` produce two row groups in both samples and decode results.
+
+Active analysis settings now live in `analysis/config.py` and
+`config/analysis.yaml.example`. Simulation `Config`, path resolution, resolved run
+configuration, timing-benchmark derivation and simulation templates contain no
+analysis section. The independent analysis loader rejects simulation YAML and
+duplicate keys. The old `qec_bp_benchmark.config.Analysis` symbol remains solely so
+the byte-preserved legacy consumers continue importing; it is not a `Config` field
+and never enters simulation identity or output.
+
+Validation in `search_decimation`: `python -m pytest -q` passed **225 tests with 2
+skipped in 25.93 s**; focused grouped-writer/analysis-isolation checks passed **3/3
+in 3.39 s**; and `python python_scripts/validate_config.py
+config/search_bp.yaml.example` produced a resolved config with no analysis key and
+only `compression`, `compression_level`, `shots_per_flush` and
+`atomic_batch_commit` in its Parquet settings. No production simulation was run.
+
+---
+
+# Uncapped generated-node search_bp update (2026-09-22)
+
+Removed `search.max_generated_nodes` from the active strict config, Python/native
+adapter, native settings and generation loop. Search no longer freezes generation
+or reports node/global-expansion-cap flags. Its expanded-node bound is solely
+`max_cycles * expansions_per_cycle`; the finite Tanner graph determines the number
+of children constructed by each expansion. Legacy hybrid implementations and
+their historical contracts retain their original setting.
+
+The native regression constructs 96 children in one allowed expansion (97 nodes
+including the root), proving that the former 64-node template value is not an
+implicit limit. Editable rebuild, config and dependency validation passed; project
+tests are **221 passed, 2 skipped in 21.88 s**; Debug and ASan/UBSan CTest are both **5/5**.
+The final schema-v2 bounded run `assets/runs/2026_09_22_12_42_bae00828` completed 16
+shots/48 paired decodes. Its BB search generated up to 139 nodes while expanded
+nodes remained at most 4 (= 2 cycles x 2 expansions); removed cap fields are absent
+from the saved search-summary schema. No production sweep was launched.
+Because those fields were removed, the active strict identities are now
+`search_bp_config/2` and `search_bp_parquet/2`; version 1 artifacts are not
+silently relabeled.
+
+---
+
+# Shot-streamed columnar search_bp output (2026-09-22)
+
+The active search_bp runner no longer builds generic legacy
+`results/rounds/phases` beside its typed output. Native telemetry is exported from
+a const view into dataset-specific columns, without an accumulated Python
+`list[dict]` or a full native telemetry copy. Each completed shot is sent to the
+parent writer before its physical batch completes. Multi-worker execution uses a
+bounded queue of `2*workers` shot messages and blocks producers when Parquet output
+falls behind; serial execution uses the same sink synchronously. No decoder search,
+cycle, beam, iteration, or event limit was added.
+
+The Parquet schema and minimal run layout are unchanged. Each nonempty shot/dataset
+chunk is now a row group. The output layer therefore retains at most one converted
+shot per worker plus the bounded queue and current writer conversion, rather than
+whole batch telemetry/future results. One exceptionally large shot must still fit
+in native and conversion memory.
+
+Validation in `search_decimation`: editable native rebuild passed; **220 passed,
+2 skipped in 22.92 s**; two-worker spawn streaming passed; native row/column event
+equality passed; Debug CTest **5/5**; focused ASan/UBSan search_bp **1/1**. Bounded
+surface+BB72 smoke completed at `assets/runs/2026_09_22_12_16_a3adf726` with the
+same row counts and non-timing search event data as the pre-streaming smoke. No
+production sweep was launched.
+
+The matched post-migration timing run (32 shots/condition, batch size 16, three
+repeats) measured 2829.312 ms end-to-end and 1462.458 ms inside opaque decoding.
+Steady non-decoding work was 578.750 ms: per-shot Parquet writes 307.676 ms,
+Arrow conversion 128.585 ms, result normalization 105.056 ms, shot preparation
+16.983 ms and thread-pool verification 12.022 ms. This is the intentional bounded-
+memory tradeoff: output no longer accumulates to a batch, but one Parquet row group
+per nonempty shot/dataset increases conversion and I/O calls. Evidence is
+`assets/benchmarks/search_bp_simulation_timing_2026_09_22_streaming.json`.
+
+---
+
+# Simulation logic timing benchmark (2026-09-22)
+
+Added `qec_bp_benchmark.benchmarking.simulation` and
+`python_scripts/benchmark_simulation.py`. The opt-in path runs the actual worker,
+typed conversion, and Parquet writer while treating each `DecoderAdapter.decode`
+call as one opaque phase. Ordinary simulation runs retain their minimal output and
+take no additional phase timestamps.
+
+Bounded measurement: two conditions, 32 shots each, three decoders, batch size 16,
+one worker, three repeats. Median end-to-end was **2386.514 ms** and opaque decoding
+was **1516.827 ms (63.56%)**. Cached instance preparation was **571.597 ms**.
+Measured steady non-decoding work was **152.694 ms**: result normalization 79.313 ms,
+Arrow conversion 27.963 ms, Parquet writing 24.209 ms, thread-pool verification
+11.519 ms, and shot-input preparation 3.887 ms. Physical sampling was 0.522 ms.
+Evidence: `assets/benchmarks/search_bp_simulation_timing_2026_09_22.json` and
+`docs/simulation_timing_benchmark.md`. No production sweep was launched.
+The final project suite after adding the harness is **218 passed, 2 skipped in
+21.99 s**; `git diff --check` also passed.
+
+---
+
+# SEARCH-BP-1.0 hard-fixation refresh (2026-09-22)
+
+The active decoder is now `search_bp`. It has scalar
+`search.expansions_per_cycle`, unified `bp.beam_width`, and per-visit
+`bp.max_iteration`; the independent expansion, admission, and total-iteration
+caps and every soft-hint/LLR-clip/hard-zero setting were removed. A candidate's
+0/1 pattern now structurally excludes fixed columns from min-sum updates and
+XORs fixed-one columns into the residual syndrome. Complete decisions restore
+fixed bits before original-H validation, physical scoring, and logical prediction.
+
+The prior HSBP-FB implementation, specifications, and templates are preserved in
+`src/qec_bp_benchmark/native/legacy/`, `docs/legacy/hybrid_frontier_bp_beam/`, and
+`config/legacy/hybrid/`. The current bounded template is
+`config/search_bp.yaml.example`; its typed schema identity is
+`search_bp_parquet/2`.
+
+Executed in `search_decimation`:
+
+| Check | Outcome |
+|---|---|
+| Editable native rebuild | passed |
+| `python -m pytest -q` | **216 passed, 2 skipped in 27.19 s** |
+| Debug native CMake/CTest | **5/5 passed** |
+| Focused `test_search_bp` | passed; structural edge removal, residual syndrome, reduced-upstream BP equality, inheritance and beam scheduling |
+| ASan/UBSan `test_search_bp` | passed with leak detection and UBSan stack traces enabled |
+| `python python_scripts/validate_config.py config/search_bp.yaml.example` | passed |
+| `scripts/build_dependencies.sh --check` | passed |
+| bounded template run | `assets/runs/2026_09_22_11_10_a3adf726`; 16 physical shots, 48 paired decodes, minimal output layout |
+| `git diff --check` | passed |
+
+The bounded run is implementation evidence only. It is too small for decoder or
+tail-performance claims, and no production sweep was launched.
+
+---
+
+# HSBP-FB-2.0 complete (2026-09-21; legacy)
+
+The new `hybrid_frontier_bp_beam_ms_osd0_v2` decoder is available through shared
+run/replay/analysis CLIs. It implements persistent independent Q/G search, up to W
+owned BP snapshots, frozen-entry ancestor inheritance, fixed per-visit scheduling,
+original-H validation, physical-cost incumbent selection and direct native CS0.
+Historical profiles and readers remain available.
+
+Strict `hsbp_fb_config/1` and the 14-table `hsbp_fb_parquet/1` output are implemented
+with inventory-only loading and cross-table validation. Final checks: 290 passed/1
+skipped project tests; 5/5 native Release tests; 2/2 frontier/stateful-BP ASan+UBSan
+tests; clean source-only fork/project restoration passed all five native targets.
+The accepted 16-shot/48-decode surface+BB72 smoke is
+`assets/runs/20260921T134138.088393Z_375c9f8e3501`; replay and two-worker output are
+scientifically identical. Analysis is `assets/analysis/20260921T134316.299523Z_d3d3586863`.
+These are software checks, not performance evidence. See `docs/hsbp_fb_v2_migration.md`.
+
 # Legacy configuration organization (2026-09-21)
 
 ## Saved-data analysis consumer migration (2026-09-21)
@@ -558,3 +749,26 @@ does not detect corrupt or duplicated records. It still reads metadata for label
 and grouping. Memory use is bounded by an instance's selected columns, plus plot
 arrays; no full-size performance measurement is claimed. Updated notebook/analysis
 READMEs, analysis documentation, traceability and test documentation accordingly.
+## 2026-09-22 minimal simulation-output migration
+
+The active runner now writes `YYYY_MM_DD_HH_MM_<config-hash-8>` directories with
+exactly `data/` and `config_resolved.json`. Per-condition Parquet files use the
+`code_distance_rounds_rate_basis_dataset` convention; e.g.
+`bb72_d6_r6_p003_Z_logicalerror.parquet`. Circuit/DEM/matrix inputs remain only in
+the configured cache. Run manifests, inventories, source archives, summaries,
+schemas and logs are no longer emitted, and the final read-back validation pass and
+manifest-based replay path have been removed from current execution.
+
+Actual bounded checks in `search_decimation`:
+
+- `python -m pytest -q tests/test_frontier_config.py tests/test_config.py`: 30 passed.
+- Frontier surface d3 + BB72 d6 smoke: 16 shots, 48 decode rows, expected 14 typed
+  files per condition, and only the two allowed top-level entries.
+- Hybrid surface d3 + BB72 d6 smoke: 8 shots, 24 decode rows, four named data files
+  per condition under the same two-entry layout.
+- `analysis.simple_frontier` directly read the frontier smoke and returned six
+  code/decoder summaries without a manifest or inventory.
+- Final current suite: `python -m pytest -q` -> 218 passed, 2 skipped in 32.37 s.
+  The removed tests exercised only the retired manifest/replay/report workflow;
+  algorithm, circuit, native, schema, telemetry, dependency, and new result-layout
+  coverage remain active.

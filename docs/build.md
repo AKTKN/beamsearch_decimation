@@ -1,5 +1,12 @@
 # Build and test
 
+search_bp uses the existing hybrid build. After a watched ldpc hybrid source changes,
+run `(cd external_lib/ldpc && python setup_hybrid.py build_ext --inplace)`, then
+`python python_scripts/audit_dependencies.py`, then reinstall the project editable.
+The aggregate project identity includes every `native/frontier*.hpp`. Configure
+with `-DQEC_SANITIZE=ON` to run the `frontier` and `hybrid_bp` ownership targets
+under ASan+UBSan. All v2 native targets disable fast-math and contraction.
+
 Create the locked environment and build every required native dependency from its
 pinned checkout. The helper also installs the optimized project extension and
 the independent pristine BP-OSD reference used by regression tests:

@@ -39,4 +39,3 @@ output:
   root: "../../assets/runs"
 
 # Explicit paths preserve destinations after moving this file into legacy/.
-analysis: {"input": "../../assets/runs", "output": "../../assets/analysis"}

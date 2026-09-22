@@ -177,6 +177,7 @@ HYBRID_PROFILES = (
     "search_osd0_v1",
     "hybrid_search_soft_ms_osd0_cold_v1",
 )
+SEARCH_BP_PROFILE = "search_bp"
 
 
 class HybridSearch(StrictModel):
@@ -235,6 +236,84 @@ class HybridNumerics(StrictModel):
     dtype: Literal["float64"] = "float64"
     heuristic_reduction: Literal["fixed_binary_tree"] = "fixed_binary_tree"
     fast_math: Literal[False] = False
+
+
+class SearchBPSearch(StrictModel):
+    """Persistent physical-search limits for ``search_bp``.
+
+    ``None`` disables the corresponding depth, detector-beam, or process-CPU
+    limit. Search expansion work is controlled only by ``max_cycles`` and the
+    fixed ``expansions_per_cycle`` allowance.
+    """
+
+    max_depth: NativeCount | None = None
+    max_cycles: Annotated[int, Field(strict=True, ge=0, le=65536)] = 8
+    expansions_per_cycle: WorkCount = 8
+    detector_order: Literal["canonical_index"] = "canonical_index"
+    branch_order: Literal["physical_weight_then_index"] = "physical_weight_then_index"
+    heuristic: Literal["residual_fractional_cover"] = "residual_fractional_cover"
+    goal_test: Literal["on_generation", "on_pop"] = "on_generation"
+    det_beam: WorkCount | None = None
+    guidance_selection: Literal["best_unused_generated_pattern"] = "best_unused_generated_pattern"
+    prefix_cpu_budget_ns: Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)] | None = None
+    cost_bound_pruning: Literal[False] = False
+
+
+class SearchBPBP(StrictModel):
+    """Hard-fixation BP beam settings.
+
+    Every admitted pattern removes all fixed variable-node edges and XORs fixed
+    ones into the residual syndrome. ``max_iteration`` is applied independently
+    to each candidate visit.  The beam width is also the per-cycle admission
+    width; there is no separate pooled or shot-wide iteration cap.
+    """
+
+    enabled: Annotated[bool, Field(strict=True)] = True
+    method: Literal["minimum_sum"] = "minimum_sum"
+    schedule: Literal["parallel"] = "parallel"
+    beam_width: NativeCount = 2
+    max_iteration: WorkCount = 20
+    retention_score: Literal["residual_then_physical", "physical_only"] = "residual_then_physical"
+    state_inheritance: Literal["retained_ancestor", "cold"] = "retained_ancestor"
+    scaling_factor: Annotated[float, Field(strict=True, gt=0, le=1)] = 1.0
+
+
+class SearchBPStopping(StrictModel):
+    mode: Literal["first_valid", "bounded_improve"] = "first_valid"
+    post_solution_cycles: Positive = 1
+
+
+class SearchBPFallback(StrictModel):
+    backend: Literal["ldpc_osd_only"] = "ldpc_osd_only"
+    osd_method: Literal["OSD_CS"] = "OSD_CS"
+    osd_order: Annotated[int, Field(strict=True, ge=0, le=0)] = 0
+    llr_source: Literal["best_retained", "channel_only"] = "best_retained"
+    ordering: Literal["pinned_ldpc_signed_llr"] = "pinned_ldpc_signed_llr"
+
+
+class SearchBP(StrictModel):
+    """Strict hard-decimation search/BP decoder configuration."""
+
+    kind: Literal["search_bp"] = "search_bp"
+    profile: Literal["search_bp"] = SEARCH_BP_PROFILE
+    name: str = SEARCH_BP_PROFILE
+    enabled: Annotated[bool, Field(strict=True)] = True
+    algorithm_version: Literal["SEARCH-BP-1.0"] = "SEARCH-BP-1.0"
+    search: SearchBPSearch = SearchBPSearch()
+    bp: SearchBPBP = SearchBPBP()
+    stopping: SearchBPStopping = SearchBPStopping()
+    fallback: SearchBPFallback = SearchBPFallback()
+    numerics: HybridNumerics = HybridNumerics()
+    native_threads: Annotated[int, Field(strict=True, ge=1, le=1)] = 1
+
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.bp.enabled:
+            if self.bp.beam_width < 1:
+                raise ValueError("enabled BP requires beam_width >= 1")
+        elif self.bp.beam_width or self.bp.max_iteration:
+            raise ValueError("disabled BP requires zero beam_width and max_iteration")
+        return self
 
 
 def _cycle_budgets(value: int | tuple[int, ...], cycles: int, field: str) -> tuple[int, ...]:
@@ -303,7 +382,7 @@ class Hybrid(StrictModel):
 
 def require_available_decoder(profile: str) -> None:
     """Reject unknown profiles without numerical imports or mutation (ValueError)."""
-    if profile in HYBRID_PROFILES:
+    if profile in HYBRID_PROFILES or profile == SEARCH_BP_PROFILE:
         return
     if profile not in ("screened_reference", "bposd_ms30_cs10", "bposd_ms30_cs0", "beam8", "beam32"):
         raise ValueError(f"unsupported decoder profile: {profile}")
@@ -328,7 +407,7 @@ class Beam(StrictModel):
         return value
 
 
-Decoder = Annotated[Screened | Bposd | Bposd0 | Beam | Hybrid, Field(discriminator="profile")]
+Decoder = Annotated[Screened | Bposd | Bposd0 | Beam | Hybrid | SearchBP, Field(discriminator="profile")]
 
 
 class Sampling(StrictModel):
@@ -379,11 +458,57 @@ class Output(StrictModel):
     retain_corrections: bool = False
 
 
+class ParquetOutput(StrictModel):
+    compression: Literal["zstd", "snappy", "none"] = "zstd"
+    compression_level: Annotated[int, Field(strict=True, ge=1, le=22)] = 3
+    shots_per_flush: Positive = 1024
+    atomic_batch_commit: Literal[True] = True
+
+
+class SearchBPTelemetry(StrictModel):
+    candidate_updates: Literal[True] = True
+    beam_membership: Literal[True] = True
+    solution_events: Literal[True] = True
+    trace_search_nodes: bool = False
+    raw_bp_messages: Literal[False] = False
+    per_iteration_trace: Literal[False] = False
+
+
+class SearchBPOutput(StrictModel):
+    """Mandatory separate typed datasets for new search_bp runs."""
+
+    root: Path = Path("../assets/runs")
+    layout: Literal["typed_datasets"] = "typed_datasets"
+    data_schema_version: Literal["search_bp_parquet/2"] = "search_bp_parquet/2"
+    parquet: ParquetOutput = ParquetOutput()
+    telemetry: SearchBPTelemetry = SearchBPTelemetry()
+
+    @property
+    def compression(self) -> str:
+        return self.parquet.compression
+
+    @property
+    def retain_traces(self) -> bool:
+        return self.telemetry.trace_search_nodes
+
+    @property
+    def retain_corrections(self) -> bool:
+        return True
+
+
 class Analysis(StrictModel):
+    """Legacy analysis settings type, excluded from simulation ``Config``.
+
+    Historical consumers import this symbol directly.  Current saved-data
+    analysis owns and validates its settings in ``analysis.config``; this class
+    is not a simulation field, is not path-resolved by ``load_config``, and never
+    enters a resolved run configuration or its identity.
+    """
+
     bootstrap_seed: Nonnegative = 20260921
     bootstrap_count: Positive = 2000
-    bootstrap_unit: Literal['shot','batch'] = 'shot'
-    accuracy_margin_absolute: Annotated[float,Field(ge=0,le=1)] | None = None
+    bootstrap_unit: Literal["shot", "batch"] = "shot"
+    accuracy_margin_absolute: Annotated[float, Field(ge=0, le=1)] | None = None
     confidence: Annotated[float, Field(gt=0, lt=1)] = 0.95
     quantiles: tuple[Annotated[float, Field(ge=0, le=1)], ...] = (.5, .9, .95, .99, .999)
     plots: tuple[Literal["failure_rate", "cpu_ecdf", "wall_ecdf", "cpu_survival", "wall_survival"], ...] = ("failure_rate", "cpu_ecdf", "wall_ecdf")
@@ -394,12 +519,15 @@ class Analysis(StrictModel):
 
     @model_validator(mode="after")
     def check(self) -> Self:
-        if len(set(self.plots))!=len(self.plots) or len(set(self.quantiles))!=len(self.quantiles):
+        if len(set(self.plots)) != len(self.plots) or len(set(self.quantiles)) != len(self.quantiles):
             raise ValueError("analysis plots and requested quantiles must be unique")
         return self
 
 
 class Config(StrictModel):
+    config_schema_version: Literal["search_bp_config/2"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     experiment: Experiment = Experiment()
     noise: Noise
     circuit: Circuit = Circuit()
@@ -408,8 +536,7 @@ class Config(StrictModel):
     sampling: Sampling = Sampling()
     execution: Execution = Execution()
     timing: Timing = Timing()
-    output: Output = Output()
-    analysis: Analysis = Analysis()
+    output: Output | SearchBPOutput = Output()
 
     @model_validator(mode="after")
     def check(self) -> Self:
@@ -418,11 +545,18 @@ class Config(StrictModel):
         names = [d.name for d in self.decoders]
         if len(set(names)) != len(names) or not any(d.enabled for d in self.decoders):
             raise ValueError("decoder names must be unique, with at least one enabled")
+        has_search_bp = any(isinstance(d, SearchBP) for d in self.decoders)
+        if has_search_bp != isinstance(self.output, SearchBPOutput):
+            raise ValueError("search_bp requires typed_datasets output, and that layout requires search_bp")
+        if has_search_bp and self.config_schema_version != "search_bp_config/2":
+            raise ValueError("search_bp requires config_schema_version: search_bp_config/2")
         return self
 
     def resolved(self) -> dict:
         """Return detached JSON-safe settings with expanded rates; no mutation."""
         data = self.model_dump(mode="json")
+        if self.config_schema_version is not None:
+            data["config_schema_version"] = self.config_schema_version
         data["noise"]["expanded_rates"] = list(self.noise.expanded_rates)
         data["experiment"]["instances"] = [
             {"family": c.family, "distance": d, "rounds": c.rounds or d,
@@ -441,6 +575,15 @@ class Config(StrictModel):
                 decoder["implementation_properties"] = {
                     "hard_decision": "upstream L<=0", "error_channel_type": "list",
                     "converge_flag": "BP stage only; validate correction after OSD",
+                }
+            elif decoder["profile"] == SEARCH_BP_PROFILE:
+                decoder["implementation_properties"] = {
+                    "decimation": "structural hard fixation",
+                    "residual_syndrome": "xor fixed-one columns",
+                    "fixed_edges": "excluded from BP updates",
+                    "hard_decision": "native min-sum L<=0",
+                    "message_clip": "no configurable clip",
+                    "native_threads": 1,
                 }
         return data
 
@@ -475,8 +618,9 @@ def load_config(path: str | Path) -> Config:
     path = Path(path).resolve()
     config = Config.model_validate(yaml.load(path.read_text(), Loader=_UniqueLoader))
     data = config.model_dump()
-    for group, fields in {"circuit": ("cache",), "output": ("root",),
-                          "analysis": ("input", "output")}.items():
+    if config.config_schema_version is not None:
+        data["config_schema_version"] = config.config_schema_version
+    for group, fields in {"circuit": ("cache",), "output": ("root",)}.items():
         for field in fields:
             data[group][field] = (path.parent / data[group][field]).resolve()
     return Config.model_validate(data)

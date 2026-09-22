@@ -1,0 +1,389 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm,booktabs,longtable,array,enumitem}
+\usepackage{xcolor,listings,hyperref,xurl}
+\hypersetup{colorlinks=true,urlcolor=blue!50!black,linkcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlist{nosep,leftmargin=*}
+\setlength{\emergencystretch}{3em}
+\setlength{\tabcolsep}{4pt}
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{black!20}}
+\newcommand{\F}{\mathbb F_2}
+\newcommand{\wt}{\operatorname{wt}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\sgn}{\operatorname{sgn}_{+}}
+\newcommand{\id}{\operatorname{id}}
+\newcommand{\argminlex}{\operatorname*{arg\,min}_{lex}}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\newtheorem{proposition}{Proposition}
+\title{A Persistent Search Frontier with a Beam of Soft-Decimated Belief-Propagation States\\\large Algorithm and Simulation Contract: HSBP-FB-2.0}
+\author{Implementation reference for the beamsearch\_decimation project}
+\date{21 September 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+This report specifies a bounded hybrid decoder combining a Tesseract-style search over partial fault assignments with a bounded set of branch-specific, warm-started, parallel min-sum belief-propagation (BP) states. The search can produce complete corrections directly; BP acts as a selective completion procedure. BP outcomes control the allocation of subsequent BP work, while physical fault costs determine the search ordering and the comparison of complete corrections. The specification fixes canonical branching, finite soft hints, snapshot ownership, pooled iteration budgets, deterministic candidate selection, stopping, and direct order-zero combination-sweep ordered-statistics decoding (OSD-CS0). It also specifies separate typed Parquet datasets for inputs, outcomes, search statistics, BP histories, solutions, fallback, and timing. This is a proposed algorithm and an implementation contract, not a claim of improved decoding performance or of a new optimality theorem.
+\end{abstract}
+\newpage
+\tableofcontents
+\newpage
+
+\section{Scope, version, and relation to the existing implementation}
+The implementation target is \url{https://github.com/AKTKN/beamsearch_decimation}. The inspected development branch is \code{hybrid-decoder-stage1}, at commit \code{f7128e94b746e3c8a2fa7923d5e2318195712f0a}. An implementer must inspect the actual checkout and its local changes rather than reset it to this commit. The existing decoder is \code{HSBP-ALG-1.0}; the new algorithm identifier is \code{HSBP-FB-2.0}. Historical profiles, their outputs, and their interpretation remain available as baselines.
+
+The existing implementation owns one mutable BP session. In each cycle it advances a search frontier, selects one unused generated hint by a physical-cost score, replaces the hint in that session, and continues BP. Two successive hints need not be related by ancestry. There is no retained beam of candidate-specific BP states. The new method retains at most $W$ such states between cycles and permits both continuation and admission of new candidates.
+
+The three notions of parallelism are distinct: (i) flooding updates within a BP iteration; (ii) logical coexistence of $W$ candidate states; and (iii) actual execution on multiple processors. Version 2 requires (i) and (ii), but executes all candidates sequentially on one native thread per worker. Multiprocessing is across independent physical shots. Actual candidate-level multithreading is outside this contract.
+
+The components have established precedents. Tesseract supplies canonical fault-set search, a residual-syndrome cost heuristic, and a detector-beam cutoff \cite{tesseract}. The beam-search decoder retains multiple masked-BP paths \cite{beam}. BP-guided decision-tree decoding also precedes this proposal \cite{dtd}. The research question here concerns selective BP scheduling and state inheritance under a measured resource budget; combining BP and search alone is not a novelty claim.
+
+\section{Decoding problem and immutable model}
+An instance consists of
+\begin{equation}
+ H\in\F^{m\times n},\quad A\in\F^{k\times n},\quad
+ s\in\F^m,\quad p_i\in(0,1/2],\quad
+ w_i=\log\frac{1-p_i}{p_i}\geq0.
+\end{equation}
+$H$ maps independent detector-error-model (DEM) fault variables to detectors; $A$ maps them to the tracked logical observables. A valid correction $e$ satisfies $He=s$. Its physical cost is
+\begin{equation}\label{eq:physical}
+ W(e)=\sum_{i=0}^{n-1}w_i e_i.
+\end{equation}
+All matrix operations in syndrome and observable calculations are over $\F$. The sampled true observable vector is used only by the evaluator, never by the decoder. A valid output is logically correct precisely when $Ae$ equals that sampled vector. For BB72 this is a block criterion across the 12 tracked observables, without division by 12 or by the number of rounds.
+
+The contract rejects unsupported probabilities, NaNs, malformed matrices, and incompatible bit-vector lengths explicitly. Reuse the existing explicit preprocessing that removes zero-probability DEM variables and rejects probabilities above one half; persist its variable and observable maps. The numerical core then receives strictly positive probabilities. Any additional preprocessing for $p_i>1/2$ must specify and persist the exact variable/syndrome/observable transformation before being enabled. The version-2 core does not silently perform it. Use canonical sorted CSR/CSC adjacency and canonical edge identifiers shared by all candidate sessions. Models, physical weights, and adjacency are immutable.
+
+Use the existing selected-sector circuit and undecomposed-DEM construction. Merge columns only under an explicitly valid existing rule preserving both detector and observable effects. In particular, equal columns of $H$ with different columns of $A$ must not be merged. Observable-only faults remain represented in the physical sampling and outcome model. Minimum individual-error cost is not maximum logical-coset probability.
+
+\section{Search states, branching, and queues}
+\subsection{Partial assignments and residuals}
+A search node $v$ is a partial assignment
+\begin{equation}
+ v=(F_v,b_v),\quad F_v\subseteq\{0,\ldots,n-1\},\quad b_v\in\F^{F_v}.
+\end{equation}
+Define $F_v^1=\{i\in F_v:b_i=1\}$, $F_v^0=\{i\in F_v:b_i=0\}$, and $\bar e_v$ equal to $b_v$ on $F_v$ and zero elsewhere. Then
+\begin{equation}
+ r_v=s\oplus H\bar e_v,\quad \rho_v=\wt(r_v),\quad
+ d_v=|F_v^1|,\quad g_v=\sum_{i\in F_v^1}w_i.
+\end{equation}
+The root has empty assignment, depth zero, and node ID zero. IDs increase in deterministic child-generation order and are local to one decoder invocation. Depth counts assigned ones, not all assigned variables, not detector rounds, and not the number of BP cycles.
+
+\subsection{The candidate set and canonical children}
+For $\rho_v>0$, take the smallest active detector index
+\begin{equation}
+ a_v=\min\{a:(r_v)_a=1\},\qquad
+ U(v)=N(a_v)\setminus F_v.
+\end{equation}
+Sort $U(v)=(j_1,\ldots,j_q)$ by the pair $(w_j,j)$. An empty $U(v)$ is an infeasible partial assignment. Child $v_\ell$, for $\ell=1,\ldots,q$, extends $v$ by
+\begin{equation}\label{eq:branch}
+ b_{j_1}=\cdots=b_{j_{\ell-1}}=0,\qquad b_{j_\ell}=1.
+\end{equation}
+Later members of $U(v)$ remain free. In particular, this is not a rule setting every other neighbor to zero. The new depth is $d_v+1$, residual is $r_v\oplus H_{:j_\ell}$, and cost is $g_v+w_{j_\ell}$. Each valid extension has a first selected member of $U(v)$, so the child assignments partition valid extensions. Detector-index and neighbor order are fixed during a shot.
+
+No degree-based exclusion is applied to $U(v)$. Variables of degree one and two are eligible. The search does not use BP posteriors as physical costs, change the detector order from a BP result, or deduplicate different partial assignments solely by residual syndrome. Different assignments can have different forbidden variables and observable effects.
+
+\subsection{Residual lower bound and ordering}
+For each free variable define $k_i(v)=|N(i)\cap\operatorname{supp}(r_v)|$. Set
+\begin{equation}\label{eq:h}
+ h_v=\sum_{a:(r_v)_a=1}
+ \min_{i\in N(a)\setminus F_v}\frac{w_i}{k_i(v)},\qquad f_v=g_v+h_v.
+\end{equation}
+Only incident free variables appear inside the minimum, so the denominator is positive. An empty minimum is $+\infty$ and makes the node locally infeasible; $h_v=0$ for zero residual. Use the total ordering
+\begin{equation}\label{eq:searchrank}
+ K_S(v)=(f_v,\rho_v,\operatorname{pattern}(v),\id(v)),
+\end{equation}
+where the pattern is the sorted sequence of $(i,b_i)$ pairs, compared lexicographically, with shorter prefixes preceding longer ones.
+
+\begin{proposition}
+In real arithmetic, $h_v$ is a lower bound on the additional physical cost of any valid correction extending $v$.
+\end{proposition}
+\begin{proof}
+Every active residual detector is incident to at least one additionally selected free variable. Charge its minimum in \eqref{eq:h} to any such selected variable. Variable $i$ can receive at most $k_i(v)$ charges, each at most $w_i/k_i(v)$. Summing gives at most the cost of the additionally selected variables touching the residual; their cost is no greater than the total additional cost because all weights are nonnegative.
+\end{proof}
+
+Use binary64, canonical reduction order, no fast-math, and a fixed balanced reduction tree for the sum over detectors. The production decoder makes no certified floating-point lower-bound claim. Cost-bound pruning is disabled in the required version; enabling it later requires conservative rounding or a justified error bound. BP scores are never substituted for $h_v$.
+
+\subsection{Independent search and guidance lifecycles}
+The search frontier $Q$ contains unexpanded, feasible, nonterminal nodes satisfying the search depth limit. The guidance pool $G$ contains feasible, nonterminal, nonroot nodes that have never been admitted to BP and satisfy the hint depth limit. Both are indexed by $K_S$. A node can occur in both pools. BP admission removes it from $G$ permanently, but does not remove it from $Q$; BP eviction also does not remove it from $Q$. A BP-evicted candidate is not readmitted as the same node in this version. Its descendants can still be admitted.
+
+Set \code{search.max_depth: null} to disable the small fixed depth limit; the natural maximum is $n$. A finite limit $D_S$ prevents expansion at $d_v=D_S$ but permits goal testing there. Independently, \code{bp.hint_max_depth} limits $d_v$ for new hints, not the final BP correction weight. A node exceeding this latter limit can still be searched directly. A limit on the total number of hinted variables is not implied by a limit on $d_v$; record $|F_v^0|$ and $|F_v^1|$ separately.
+
+The optional detector-beam cutoff $b\geq0$ acts only on $Q$. Initialize $\rho_{\min}=\wt(s)$. On popping a node, discard it from search if $\rho_v>\rho_{\min}+b$; otherwise update $\rho_{\min}\leftarrow\min(\rho_{\min},\rho_v)$ and expand. With \code{det_beam: null}, this cutoff is disabled. It neither caps depth nor specifies a number of retained nodes. Do not apply it to the BP residual or erase a soft-BP candidate because its search node was discarded. The starter configuration disables this additional pruning to isolate the state-beam change; a separate named variant enables $b=15$.
+
+Goal testing defaults to \code{on_generation}. At a zero-residual generated node submit $\bar e_v$ as a solution before considering it for queues. A separate \code{on_pop} option places terminal nodes in $Q$, tests them when popped, and never adds them to $G$. These options can return different outputs under bounded work. A generated-goal early exit is not an A* optimality certificate.
+
+For \code{on_pop}, a search slice may process terminal, stale, or cutoff entries at the queue head even when its expansion allowance is zero. It stops at the first eligible nonterminal head if no expansion is allowed; it does not bypass that node to find a deeper goal. A generation freeze does not suppress already queued terminal heads. Counter and stopping semantics therefore distinguish queue pops from parent expansions.
+
+\section{Parallel min-sum BP with finite hints}
+\subsection{Fields and message state}
+For candidate $v$, its BP field is
+\begin{equation}\label{eq:fields}
+ \lambda_i(v)=\begin{cases}
+ (1-2b_i)(w_i+\kappa),&i\in F_v,\\
+ w_i,&i\notin F_v,
+ \end{cases}\qquad \kappa>0.
+\end{equation}
+These are raw finite fields; do not clip them before the variable sum. Messages and posterior LLRs are clipped as defined below. The immutable physical $w_i$ is never replaced by a posterior. Switching hints replaces the complete field; it does not add the new hint to the previous hint. Setting $\kappa=0$ would still flip the sign for a one-hint and is not an unbiased control. The control \code{hint_mode: none} sets $\lambda=w$ explicitly.
+
+Let $q_{i\to a}$ and $z_{a\to i}$ be variable-to-check and check-to-variable messages. Define $\clip_L(x)=\max(-L,\min(L,x))$ and $\sgn(x)=+1$ for $x\geq0$, $-1$ otherwise. One flooding iteration first computes all check messages from the previous $q$:
+\begin{equation}\label{eq:check}
+ z_{a\to i}^{t+1}=\clip_L\!\left[
+ \alpha(-1)^{s_a}\prod_{j\in N(a)\setminus\{i\}}\sgn(q_{j\to a}^{t})
+ \min_{j\in N(a)\setminus\{i\}}|q_{j\to a}^{t}|
+ \right].
+\end{equation}
+For a degree-one check, set $z_{a\to i}=(-1)^{s_a}L$ without the $\alpha$ factor. A degree-zero odd-syndrome check is a model/instance inconsistency; degree-zero even checks contribute nothing. Next compute
+\begin{align}
+ S_i^{t+1}&=\lambda_i+\sum_{a\in N(i)}z_{a\to i}^{t+1},\\
+ L_i^{t+1}&=\clip_L(S_i^{t+1}),\\
+ q_{i\to a}^{t+1}&=\clip_L(S_i^{t+1}-z_{a\to i}^{t+1}),\\
+ \hat e_i^{t+1}&=\mathbf1[L_i^{t+1}\leq0].
+\end{align}
+The extrinsic subtraction uses the unclipped sum $S_i$, not clipped $L_i$. All checks finish before any new $q$ is used by another check. Use the original $H,s$ even for hinted variables; soft hints do not remove edges. Check validity after replacing fields and after every complete iteration. A validity test after a field transition is charged as transition work, not as a completed BP iteration.
+
+\subsection{Cold seed and state ownership}
+The cold seed has $z=0$; initialize $S,L,q,\hat e$ with the chosen field. A root seed is not run through extra hidden BP iterations. There is no initial unbiased BP block in the required profile; adding one requires an explicit budget and new profile.
+
+A retained candidate contains its node ID, complete owned BP state, counters of work actually executed for this candidate, and the provenance of its donor snapshot. The native state includes fields, $q,z,S,L,\hat e$, and a lineage iteration counter. Physical work accounting must never sum copied lineage counters. Only iterations actually executed in the current decode are charged.
+
+At the start of each cycle freeze read-only snapshots of the retained beam $\mathcal B_{c-1}$. For a new node $v$, choose the deepest strict ancestor present in this frozen set, if any. Clone that ancestor's state, retain its $z$, replace all fields by \eqref{eq:fields}, and recompute $S,L,q,\hat e$. If none is present, use the cold seed. No archive of every historical full BP state is required. The donor is the closest \emph{available retained} ancestor, not necessarily the immediate parent. Donors created or updated during the same cycle are ineligible until the next cycle.
+
+A continuing candidate uses its own state and unchanged field. Its nonancestor sibling is never a donor. A dedicated cold ablation resets every evaluated candidate, including continuing candidates. Snapshots require graph, physical-weight, syndrome/shot, numeric-policy, and format compatibility checks. Mutable vectors may not alias between candidates. All state is reset between physical shots, irrespective of worker reuse.
+
+The retained beam uses at most $W$ full states. A straightforward implementation temporarily needs at most $3W$ full states (frozen donors, working continuations, and new candidates), plus shared graph and small work buffers. Report actual peak live states and copied bytes. Copy-on-write or buffer reuse is permitted only when it preserves these ownership and snapshot semantics.
+
+\section{Candidate admission, pooled BP work, and pruning}
+\subsection{Candidate ranking}
+For every initialized candidate, define
+\begin{equation}\label{eq:bprank}
+ R_v=\wt(s\oplus H\hat e_v),\qquad
+ K_B(v)=(R_v,f_v,\id(v)).
+\end{equation}
+The smaller key is preferred. This is the normative initial rank; do not add an undocumented weighted combination, confidence threshold, or history term. A named \code{physical_only} ablation uses $(f_v,\id(v))$ instead. $R_v$ is a BP-completion residual, whereas $\rho_v$ is a search-assignment residual. They must be stored in distinct fields and must never be interchanged.
+
+Rank \eqref{eq:bprank} is a scheduling heuristic, not a probability of logical correctness and not a lower bound. A low BP residual can still be a trapping state. Changing this rank is an algorithmic experiment.
+
+\subsection{Admission and deterministic quota allocation}
+After the cycle's search slice, select up to $A_c$ new patterns from $G$ in $K_S$ order, where $0\leq A_c\leq W$. Form a tentative list from these proposals and the at most $W$ retained candidates. No duplicate node ID is allowed. New candidates are not yet marked admitted.
+
+Let $B_c$ be the cycle's \emph{total} BP iteration budget, $T_{\max}$ the invocation-wide BP limit, $T_{\mathrm{used}}$ the completed physical iterations, and $J$ the maximum iterations allocated to one candidate in one cycle. Set
+\begin{equation}
+ T_c=\min(B_c,T_{\max}-T_{\mathrm{used}}).
+\end{equation}
+If BP is disabled, $T_c=0$, $J=0$, or the tentative pool is empty, admit no new candidate and perform no BP transitions. Retained states remain available for fallback. Otherwise sort the tentative list by node ID, rotate left by $c\bmod M$, where $M$ is its length, and initialize all quotas to zero. Repeatedly traverse this order, adding one token to each quota still below $J$, until $T_c$ tokens have been allocated or all candidates reach $J$.
+
+Evaluate candidates sequentially in the same rotated order. A new candidate with zero quota remains in $G$ and is not admitted. A retained candidate with zero quota is carried unchanged. A positive-quota new candidate is removed from $G$ immediately before its initialization; it is then admitted exactly once. Each evaluated candidate performs its field transition if needed and at most its allocated number of complete BP iterations, with early validity checks. Unused tokens from early convergence are not reassigned within the cycle and do not carry into the next cycle. Thus planned quotas and actual work remain distinct and reproducible.
+
+After evaluation, merge the usable evaluated states with unevaluated retained states, remove solved states, sort by $K_B$, and retain at most $W$. A newly evaluated candidate that is immediately evicted still counts as an admission. Record the rank and keep/evict decision. BP eviction does not prune the search node. If a clock cap interrupts a cycle, retain the latest usable state for each processed candidate and the frozen state for each unprocessed retained candidate; never retain a partially updated BP iteration.
+
+For example, with $W=A_c=2$, $B_c=20$, and $J=20$, a first cycle with two new candidates allocates 10 iterations to each. A later cycle with two retained and two new candidates allocates 5 to each. The budget is 20 across the pool, not 20 for every candidate. An eight-cycle configuration with $T_{\max}=160$ cannot execute more than 160 BP iterations regardless of $W$.
+
+\section{Search work limits and complete control flow}
+An expansion is the start of branching an eligible nonterminal node; stale queue pops, terminal pops, and detector-beam discards are counted separately. Each cycle allows at most $E_c$ expansions and the entire invocation at most $E_{\max}$. Every constructed child, including a locally infeasible child, receives an ID and counts toward $G_{\max}$; the root counts as one. Check capacity before constructing a child, so the count never exceeds the cap. No state is constructed beyond the configured search depth.
+
+If $G_{\max}$ is reached partway through a parent's children, freeze further search generation for this invocation and record the truncation and ungenerated siblings. Existing guidance and BP continuations may still run. Reaching the expansion cap has the same effect on further expansion. Neither event asserts that the search space is exhausted. A CPU prefix cap, by contrast, ends all prefix work and invokes the terminal policy. Check it before each expansion, child construction, BP transition, and complete BP iteration. A running atomic operation is not interrupted; the CPU budget can overshoot by its cost.
+
+A cap-hit flag means that the cap actually blocked requested work, not merely that a counter equals its limit. If first-valid stopping interrupts child generation, record the remaining siblings as ungenerated without inventing their node IDs. At every terminal boundary reconcile the most recent complete usable states with unprocessed retained states, retire solved states, and record the resulting beam. A zero-cycle configuration is permitted and invokes direct CS0 without a search slice or BP work.
+
+\begin{lstlisting}[caption={Normative controller; candidate-stage details are defined in Section 5.}]
+reset_all_shot_state(H, A, p, s)
+if s == 0: return validated_zero_correction()
+Q, G, B = root_frontier(), empty_guidance(), empty_beam()
+incumbent = none
+for c in 0 .. max_cycles-1:
+    freeze donor snapshots from B
+    advance Q under E_c, E_max, G_max and optional detector beam
+    submit direct solutions according to goal_test and stopping policy
+    if immediate return or prefix CPU cap: finalize
+    propose up to A_c new patterns from G
+    allocate pooled BP quotas; initialize from frozen ancestors or seed
+    evaluate positive-quota candidates; submit every first valid output
+    keep up to W unresolved candidate states by K_B
+    if post-solution cycle limit reached: finalize
+    if no work remains possible under all remaining budgets: finalize
+finalize:
+    if incumbent exists: return incumbent
+    else: run one direct OSD-CS0 call with the specified LLR handoff
+    validate output and return; on failure return explicit failure status
+\end{lstlisting}
+
+Empty $Q$ alone does not end the algorithm: $G$ or retained BP candidates can remain useful. The no-remaining-work predicate considers all future cycle allowances, remaining global limits, the queue-head rules, admissible guidance, and whether any candidate can receive a positive BP quota. A zero allowance in the current cycle alone is not exhaustion if a later cycle can do useful work. With $W=0$ and BP disabled, this is a search-plus-OSD control. With zero search budget, empty $G$ and empty beam, it is direct OSD0, \emph{not} unbiased BP. An unbiased-BP-plus-OSD control must have a separate explicit BP-only profile and iteration budget. There are at most $C\max_c A_c$ new BP admissions and at most $2WC$ evaluated candidate visits, in addition to the search and iteration limits.
+
+\section{Solutions, soft constraints, stopping, and OSD}
+\subsection{Search restrictions and soft proposals are different objects}
+Search descendants satisfy $e_{F_v}=b_v$. A soft-BP output need not do so, even if $He=s$. Every syndrome-valid output is eligible as a global solution, but record
+\begin{equation}
+ d_{\mathrm{hint}}(e,v)=\sum_{i\in F_v}\mathbf1[e_i\neq b_i].
+\end{equation}
+A valid BP output with nonzero disagreement does not certify that the branch's restricted subproblem has been solved. Do not prune that branch on this basis. The incumbent is a valid global upper bound on minimum individual-error cost, but lower-bound pruning is not enabled in the required implementation. Hard/masked BP is a separate possible extension; it must not be implemented by silently treating a large finite LLR as an exact constraint.
+
+\subsection{Solution submission and termination}
+Validate every proposed solution on the original $H,s$ and calculate \eqref{eq:physical} in canonical variable order. Update the incumbent by the lexicographic key $(W(e),e_0,e_1,\ldots,e_{n-1})$. Keep an event for each discovery, including duplicates, with a packed-correction digest, source, node/candidate, cost, disagreement, and whether it improved the incumbent. Logical labels are attached outside decoding by joining sampled truth. A solved BP candidate is retired from the BP beam; its search node remains independently searchable.
+
+\code{stopping.mode: first_valid} returns the first validated discovery in deterministic serial event order, including a discovery at a BP field transition. \code{bounded_improve} stores the first discovery and continues within the original global limits. If the first solution is in cycle $c_\star$ and \code{post_solution_cycles}$=K\geq1$, stop at the end of cycle $\min(C-1,c_\star+K-1)$; the discovery cycle counts as the first. A cap or exhaustion can end earlier. A zero-syndrome invocation returns immediately in either mode. No OSD call is made when any incumbent exists. First-solution source, winning-solution source, and reason for terminal stopping are different fields.
+
+Neither finite beams, bounded work, generated-goal stopping, nor residual scheduling guarantees minimum individual-error cost. Even exact minimum-cost decoding does not guarantee maximum-probability logical-coset decoding. Increasing width, depth, or iterations need not monotonically reduce logical errors under these stopping policies.
+
+\subsection{Direct CS0 fallback}
+If no incumbent exists, choose the retained usable candidate with minimum $K_B$ at termination. The default \code{llr_source: best_retained_guided} supplies that state's final signed, clipped posterior LLR vector to the existing native OSD-only bridge. If no such state exists, use clipped physical channel LLRs. This generalizes the previous single-state handoff without an undocumented extra BP pass.
+
+Require \code{osd_method: OSD_CS} and \code{osd_order: 0}. Preserve the pinned upstream ordering and tie behavior; do not substitute absolute-LLR sorting. In the inspected ldpc fork, order zero uses the native fast-solve path. Do not call a public BP-OSD wrapper that reruns BP. The bridge always solves the original $H,s$, with no fixed hint variables.
+
+Two explicit diagnostic handoffs are permitted: \code{channel_only}, and \code{best_retained_release}. The latter restores $\lambda=w$, retains $z$, and recomputes $S,L,q$ without further BP iterations before calling OSD. It does not erase the influence of earlier hints from $z$ and must not be called an exact unbiased posterior. Any release-and-relax BP extension needs its own explicit iteration budget and algorithm version.
+
+OSD time is outside the prefix CPU cap. The default invokes at most one OSD call. Ordinary prefix nonconvergence can use fallback; a model error or unsafe numerical state returns an explicit error instead of being hidden by a successful fallback. The implementation must not report a fabricated correction or a successful status on exception.
+
+\section{Parameters and computational cost}
+\begin{longtable}{p{0.29\linewidth}p{0.15\linewidth}p{0.49\linewidth}}
+\toprule Parameter & Starter value & Meaning\\\midrule\endhead
+Search depth $D_S$ & null & No small fixed ones-depth limit.\\
+Hint depth $D_H$ & 10 & New hint ones-depth limit; zeros can also be hinted.\\
+Cycles $C$ & 8 & Maximum search/BP scheduling cycles.\\
+Expansions $E_c,E_{\max}$ & 8 each, 64 & Per-cycle and global parent expansions.\\
+Generated nodes $G_{\max}$ & 4096 & Global count including root and infeasible children.\\
+Detector beam $b$ & null & Optional residual excursion cutoff; named variant 15.\\
+Retained BP width $W$ & 2 & Logical state width, not CPU thread count.\\
+New proposals $A_c$ & 2 each & Maximum new hint proposals per cycle.\\
+BP pool budgets $B_c,T_{\max}$ & 20 each, 160 & Completed BP iterations across all candidates.\\
+Per-candidate cycle cap $J$ & 20 & Limits a candidate's allocated quota.\\
+Hint margin $\kappa$ & 8 & Raw signed-channel-magnitude margin.\\
+Min-sum $\alpha$, clip $L$ & 1, 25 & Same specified numeric policy as the existing opt-in kernel.\\
+Inheritance & ancestor & Frozen nearest available strict ancestor; own-state continuation.\\
+Stopping & first\_valid & Named accuracy variant uses bounded\_improve, $K=2$.\\
+Prefix CPU cap & null & Recommended disabled for deterministic work comparisons.\\
+Fallback & CS0 & Best-retained guided LLRs, channel if absent.\\
+Native threads & 1 & Sequential candidates; shot multiprocessing remains available.\\\bottomrule
+\end{longtable}
+These are unoptimized implementation starting points. The supplied YAML retains the user's surface distances 5 and 7, BB72, $R=d$, rates $0.002,0.003,0.005$, 30,000 shots per condition, eight workers, and the supplied seeds. The YAML names version 2 explicitly and preserves the high-budget version-1 decoder as an additional control.
+
+Let $L_E=\mathrm{nnz}(H)$. BP work is $O(T_{\mathrm{actual}}(L_E+n+m))$ for flooding updates and explicit validity checks. Snapshot/field work is separately $O(N_{\mathrm{clone}}(L_E+n))$; it is not free merely because iteration counts are matched. Search cost depends on branching factors, residual bitset operations, assignment reconstruction, heuristic updates, and priority-queue operations. An expansion count is not a universal unit of CPU time.
+
+Peak memory includes $O(W(L_E+n))$ BP state with the transient constant described above, plus the node arena, forbidden-assignment representation, residual bitsets, and telemetry buffers. Never multiply a full BP state by every generated search node. C++ implementations should use shared immutable graph data, contiguous message buffers, reusable state slots, parent-delta search nodes, cached static neighbor order, and bounded telemetry buffers.
+
+For the search heuristic, a reference kernel recomputes all affected quantities. An optimized kernel updates the full dependency closure of changed residual detectors and newly forbidden variables; changing a free variable's $k_i$ can change costs at several active checks, not only the flipped checks. Use a fixed reduction tree and retain the reference kernel as a differential oracle. No unproved residual-only deduplication, heuristic scaling, stale score, or arbitrary candidate pruning is an implementation optimization.
+
+\section{Simulation contract and separate Parquet datasets}
+\subsection{Identity, pairing, and physical sampling}
+Keep the existing directory organization: \code{src}, \code{python_scripts}, \code{scripts}, \code{config}, \code{analysis}, \code{notebook}, \code{external_lib}, \code{assets}, and \code{tests}; add documentation under \code{docs}. Each run has a UTC timestamp and unique run ID. Record the fully resolved configuration, code/model/circuit hashes, selected-sector map, DEM and column maps, dependency commits and patches, compiler/flags, machine/thread context, and all seeds in JSON and associated model artifacts.
+
+Use the same physical shots for every decoder. A physical shot key is
+\begin{equation*}
+ (\text{run\_id},\text{condition\_id},\text{shot\_id}).
+\end{equation*}
+Shot IDs are assigned deterministically within each condition and independently of completion order or worker count. A decode key adds \code{decoder_id}. Decoder identity includes algorithm version, every resolved algorithm parameter, and native build identity. Timing context is recorded separately. Warm-up shots use a disjoint stream and do not enter scientific counts. Sampling-stream identity and chunking policy must be explicit if the backend's random stream is chunk-dependent.
+
+One invocation predicts all tracked observables. Define \code{block_failure} as invalid/failed decoding or at least one logical mismatch. \code{logical_mismatch} is null for invalid outputs, not false. Distinguish infrastructure exceptions from ordinary decoding failure while reporting their counts. No true fault, true observable, or logical outcome is accessible to candidate ranking, stopping, or OSD handoff.
+
+\subsection{Datasets by data type}
+The companion \code{hybrid_frontier_bp_beam_parquet_schema.json} is the machine-readable field/type/nullability contract. The following datasets must not be collapsed into a single wide mixed-grain table.
+
+\begin{longtable}{p{0.25\linewidth}p{0.28\linewidth}p{0.40\linewidth}}
+\toprule Dataset & Row grain & Purpose\\\midrule\endhead
+\code{conditions} & One per physical condition & Code, rounds, rate, observable count, circuit/DEM identity.\\
+\code{decoder_profiles} & One per decoder ID & Algorithm/config/build identity and resolved config reference.\\
+\code{shot_inputs} & One per physical shot & Packed syndrome, sampled observable truth, deterministic sampling identity.\\
+\code{decode_results} & One per decode key & Final correction/prediction, validity, failure, service times, terminal attribution.\\
+\code{search_summary} & One per version-2 decode & Search counts, cutoffs, peak queues, maximum depth, search CPU/wall totals.\\
+\code{bp_summary} & One per version-2 decode & Quotas, actual iterations, admissions, visits, donors, clones, peak states, BP times.\\
+\code{cycles} & One per started version-2 cycle & Queue/beam sizes, budgets/usage, best residual, cycle outcome.\\
+\code{patterns} & One per admitted BP node & Sorted zero/one lists, search ancestry, physical score and search residual.\\
+\code{bp_updates} & One per evaluated candidate visit & Donor, quota, work, residual before/after, disagreement, rank, outcome.\\
+\code{bp_beam_membership} & One per retained candidate per cycle & Rank and latest usable update; includes carried, unevaluated candidates.\\
+\code{solution_events} & One per valid solution discovery & Source, cost, packed correction, incumbent change, offline logical label.\\
+\code{osd_calls} & One per fallback call & Source candidate/update, LLR policy/digest, time, validity and outcome.\\
+\code{phase_timings} & One per aggregated phase/cycle/candidate & Exclusive native CPU/wall work, scope count, optional profiling.\\
+\code{search_nodes} & One per constructed node & Optional detailed trace; excluded from default production recording.\\\bottomrule
+\end{longtable}
+
+All version-2 hybrid invocations, including zero-syndrome shots and failed invocations, receive search and BP summary rows with zero counters where appropriate. Baselines and legacy hybrid profiles receive normalized \code{decode_results} and faithfully available terminal attribution; unavailable version-2 search/BP counters are absent rather than invented as zero. Historical readers and files remain supported. Candidate tables contain no baseline placeholders. Empty datasets are listed with their schema and row count zero in the run inventory; they need not have empty physical Parquet files.
+
+Use separate directories such as
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+assets/runs/<timestamp>_<run_id>/
+  manifest.json
+  schemas/<schema_version>.json
+  models/<condition_id>/{circuit.stim, selected.dem, matrices.npz, metadata.json}
+  tables/conditions/part-*.parquet
+  tables/decoder_profiles/part-*.parquet
+  tables/shot_inputs/condition=<id>/part-<batch>.parquet
+  tables/decode_results/condition=<id>/decoder=<id>/part-<batch>.parquet
+  tables/search_summary/condition=<id>/decoder=<id>/part-<batch>.parquet
+  tables/bp_summary/condition=<id>/decoder=<id>/part-<batch>.parquet
+  tables/cycles/...
+  tables/patterns/...
+  tables/bp_updates/...
+  tables/bp_beam_membership/...
+  tables/solution_events/...
+  tables/osd_calls/...
+  tables/phase_timings/...
+  tables/search_nodes/...  # only when enabled
+  inventory/committed_batches.json
+\end{lstlisting}
+\end{minipage}
+
+Parquet schema uses explicit Arrow types, never inferred mixed object columns. Binary vectors use little-bit-order packing: bit $i$ occupies bit $i\bmod8$ of byte $\lfloor i/8\rfloor$; unused high bits are zero. Run, condition, decoder and digest identities use UTF-8 strings. Shot ordinals, local node/update/event IDs and counters use unsigned 64-bit values; matrix and cycle indices use unsigned 32-bit values. Nanosecond durations use signed 64-bit integers, and finite scores use binary64. Missing values are null. Infeasible-node $h,f$ in optional traces are null with an explicit status, not JSON Infinity or NaN.
+
+Keys in candidate tables are local to the decode key. Node ancestry need not reference an admitted pattern, because intermediate ancestors may never run BP. Such references are logical search-node identifiers, not mandatory foreign keys into the optional \code{search_nodes} dataset. Donor update references, however, must resolve to a previous usable \code{bp_updates} row in the same decode. A candidate may have zero lineage inheritance despite later continuation; record actual donor kind explicitly.
+
+\subsection{Writing, atomicity, and resumption}
+Use worker-owned typed buffers and Parquet shards, with bounded row-group size and configurable compression. Workers never append concurrently to the same file. Write temporary files, close and validate them, atomically rename them, then publish a batch inventory recording all dataset shards, row counts, key ranges, schemas, and hashes. A batch is visible to analysis only when its cross-dataset inventory is committed. Resumption must be idempotent by physical shot and decode keys, and reject incompatible identities rather than mixing runs.
+
+If a worker dies after some shards are written, uncommitted shards are not counted as completed science. Check distinct-key counts, missing baseline/hybrid pairs, required dataset rows, and completion status before producing comparative plots. Store rows in batches, not one file per shot. Parquet writing, Python conversion of detailed telemetry, and offline truth annotation occur after the decode service timer. In-memory native recording is part of the measured service cost and its configuration belongs in timing provenance.
+
+\subsection{Timing and attribution}
+Measure full decode service CPU and wall time consistently for all decoders, including input/output conversion, final verification, and required prediction work. Record native prefix, direct search, BP initialization/clone/transition, BP iterations, beam ranking, solution validation, OSD, and finalization separately when profiling is enabled. Phase rows contain \emph{exclusive} aggregated times; do not sum a parent timer with its child timers. Cycle wall span is descriptive and can overlap these aggregates, so it is never added again.
+
+For one invocation use the accounting identity
+\begin{equation}
+ T_{\mathrm{service}}=
+ T_{\mathrm{search}}+T_{\mathrm{BP\ prepare}}+T_{\mathrm{BP\ iter}}+
+ T_{\mathrm{rank}}+T_{\mathrm{solution}}+T_{\mathrm{OSD}}+T_{\mathrm{other}}.
+\end{equation}
+Setup, timer overhead, bridge overhead, and adapter work not assigned to a named exclusive phase remain in $T_{\mathrm{other}}$. Record native time separately to distinguish native and adapter remainder. The summary times aggregate phase scopes rather than being additional scopes. Counters are always recorded. When profiling is off, unavailable phase durations are null; output rows remain logically equivalent under deterministic work limits. No per-edge or per-iteration trace is enabled by default.
+
+First-solution and final-winner attribution differ in bounded-improve mode. Estimate search/BP first-solution rates, final source rates, OSD reach rate, and conditional block failures separately. These selected subsets do not establish causal benefit. For paired decoder comparisons, bootstrap physical shots within one condition, not candidate/update rows. Keep complete-block CPU latency distinct from a real-time per-round deadline claim. Eight-worker throughput timing must be accompanied by a one-worker, native-thread-one latency run for tail comparisons.
+
+Each solution event receives its own observable prediction and offline truth comparison. In particular, never copy the final winner's logical label onto earlier events: two valid discoveries can belong to different logical classes. A zero-syndrome shortcut emits one solution event for $e=0$, but no root, cycle, or BP candidate. Baseline adapters must expose a correction for explicit original-$H/s$ verification; a prediction-only interface cannot be silently labeled as a verified correction.
+
+\section{Required validation and experimental controls}
+\subsection{Mathematical and native tests}
+Implement small independent Python or C++ reference oracles, not tests that merely call the production function twice. Required cases include:
+\begin{enumerate}
+\item Enumerate tiny feasible corrections to verify canonical children, zero-prefix exclusion, unique assignment paths, and the lower-bound inequality at random partial assignments. Include degree-one/two columns, identical $H$ columns with different $A$, and zero residual.
+\item Verify search counters, root inclusion, finite depth, goal on generation versus pop, detector-beam discards, queue exhaustion, and node-cap truncation halfway through a parent.
+\item Compare min-sum messages against independent flooding equations, including zero messages, ties, check degree one, clipping, and unclipped-sum extrinsic subtraction.
+\item Verify sibling isolation, frozen-cycle donors, nearest retained ancestor, no donor fallback, wrong-shot/hash rejection, and cross-shot reset. Copying a snapshot must not copy charged physical work into new work totals.
+\item Verify admission and quota schedules by hand-computable cases, zero quotas, per-candidate caps, unused tokens, carried states, rank ties, eviction without search pruning, and global iteration bounds.
+\item Force a soft-BP solution that violates a hint but satisfies $He=s$; accept it globally, record disagreement, and do not mark the restricted branch solved.
+\item Test first-valid and bounded-improve cycle boundaries, duplicate discoveries, incumbent tie-breaking, and separation of first source from winning source.
+\item Verify one direct CS0 call and no hidden BP pass, candidate selection at fallback, channel/release diagnostics, and signed upstream ordering.
+\item Compare reference and optimized search keys/node decisions, snapshots, solutions, and counters; use exact comparison where deterministic binary64 evaluation order is specified.
+\end{enumerate}
+
+\subsection{Storage and end-to-end tests}
+Test explicit schema round trips including empty/null values, packed-bit lengths and padding, foreign keys, cumulative counters versus event rows, time-accounting identities, and truth isolation. Verify one versus two spawn workers on a tiny fixed-shot input set, crash/resume behavior, missing-shard rejection, and no overwrite of historical version-1 data. Every native component must compile and pass its focused tests before integration. Sanitizer checks should cover candidate buffer aliasing and lifetime. Run a bounded end-to-end surface/BB smoke benchmark, not an automatic 30,000-shot production run.
+
+\subsection{Baseline audit and scientific comparisons}
+The project-pinned beam source at commit \code{084a475b05fb64308103317a1ce5a0c4b0be58aa} excludes columns of degree at most two when selecting a branching variable. Its candidate-index initialization also requires auditing when no eligible variable exists. Record each model's column-degree histogram and the actual binary/source identity. Preserve the published beam profile; any repair is a separately named profile, with a safe no-candidate case and an assertion preventing repeated fixation. Do not silently change the baseline while comparing it with version 2.
+
+The controlled first comparisons are version 1 versus version 2; $W=1,2,4$ under the same pooled BP and search budgets; residual-first versus physical-only BP rank; ancestor inheritance versus cold resets; search-only versus search-plus-BP; detector beam disabled versus 15; first-valid versus bounded-improve; and explicit OSD handoff policies. Width 1 in version 2 is not an exact reproduction of version 1 because scheduling, donor semantics, and stopping differ. Retain BP-OSD-CS10 and beam8 on paired inputs. Also retain CS0 where useful to isolate the fallback order difference.
+
+The previous short-budget and high-budget notebooks are evidence motivating these tests, not performance results for version 2. Require a held-out comparison at matched block failure probability or matched CPU budget before claiming an advantage. Record a noninferiority margin before tuning or use a speed--accuracy frontier without a noninferiority claim.
+
+\section{Implementation deliverables and acceptance}
+The companion implementation prompt divides work into six sequential stages: repository audit/configuration; native search; forked BP snapshots and scheduler; integrated stopping/fallback; separate Parquet datasets and analysis; verification/documentation. Functions and public structures require English docstrings/comments explaining parameters, ownership, invariants, failure modes, and units. Maintain root \code{AGENTS.md} and \code{STATUS.md}, module READMEs, a build guide, algorithm guide, data dictionary, and a migration guide.
+
+The new decoder must have a distinct profile and data schema version. Reuse the existing ldpc opt-in min-sum interface, adding validated native restore/clone operations without modifying baseline BP-OSD behavior. All search, scheduling, candidate state management, and completion logic run in C++; Python coordinates sampling, configuration, storage, and analysis. No user approval is required for ordinary implementation and tests already requested, but do not launch the production workload or publish/merge changes merely because the example config contains production shot counts.
+
+The code is acceptable when its deterministic outputs and counters match the specified reference cases; every resource cap and terminal status is accounted for; baseline outputs are unchanged unless a separately named repair is selected; the selected-sector physical setup and pairing are preserved; and a fresh environment can build and reproduce the bounded smoke run from the saved configuration and provenance.
+
+\begin{thebibliography}{9}
+\bibitem{tesseract} L. Aghababaie Beni, O. Higgott, and N. Shutty, \emph{Tesseract: A Search-Based Decoder for Quantum Error Correction}, arXiv:2503.10988 (2025). \url{https://arxiv.org/abs/2503.10988}. Public implementation: \url{https://github.com/quantumlib/tesseract-decoder}.
+\bibitem{beam} M. Ye, D. Wecker, and N. Delfosse, \emph{Beam search decoder for quantum LDPC codes}, arXiv:2512.07057 (2025). \url{https://arxiv.org/abs/2512.07057}. Public implementation: \url{https://github.com/ionq-publications/BeamSearchDecoder}.
+\bibitem{dtd} K. R. Ott, B. Hetenyi, and M. E. Beverland, \emph{Decision-tree decoders for general quantum LDPC codes}, arXiv:2502.16408 (2025). \url{https://arxiv.org/abs/2502.16408}.
+\bibitem{project} AKTKN, \emph{beamsearch\_decimation}, inspected branch \code{hybrid-decoder-stage1}, commit \code{f7128e94b746e3c8a2fa7923d5e2318195712f0a}. \url{https://github.com/AKTKN/beamsearch_decimation}.
+\end{thebibliography}
+\end{document}

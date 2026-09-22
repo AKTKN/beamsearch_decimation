@@ -17,10 +17,8 @@ scripts/execute_notebook.sh config/analysis.yaml.example --run SOURCE_RUN \
 
 The config argument is optional and defaults to the checked-in analysis template.
 Analysis-only YAML has one strict `analysis` section; it requires no noise, decoder,
-sampling, or execution settings. Paths resolve relative to its file. Existing full
-benchmark YAML still works and is fully validated; its execution/affinity settings
-are not applied to analysis. Invalid decoder settings in a supplied full benchmark
-config still fail instead of being silently ignored. CLI selection/filtering and
+sampling, or execution settings. Paths resolve relative to its file. Simulation YAML
+is a separate strict interface and is rejected here. CLI selection/filtering and
 committed-subset rules are unchanged. Verbose progress goes to stderr, while stdout
 contains the final report path. Notebook execution uses the active interpreter,
 the maintained template by default, and a configurable per-cell timeout.

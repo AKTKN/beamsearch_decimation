@@ -113,22 +113,31 @@ def test_v1_projection():
     assert run.hybrid_rounds.num_rows==run.decoder_phases.num_rows==0
 
 
-def test_paired_workers_replay_and_warmup(tmp_path):
+def test_paired_workers_and_warmup_minimal_output(tmp_path):
     cfg={'noise':{'rates':[.001]},'experiment':{'codes':[{'family':'surface','distances':[3]},{'family':'bb72','distances':[6]}]},
         'sampling':{'shots_per_point':4,'batch_size':2,'master_seed':20260921,'warmup_count':1},
         'decoders':[{'profile':'hybrid_search_soft_ms_osd0_v1'},{'profile':'search_osd0_v1'},
             {'profile':'hybrid_search_soft_ms_osd0_cold_v1'},{'profile':'bposd_ms30_cs0'},{'profile':'beam8'}],
         'timing':{'profiling':'phases'},'output':{'root':str(tmp_path/'runs')}}
     path=tmp_path/'run.yaml';path.write_text(yaml.safe_dump(cfg))
-    one=load_run(run_benchmark(path))
+    one=run_benchmark(path)
     cfg['execution']={'workers':2};cfg['sampling']['warmup_count']=2;cfg['sampling']['warmup_seed']=421
-    path.write_text(yaml.safe_dump(cfg));two=load_run(run_benchmark(path));replay=load_run(run_benchmark(path,replay_source=one.path))
-    assert compare_runs(one,two)['shared_decodes_equal']==40
-    assert compare_runs(one,replay)['shared_decodes_equal']==40
-    assert one.decodes.num_rows==one.samples.num_rows*5
-    assert all(len(r['actual_observables'])==12 for r in one.samples.to_pylist() if r['family']=='bb72')
-    assert all(r['algorithm_version'] is None or r['timing_accounting_ok'] for r in one.decodes.to_pylist())
-    assert all(e['num_observables'] in (1,12) and e['num_mechanisms']>0 for e in one.manifest['instances'])
+    path.write_text(yaml.safe_dump(cfg));two=run_benchmark(path)
+    def rows(run, suffix):
+        tables=[pq.read_table(file) for file in sorted((run/'data').glob(f'*_{suffix}.parquet'))]
+        return [row for table in tables for row in table.to_pylist()]
+    one_samples=rows(one,'samples');one_decodes=rows(one,'logicalerror')
+    two_samples=rows(two,'samples');two_decodes=rows(two,'logicalerror')
+    sample_drop={'run_id','source_hash','config_hash'}
+    decode_drop=sample_drop|{'cpu_ns','wall_ns','workers','concurrent_load','oversubscribed'}
+    normalize=lambda values,drop:sorted(json.dumps({k:(v.hex() if isinstance(v,bytes) else v)
+        for k,v in row.items() if k not in drop and not k.endswith(('_cpu_ns','_wall_ns'))
+        and k!='phases_json'},sort_keys=True) for row in values)
+    assert normalize(one_samples,sample_drop)==normalize(two_samples,sample_drop)
+    assert normalize(one_decodes,decode_drop)==normalize(two_decodes,decode_drop)
+    assert len(one_decodes)==len(one_samples)*5==40
+    assert all(len(row['actual_observables'])==12 for row in one_samples if row['family']=='bb72')
+    assert sorted(item.name for item in one.iterdir())==['config_resolved.json','data']
 
 
 @pytest.mark.parametrize('profiling',['future','none'])

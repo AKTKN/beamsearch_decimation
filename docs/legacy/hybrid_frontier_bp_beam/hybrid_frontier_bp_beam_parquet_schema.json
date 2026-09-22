@@ -1,0 +1,2316 @@
+{
+  "contract_name": "HSBP-FB typed benchmark data contract",
+  "schema_version": "hsbp_fb_parquet/1",
+  "algorithm_version": "HSBP-FB-2.0",
+  "format": "Explicit Arrow fields serialized as separate Parquet datasets",
+  "description": "This file is an Arrow contract, not a JSON Schema meta-schema. Implement a strict builder and validators for these fields.",
+  "bit_encoding": {
+    "order": "little",
+    "byte_rule": "bit i is (byte[i//8] >> (i%8)) & 1",
+    "padding": "Unused high bits of the last byte must be zero.",
+    "lengths": "syndrome m, correction n, observables k; get dimensions from conditions."
+  },
+  "floating_point": {
+    "type": "IEEE-754 binary64",
+    "nonfinite_allowed": false,
+    "hash_bytes": "Little-endian IEEE-754 bytes in canonical variable order, preceded by uint64 n."
+  },
+  "time_encoding": {
+    "durations": "int64 nanoseconds, nonnegative",
+    "timestamp": "UTC ISO-8601 in manifest; monotonic/process CPU durations are not UTC timestamps"
+  },
+  "null_policy": "Null means unavailable or inapplicable. Counters are zero only when the corresponding instrumented operation did not occur.",
+  "schema_metadata": {
+    "qec_schema": "hsbp_fb_parquet/1/<dataset>",
+    "bit_order": "little"
+  },
+  "file_rules": [
+    "Create one directory per dataset. Do not flatten grains or use JSON strings for event payloads.",
+    "Use explicit Arrow types and field nullability; reject unknown/missing fields before writing.",
+    "Every partition file retains key columns with their declared types; readers must not infer contradictory partition types.",
+    "Worker-owned bounded typed buffers write batch-sized shards, never one file per shot and never shared append.",
+    "Publish a batch inventory only after all of its required dataset shards and hashes are ready.",
+    "Analysis reads committed inventory entries, not unfiltered directory globbing.",
+    "Empty datasets remain declared with schema and zero rows, without requiring physical empty files.",
+    "Resume validates exact model/decoder/build/sampling identities and rejects duplicate or missing keys.",
+    "Keep legacy readers and historical output untouched; the new datasets apply to new runs.",
+    "Baseline and legacy hybrid profiles get normalized decode_results and available faithful attribution; v2-only candidate/summary rows are not fabricated."
+  ],
+  "manifest_required": [
+    "run_id",
+    "created_utc",
+    "finished_utc_or_null",
+    "run_status",
+    "fully_resolved_config",
+    "config_schema_version",
+    "data_schema_version",
+    "condition_ids",
+    "decoder_ids",
+    "sampling_seed_derivation",
+    "deterministic_sampling_chunks",
+    "master_seed",
+    "warmup_seed",
+    "warmup_count",
+    "sampler_version",
+    "model_artifact_hashes",
+    "detector_sector_maps",
+    "column_and_probability_normalization_maps",
+    "observable_maps",
+    "dependency_commits",
+    "dependency_patch_hashes",
+    "source_commit",
+    "dirty_patch_hash_or_null",
+    "build_commands",
+    "compiler_and_flags",
+    "native_binary_hashes",
+    "python_and_os_versions",
+    "machine_cpu",
+    "timing_contexts",
+    "thread_limits",
+    "decoder_execution_order_rule",
+    "telemetry_configuration",
+    "dataset_schemas",
+    "committed_batch_inventory",
+    "expected_and_observed_row_counts",
+    "sampling_decode_error_counts",
+    "resume_history"
+  ],
+  "cross_dataset_constraints": [
+    "Every decode key references shot_inputs and decoder_profiles; every shot references conditions.",
+    "For each committed physical batch, each enabled decoder has exactly one result per shot.",
+    "Every v2 result has exactly one search_summary and one bp_summary, including early exits/errors.",
+    "Missing worker results are not relabeled as successful completed shots; failed batches remain uncommitted/retryable.",
+    "Donor update references are same-shot/same-decoder and strictly earlier-cycle references.",
+    "sum cycles.generated_actual + search_summary.root_nodes == search_summary.generated_nodes.",
+    "sum cycles.expansions_actual == search_summary.expanded_nodes.",
+    "sum cycles.allocated_tokens == bp_summary.planned_iteration_tokens.",
+    "sum cycles.bp_actual_iterations == sum bp_updates.actual_iterations == bp_summary.actual_iterations.",
+    "sum cycle visits/admissions matches bp_updates/patterns and bp_summary.",
+    "First source, final winner source and prefix stop reason must be interpreted separately.",
+    "Per-event truth labels are attached after service timing using that event correction, not the final result.",
+    "No decoder-side API accepts true observables or per-shot error labels.",
+    "Mandatory counters/events are never silently dropped on telemetry-buffer overflow; report an explicit resource error or documented spill behavior outside native timing."
+  ],
+  "datasets": {
+    "conditions": {
+      "grain": "One row per physical condition.",
+      "required": "always",
+      "relative_directory": "tables/conditions",
+      "partition_columns": [],
+      "primary_key": [
+        "run_id",
+        "condition_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "family",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Code family.",
+          "enum": [
+            "surface",
+            "bb72"
+          ]
+        },
+        {
+          "name": "distance",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Code distance, including 6 for BB72."
+        },
+        {
+          "name": "rounds",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Number of noisy memory extraction rounds."
+        },
+        {
+          "name": "physical_rate",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "Circuit-level physical error rate, before documented noise multipliers."
+        },
+        {
+          "name": "memory_basis",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Memory preparation/readout basis.",
+          "enum": [
+            "Z"
+          ]
+        },
+        {
+          "name": "sector",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Existing detector selection convention; does not silently redefine the physical Pauli sector."
+        },
+        {
+          "name": "num_data_qubits",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Code data-qubit count."
+        },
+        {
+          "name": "num_detectors",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "m: number of retained detectors."
+        },
+        {
+          "name": "num_fault_variables",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "n: columns of the prepared H and A."
+        },
+        {
+          "name": "num_observables",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "k: number of tracked logical observables; normally 1 surface, 12 BB72."
+        },
+        {
+          "name": "circuit_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of the exact serialized circuit."
+        },
+        {
+          "name": "dem_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of the selected undecomposed DEM."
+        },
+        {
+          "name": "model_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of canonical H, A, probabilities, column map and numeric model metadata."
+        },
+        {
+          "name": "noise_config_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of fully resolved circuit noise configuration."
+        },
+        {
+          "name": "sampling_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Identity of sampler version, seed derivation, circuit and deterministic chunking policy."
+        },
+        {
+          "name": "model_metadata_path",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Run-relative path to complete model provenance and transformation maps."
+        },
+        {
+          "name": "column_degree_histogram",
+          "arrow_type": "list<uint32 not null>",
+          "nullable": false,
+          "description": "Element d is the count of H columns of degree d, including degree zero."
+        }
+      ],
+      "constraints": [
+        "Physical setup, probability normalization and observable maps are immutable within a condition.",
+        "Dimensions and individual histogram counts must fit uint32, or creation must reject this schema version.",
+        "sum(column_degree_histogram) == num_fault_variables."
+      ]
+    },
+    "decoder_profiles": {
+      "grain": "One row per resolved decoder identity.",
+      "required": "always",
+      "relative_directory": "tables/decoder_profiles",
+      "partition_columns": [],
+      "primary_key": [
+        "run_id",
+        "decoder_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Resolved configuration/build identity used in all decode keys."
+        },
+        {
+          "name": "name",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Human-readable unique profile name within the run."
+        },
+        {
+          "name": "kind",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Adapter implementation kind."
+        },
+        {
+          "name": "profile",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Registered profile name."
+        },
+        {
+          "name": "algorithm_version",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Explicit algorithm identifier; use an adapter/native version for baselines."
+        },
+        {
+          "name": "resolved_config_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of canonical resolved configuration JSON."
+        },
+        {
+          "name": "resolved_config_path",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Run-relative JSON path; do not store arbitrary nested diagnostics in result columns."
+        },
+        {
+          "name": "native_build_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash identifying dependency commits/patches, compiler, flags and built binary."
+        },
+        {
+          "name": "source_commit",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Repository commit used to build."
+        },
+        {
+          "name": "dirty_patch_sha256",
+          "arrow_type": "utf8",
+          "nullable": true,
+          "description": "Hash of saved dirty patch if present."
+        },
+        {
+          "name": "native_threads",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Native threads per invocation; required v2 value is one."
+        },
+        {
+          "name": "v2_telemetry_available",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "True only if the full HSBP-FB-2.0 summary/candidate contract is emitted."
+        }
+      ],
+      "constraints": [
+        "No profile silently changes an older named decoder.",
+        "All config paths resolve within the committed run artifacts."
+      ]
+    },
+    "shot_inputs": {
+      "grain": "One row per physical shot, shared by every decoder.",
+      "required": "always",
+      "relative_directory": "tables/shot_inputs",
+      "partition_columns": [
+        "condition_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "sampling_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Must equal the condition sampling identity."
+        },
+        {
+          "name": "sampling_batch_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Deterministic sampling chunk ordinal, independent of storage worker assignment."
+        },
+        {
+          "name": "shot_in_sampling_batch",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Zero-based offset within deterministic sampling chunk."
+        },
+        {
+          "name": "sampling_seed",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Resolved uint64 seed of this sampling stream/chunk; derivation saved in manifest."
+        },
+        {
+          "name": "syndrome_packed",
+          "arrow_type": "binary",
+          "nullable": false,
+          "description": "m bits, canonical detector order, little bit order with zero padding."
+        },
+        {
+          "name": "true_observables_packed",
+          "arrow_type": "binary",
+          "nullable": false,
+          "description": "k sampled truth bits; evaluator-only, never passed to the decoder."
+        },
+        {
+          "name": "syndrome_weight",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Popcount of the valid m syndrome bits."
+        }
+      ],
+      "constraints": [
+        "Exactly one physical input is reused by all enabled decoders for this key.",
+        "Warm-up shots are in a disjoint stream and are excluded.",
+        "Packed vector lengths and high-bit padding match condition dimensions."
+      ]
+    },
+    "decode_results": {
+      "grain": "One row per decoder invocation, including invalid and exceptional outcomes.",
+      "required": "always",
+      "relative_directory": "tables/decode_results",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "storage_batch_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Committed output batch ordinal; not a sampling-seed input."
+        },
+        {
+          "name": "worker_id",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Execution worker ordinal; diagnostic only, not part of the physical shot key."
+        },
+        {
+          "name": "execution_position",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Position in the deterministic per-shot decoder execution order."
+        },
+        {
+          "name": "status",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Adapter-normalized decoder outcome.",
+          "enum": [
+            "valid",
+            "nonconverged",
+            "model_error",
+            "numerical_error",
+            "resource_error",
+            "adapter_error"
+          ]
+        },
+        {
+          "name": "native_status",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Exact stable native result code or exception category."
+        },
+        {
+          "name": "syndrome_valid",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "True only for a returned correction verified against original H and s."
+        },
+        {
+          "name": "correction_packed",
+          "arrow_type": "binary",
+          "nullable": true,
+          "description": "n returned fault bits, null when no correction was returned."
+        },
+        {
+          "name": "predicted_observables_packed",
+          "arrow_type": "binary",
+          "nullable": true,
+          "description": "k bits A*e when a usable correction was returned."
+        },
+        {
+          "name": "observable_mismatch_packed",
+          "arrow_type": "binary",
+          "nullable": true,
+          "description": "k bits prediction XOR truth for syndrome-valid corrections only."
+        },
+        {
+          "name": "logical_mismatch",
+          "arrow_type": "bool",
+          "nullable": true,
+          "description": "Any observable mismatch, null when no syndrome-valid correction exists."
+        },
+        {
+          "name": "block_failure",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "True for invalid/error outputs or any tracked logical mismatch."
+        },
+        {
+          "name": "physical_cost",
+          "arrow_type": "float64",
+          "nullable": true,
+          "description": "Canonical W(e) of the returned correction, if available."
+        },
+        {
+          "name": "first_solution_source",
+          "arrow_type": "utf8",
+          "nullable": true,
+          "description": "First validated discovery, distinct from winner.",
+          "enum": [
+            "zero_syndrome",
+            "search",
+            "bp_transition",
+            "bp_iteration",
+            "osd",
+            "baseline"
+          ]
+        },
+        {
+          "name": "winner_source",
+          "arrow_type": "utf8",
+          "nullable": true,
+          "description": "Source of the correction actually returned.",
+          "enum": [
+            "zero_syndrome",
+            "search",
+            "bp_transition",
+            "bp_iteration",
+            "osd",
+            "baseline"
+          ]
+        },
+        {
+          "name": "first_solution_event_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "First event ID when v2 solution telemetry is available."
+        },
+        {
+          "name": "winner_solution_event_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Event that installed the final incumbent; ties do not replace it."
+        },
+        {
+          "name": "prefix_stop_reason",
+          "arrow_type": "utf8",
+          "nullable": true,
+          "description": "Why the hybrid prefix stopped; independent of whether fallback succeeded.",
+          "enum": [
+            "zero_syndrome",
+            "first_valid",
+            "post_solution_cycles",
+            "cycle_budget",
+            "no_remaining_work",
+            "prefix_cpu_cap",
+            "model_error",
+            "numerical_error",
+            "resource_error",
+            "baseline_native"
+          ]
+        },
+        {
+          "name": "fallback_reason",
+          "arrow_type": "utf8",
+          "nullable": true,
+          "description": "Prefix stop reason when OSD was entered, otherwise null.",
+          "enum": [
+            "zero_syndrome",
+            "first_valid",
+            "post_solution_cycles",
+            "cycle_budget",
+            "no_remaining_work",
+            "prefix_cpu_cap",
+            "model_error",
+            "numerical_error",
+            "resource_error",
+            "baseline_native"
+          ]
+        },
+        {
+          "name": "osd_entered",
+          "arrow_type": "bool",
+          "nullable": true,
+          "description": "V2 or faithfully known legacy OSD entry; null if unavailable for baseline."
+        },
+        {
+          "name": "service_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": false,
+          "description": "Full adapter decode service including required input/output conversion and verification. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "service_wall_ns",
+          "arrow_type": "int64",
+          "nullable": false,
+          "description": "Full adapter decode service including required input/output conversion and verification. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "native_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Native call span; included within service, not an exclusive additive phase. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "native_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Native call span; included within service, not an exclusive additive phase. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "prefix_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Native pre-OSD span; included within native time, not additive. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "prefix_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Native pre-OSD span; included within native time, not additive. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "timing_context_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Reference to manifest timing context: clocks, CPU, threads, workers, ordering and profiling."
+        },
+        {
+          "name": "timing_mode",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Measurement context.",
+          "enum": [
+            "throughput",
+            "isolated_latency"
+          ]
+        },
+        {
+          "name": "profiling",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Native phase profiling policy.",
+          "enum": [
+            "none",
+            "phases"
+          ]
+        },
+        {
+          "name": "timing_accounting_ok",
+          "arrow_type": "bool",
+          "nullable": true,
+          "description": "Exclusive phase sum and service/native containment check, null if unmeasured."
+        }
+      ],
+      "constraints": [
+        "status == valid iff syndrome_valid is true; non-valid outcomes remain countable.",
+        "syndrome_valid implies correction, prediction, physical_cost and logical_mismatch are present.",
+        "not syndrome_valid implies logical_mismatch and observable_mismatch_packed are null and block_failure is true.",
+        "block_failure == ((not syndrome_valid) or logical_mismatch).",
+        "Infrastructure exceptions are reported separately by status; never dropped from throughput/failure accounting.",
+        "When winner_solution_event_id is non-null, its correction and offline label equal this final result.",
+        "Baseline adapters without a returned fault correction must explicitly extend their result API; never fabricate a verification claim."
+      ]
+    },
+    "search_summary": {
+      "grain": "One row per v2 invocation, including zero-syndrome and failed invocations.",
+      "required": "v2_invocations",
+      "relative_directory": "tables/search_summary",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "root_nodes",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "0 for zero-syndrome early exit, otherwise 1 once root constructed."
+        },
+        {
+          "name": "generated_nodes",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Root plus every constructed child, including infeasible children."
+        },
+        {
+          "name": "expanded_nodes",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Eligible nonterminal parents whose branching started."
+        },
+        {
+          "name": "queue_pops",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Every actual search-frontier pop, including terminal/stale/cutoff pops."
+        },
+        {
+          "name": "stale_pops",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Lazy-deleted frontier entries actually popped."
+        },
+        {
+          "name": "terminal_pops",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Goal pops under on_pop; zero for on_generation."
+        },
+        {
+          "name": "locally_infeasible_nodes",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Constructed nodes with an active check lacking a free neighbor."
+        },
+        {
+          "name": "depth_limited_nodes",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Constructed nonterminal nodes at the finite search depth cap."
+        },
+        {
+          "name": "det_beam_discards",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Frontier nodes discarded on pop by the detector-beam cutoff."
+        },
+        {
+          "name": "truncated_parents",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Parents left with unconstructed children by a cap or immediate stop."
+        },
+        {
+          "name": "ungenerated_siblings",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Remaining canonical children of those truncated parents."
+        },
+        {
+          "name": "frontier_peak",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Maximum live Q size, excluding stale heap entries."
+        },
+        {
+          "name": "guidance_peak",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Maximum live G size."
+        },
+        {
+          "name": "frontier_final",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Live Q size at termination, whether or not generation has been frozen."
+        },
+        {
+          "name": "guidance_final",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Live G size at termination."
+        },
+        {
+          "name": "max_depth_reached",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Largest constructed ones-depth, zero if no root."
+        },
+        {
+          "name": "direct_solution_events",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Search solution events, excluding zero-syndrome shortcut."
+        },
+        {
+          "name": "node_cap_hit",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Attempted work was blocked by the generated-node cap."
+        },
+        {
+          "name": "expansion_cap_hit",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Further expansion was blocked by the global expansion cap."
+        },
+        {
+          "name": "prefix_cpu_cap_hit",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Prefix cap caused prefix termination."
+        },
+        {
+          "name": "generation_frozen",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "No further children permitted after a global generation/expansion cap."
+        },
+        {
+          "name": "rho_min_final",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Detector-beam running minimum; initialized from input syndrome weight."
+        },
+        {
+          "name": "search_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive search work, excluding nested solution validation. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "search_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive search work, excluding nested solution validation. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "prefix_cpu_overshoot_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "max(0, measured prefix CPU minus configured cap), null when cap is absent. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "generated_nodes <= configured max_generated_nodes.",
+        "expanded_nodes <= configured max_expansions and sum per-cycle expansion allowances.",
+        "Node/expansion caps freeze generation but do not imply search-space exhaustion.",
+        "Old hybrid/baseline unavailable counters must not be synthesized as zero."
+      ]
+    },
+    "bp_summary": {
+      "grain": "One row per v2 invocation, including zero-syndrome and failed invocations.",
+      "required": "v2_invocations",
+      "relative_directory": "tables/bp_summary",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "cycles_started",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Number of actual cycle rows."
+        },
+        {
+          "name": "cycles_completed",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Cycles that reached the cycle-end controller boundary."
+        },
+        {
+          "name": "proposals",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "New pattern proposals across cycles, including quota-zero proposals still left in G."
+        },
+        {
+          "name": "admissions",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Patterns removed from G immediately before initialization, each at most once."
+        },
+        {
+          "name": "evaluated_visits",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Positive-quota visits whose evaluation started; equals bp_updates row count."
+        },
+        {
+          "name": "planned_iteration_tokens",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Total allocated tokens, including visits not reached due to a terminal event."
+        },
+        {
+          "name": "actual_iterations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Completed physical min-sum iterations across all candidates; never summed lineage counts."
+        },
+        {
+          "name": "cold_initializations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "New candidates initialized without an ancestor donor."
+        },
+        {
+          "name": "cold_resets",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Continuing candidates explicitly reset by the cold ablation."
+        },
+        {
+          "name": "ancestor_inheritances",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "New candidates cloned from a frozen strict ancestor."
+        },
+        {
+          "name": "own_continuations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Evaluated continuing candidates that preserved their own state."
+        },
+        {
+          "name": "snapshot_copies",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Actual full-state copy operations, including cycle snapshots if materialized."
+        },
+        {
+          "name": "copied_bytes",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Actual bytes copied by full-state/partial-state cloning; exclude shared immutable graph."
+        },
+        {
+          "name": "hint_transitions",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Actual full-field replacements/recomputations."
+        },
+        {
+          "name": "evictions",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Evaluated/carried unresolved candidates removed by width pruning."
+        },
+        {
+          "name": "retired_solved",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Candidates retired after submitting a syndrome-valid solution."
+        },
+        {
+          "name": "transition_solution_events",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Solutions discovered before the first full iteration of a visit."
+        },
+        {
+          "name": "iteration_solution_events",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Solutions discovered after a completed full iteration."
+        },
+        {
+          "name": "peak_live_states",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Peak simultaneous full BP message states including frozen donors."
+        },
+        {
+          "name": "retained_final",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Number of usable retained states after terminal reconciliation."
+        },
+        {
+          "name": "best_retained_node_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Best usable fallback candidate by configured K_B, if any."
+        },
+        {
+          "name": "best_retained_residual",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Its BP residual, distinct from search residual."
+        },
+        {
+          "name": "bp_prepare_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive state initialization, clone, field replacement and recomputation. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "bp_prepare_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive state initialization, clone, field replacement and recomputation. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "bp_iter_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive full BP iteration work, excluding nested solution-validation work. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "bp_iter_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive full BP iteration work, excluding nested solution-validation work. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "rank_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive proposal/quota/ranking/controller selection work. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "rank_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive proposal/quota/ranking/controller selection work. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "actual_iterations == sum(bp_updates.actual_iterations) <= bp.max_total_iterations.",
+        "admissions == number of patterns rows; evaluated_visits == number of bp_updates rows.",
+        "cycles_started == number of cycles rows; no per-iteration trace is required.",
+        "peak_live_states <= 3 * bp.beam_width for the required implementation, excluding immutable data and scalar work buffers.",
+        "Copied lineage iteration counts are provenance only and never counted as work."
+      ]
+    },
+    "cycles": {
+      "grain": "One row per started v2 cycle, even if it exits during search.",
+      "required": "v2_started_cycles",
+      "relative_directory": "tables/cycles",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "cycle_index"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "cycle_index",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Zero-based cycle index."
+        },
+        {
+          "name": "frontier_before",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Live Q size at cycle entry."
+        },
+        {
+          "name": "frontier_after",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Live Q size at cycle termination."
+        },
+        {
+          "name": "guidance_before",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Live G size at entry."
+        },
+        {
+          "name": "guidance_after",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Live G size at termination."
+        },
+        {
+          "name": "beam_before",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Retained BP state count at entry."
+        },
+        {
+          "name": "beam_after",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Retained count after reconciliation."
+        },
+        {
+          "name": "expansion_budget",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Configured E_c before global limits."
+        },
+        {
+          "name": "expansions_actual",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Parent expansions started in this cycle."
+        },
+        {
+          "name": "generated_actual",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Children constructed in this cycle; excludes root."
+        },
+        {
+          "name": "bp_pool_budget",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Configured B_c."
+        },
+        {
+          "name": "bp_available_budget",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "min(B_c, remaining global physical iteration budget) at allocation."
+        },
+        {
+          "name": "proposals",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Fresh proposals selected from G before quotas."
+        },
+        {
+          "name": "tentative_pool_size",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Retained plus fresh proposals before quotas."
+        },
+        {
+          "name": "allocated_tokens",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Sum of all planned quotas, including unvisited candidates on early termination."
+        },
+        {
+          "name": "bp_actual_iterations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Completed physical iterations in this cycle."
+        },
+        {
+          "name": "admissions_actual",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Fresh candidates whose initialization started."
+        },
+        {
+          "name": "visits_actual",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Candidate evaluations actually started."
+        },
+        {
+          "name": "best_bp_residual_after",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Best unresolved retained BP residual; null for empty beam."
+        },
+        {
+          "name": "incumbent_event_id_after",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Incumbent at cycle termination, if one exists."
+        },
+        {
+          "name": "outcome",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "How this cycle ended.",
+          "enum": [
+            "continued",
+            "first_valid",
+            "post_solution_cycles",
+            "cycle_budget",
+            "no_remaining_work",
+            "prefix_cpu_cap",
+            "error"
+          ]
+        },
+        {
+          "name": "completed",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "True only if the cycle-end controller boundary was reached."
+        },
+        {
+          "name": "span_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Descriptive cycle span, not an additive exclusive phase. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "span_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Descriptive cycle span, not an additive exclusive phase. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "cycle_index is contiguous from zero within an invocation.",
+        "A search-only early exit before BP allocation records allocation/proposal/work counts as zero.",
+        "bp_actual_iterations <= allocated_tokens <= bp_available_budget <= bp_pool_budget.",
+        "beam_after <= configured width; beam_membership represents this reconciled state."
+      ]
+    },
+    "patterns": {
+      "grain": "One row per actually admitted BP search node.",
+      "required": "v2_admissions",
+      "relative_directory": "tables/patterns",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "node_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "node_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Generated node identity; also the BP candidate identity."
+        },
+        {
+          "name": "parent_node_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Immediate logical search parent; may never be a BP candidate."
+        },
+        {
+          "name": "admitted_cycle",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Cycle in which positive-quota initialization started."
+        },
+        {
+          "name": "admission_ordinal",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Contiguous zero-based admission order within invocation."
+        },
+        {
+          "name": "fixed_zero_indices",
+          "arrow_type": "list<uint32 not null>",
+          "nullable": false,
+          "description": "Sorted unique F0 in canonical fault-index space."
+        },
+        {
+          "name": "fixed_one_indices",
+          "arrow_type": "list<uint32 not null>",
+          "nullable": false,
+          "description": "Sorted unique F1 in canonical fault-index space."
+        },
+        {
+          "name": "ones_depth",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "|F1|, not |F|."
+        },
+        {
+          "name": "search_residual_weight",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "rho_v = wt(s XOR H*ebar)."
+        },
+        {
+          "name": "g",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "Canonical physical cost of F1."
+        },
+        {
+          "name": "h",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "Residual fractional-cover heuristic."
+        },
+        {
+          "name": "f",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "g+h."
+        },
+        {
+          "name": "pattern_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of canonical sorted (index,bit) serialization."
+        }
+      ],
+      "constraints": [
+        "F0 and F1 are disjoint, sorted, unique and in [0,n).",
+        "ones_depth == len(fixed_one_indices); no root/terminal/infeasible candidate is admitted.",
+        "Parent node reference is not a foreign key into this table; optional search_nodes need not exist."
+      ]
+    },
+    "bp_updates": {
+      "grain": "One row per positive-quota candidate visit whose evaluation starts.",
+      "required": "v2_evaluated_visits",
+      "relative_directory": "tables/bp_updates",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "update_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "update_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Contiguous zero-based evaluation-start ordinal within invocation."
+        },
+        {
+          "name": "cycle_index",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Cycle containing this evaluation."
+        },
+        {
+          "name": "node_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Admitted pattern/candidate."
+        },
+        {
+          "name": "evaluation_position",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Position in the rotated tentative pool; may have gaps for zero quotas."
+        },
+        {
+          "name": "visit_kind",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Fresh admission or continuing candidate.",
+          "enum": [
+            "new",
+            "continuation"
+          ]
+        },
+        {
+          "name": "donor_kind",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Actual initialization source.",
+          "enum": [
+            "cold_seed",
+            "ancestor",
+            "own",
+            "cold_reset"
+          ]
+        },
+        {
+          "name": "donor_node_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Ancestor or own candidate supplying the prior usable state."
+        },
+        {
+          "name": "donor_update_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Latest usable donor update from a strictly earlier cycle."
+        },
+        {
+          "name": "donor_lineage_iterations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Inherited cumulative lineage iteration counter; zero for cold state."
+        },
+        {
+          "name": "lineage_iterations_after",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Donor lineage plus iterations executed in this state, subject to cold reset."
+        },
+        {
+          "name": "quota",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Positive iteration allocation for this visit."
+        },
+        {
+          "name": "actual_iterations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Completed physical iterations in this visit."
+        },
+        {
+          "name": "residual_before",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "BP residual after initialization/transition, before full iterations."
+        },
+        {
+          "name": "residual_after",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "BP residual of the latest usable state after visit."
+        },
+        {
+          "name": "hint_disagreements_after",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Number of bits disagreeing with this node pattern."
+        },
+        {
+          "name": "state_usable",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "A complete numerically valid state exists at visit end."
+        },
+        {
+          "name": "syndrome_valid_after",
+          "arrow_type": "bool",
+          "nullable": true,
+          "description": "Latest usable hard decision satisfies original H/s."
+        },
+        {
+          "name": "rank_before_pruning",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Zero-based rank among unresolved usable candidates at reconciliation."
+        },
+        {
+          "name": "disposition",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Cycle-end treatment.",
+          "enum": [
+            "retained",
+            "evicted",
+            "retired_solved",
+            "unusable_error"
+          ]
+        },
+        {
+          "name": "solution_event_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Solution emitted by this visit, if any."
+        },
+        {
+          "name": "posterior_sha256",
+          "arrow_type": "utf8",
+          "nullable": true,
+          "description": "Digest of final signed clipped binary64 LLR vector, if usable."
+        },
+        {
+          "name": "prepare_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive preparation attributable to this visit. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "prepare_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive preparation attributable to this visit. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "iterations_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive iteration work attributable to this visit. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "iterations_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive iteration work attributable to this visit. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "(decode key,node_id) references patterns; (decode key,cycle_index) references cycles.",
+        "An own/ancestor donor_update_id resolves to a usable update from an earlier cycle in this invocation.",
+        "An ancestor donor is the nearest strict search ancestor in the frozen entry beam; own is same node.",
+        "Cold donor IDs are null and donor_lineage_iterations == 0.",
+        "0 <= actual_iterations <= quota; planned quota may be unused after a valid transition.",
+        "No row is emitted for a zero-quota or never-started evaluation.",
+        "Truth labels are absent from unsuccessful BP states; logical correctness is defined for valid solution events only."
+      ]
+    },
+    "bp_beam_membership": {
+      "grain": "One row per usable retained candidate after each cycle, including carried candidates.",
+      "required": "v2_nonempty_retained_beams",
+      "relative_directory": "tables/bp_beam_membership",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "cycle_index",
+        "node_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "cycle_index",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Cycle after which this membership is recorded."
+        },
+        {
+          "name": "node_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Retained candidate."
+        },
+        {
+          "name": "latest_update_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Most recent usable update, possibly from an earlier cycle."
+        },
+        {
+          "name": "retention_rank",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based K_B rank in the retained beam."
+        },
+        {
+          "name": "evaluated_this_cycle",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "False for a carried candidate."
+        },
+        {
+          "name": "bp_residual_weight",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Residual R_BP of the retained state."
+        },
+        {
+          "name": "search_f",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "Unchanged search physical score f_v."
+        },
+        {
+          "name": "lineage_iterations",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Provenance only; do not sum as executed work."
+        }
+      ],
+      "constraints": [
+        "Membership rank is contiguous and count equals cycles.beam_after.",
+        "latest_update_id resolves to a usable update for this node in this or an earlier cycle.",
+        "Solved candidates are not retained.",
+        "Terminal partial cycles are reconciled and recorded consistently; final beam equals the last membership set."
+      ]
+    },
+    "solution_events": {
+      "grain": "One row per validated discovery, including repeated identical corrections and fallback.",
+      "required": "v2_valid_discoveries",
+      "relative_directory": "tables/solution_events",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "solution_event_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "solution_event_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Contiguous zero-based validated-discovery ordinal."
+        },
+        {
+          "name": "cycle_index",
+          "arrow_type": "uint32",
+          "nullable": true,
+          "description": "Discovery cycle; null for zero syndrome or OSD outside cycles."
+        },
+        {
+          "name": "source",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Discovery mechanism.",
+          "enum": [
+            "zero_syndrome",
+            "search",
+            "bp_transition",
+            "bp_iteration",
+            "osd"
+          ]
+        },
+        {
+          "name": "node_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Search/BP node associated with discovery; null for zero syndrome and OSD."
+        },
+        {
+          "name": "bp_update_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "BP visit that produced this correction, otherwise null."
+        },
+        {
+          "name": "osd_call_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Fallback call that produced this correction, otherwise null."
+        },
+        {
+          "name": "correction_packed",
+          "arrow_type": "binary",
+          "nullable": false,
+          "description": "n correction bits, syndrome-valid on the original H/s."
+        },
+        {
+          "name": "predicted_observables_packed",
+          "arrow_type": "binary",
+          "nullable": false,
+          "description": "k bits A*e; computed without consulting truth."
+        },
+        {
+          "name": "correction_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of n and canonical packed correction."
+        },
+        {
+          "name": "physical_cost",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "Canonical W(e), independent of soft hints or BP posterior."
+        },
+        {
+          "name": "hint_disagreements",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Mismatch against associated BP pattern; null for non-BP sources."
+        },
+        {
+          "name": "incumbent_improved",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Whether this event installed a lexicographically better incumbent."
+        },
+        {
+          "name": "incumbent_event_id_after",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Event that owns the incumbent after this discovery."
+        },
+        {
+          "name": "logical_mismatch",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Offline label from this event correction and shared sampled truth."
+        },
+        {
+          "name": "observable_mismatch_packed",
+          "arrow_type": "binary",
+          "nullable": false,
+          "description": "Offline k-bit mismatch for this event, not copied from final winner."
+        },
+        {
+          "name": "elapsed_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Optional service-start-to-discovery cumulative span; never an additive phase. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "elapsed_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Optional service-start-to-discovery cumulative span; never an additive phase. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "Each event is independently verified and independently truth-annotated outside the decode service timer.",
+        "Do not copy the final winner label onto earlier solution events.",
+        "Duplicate discoveries remain rows; equal incumbent keys do not replace the earlier event.",
+        "No solution events are emitted for nonconvergent or invalid hard decisions.",
+        "The zero-syndrome shortcut emits one event for e=0 without constructing a search root."
+      ]
+    },
+    "osd_calls": {
+      "grain": "One row per actual direct OSD fallback call; at most one per v2 invocation.",
+      "required": "v2_osd_entries",
+      "relative_directory": "tables/osd_calls",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "osd_call_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "osd_call_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero for the only permitted call."
+        },
+        {
+          "name": "trigger",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Prefix stopping reason that led to fallback.",
+          "enum": [
+            "zero_syndrome",
+            "first_valid",
+            "post_solution_cycles",
+            "cycle_budget",
+            "no_remaining_work",
+            "prefix_cpu_cap",
+            "model_error",
+            "numerical_error",
+            "resource_error",
+            "baseline_native"
+          ]
+        },
+        {
+          "name": "llr_policy",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Configured handoff policy.",
+          "enum": [
+            "best_retained_guided",
+            "channel_only",
+            "best_retained_release"
+          ]
+        },
+        {
+          "name": "llr_actual_source",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Actual LLR vector supplied.",
+          "enum": [
+            "retained_guided",
+            "retained_released",
+            "clipped_channel"
+          ]
+        },
+        {
+          "name": "source_node_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Selected retained candidate, if any."
+        },
+        {
+          "name": "source_update_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Usable update underlying the selected state."
+        },
+        {
+          "name": "llr_sha256",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "SHA-256 of canonical signed clipped binary64 LLR bytes and n."
+        },
+        {
+          "name": "osd_method",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Pinned direct OSD method.",
+          "enum": [
+            "OSD_CS"
+          ]
+        },
+        {
+          "name": "osd_order",
+          "arrow_type": "uint32",
+          "nullable": false,
+          "description": "Must equal zero."
+        },
+        {
+          "name": "ordering",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Preserved pinned upstream ordering.",
+          "enum": [
+            "pinned_ldpc_signed_llr"
+          ]
+        },
+        {
+          "name": "status",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Normalized fallback status.",
+          "enum": [
+            "valid",
+            "nonconverged",
+            "model_error",
+            "numerical_error",
+            "resource_error",
+            "adapter_error"
+          ]
+        },
+        {
+          "name": "syndrome_valid",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Verified original-H/s validity of fallback output."
+        },
+        {
+          "name": "solution_event_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Matching validated fallback solution event."
+        },
+        {
+          "name": "logical_mismatch",
+          "arrow_type": "bool",
+          "nullable": true,
+          "description": "Offline label if valid; null otherwise."
+        },
+        {
+          "name": "osd_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive OSD invocation/bridge work; excludes separately timed solution validation. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "osd_wall_ns",
+          "arrow_type": "int64",
+          "nullable": true,
+          "description": "Exclusive OSD invocation/bridge work; excludes separately timed solution validation. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "No call is made when a prefix incumbent exists.",
+        "The source candidate minimizes the configured K_B over final retained usable candidates.",
+        "A missing retained state forces clipped channel LLRs; channel_only always uses channel.",
+        "The release diagnostic recomputes with channel fields but keeps check messages; it is not exact de-biasing.",
+        "No public wrapper may execute a hidden BP pass; no hinted variable is hard-fixed for OSD.",
+        "OSD work is outside the prefix CPU cap."
+      ]
+    },
+    "phase_timings": {
+      "grain": "One exclusive aggregate per phase/context in an invocation.",
+      "required": "profiling_phases_v2",
+      "relative_directory": "tables/phase_timings",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "phase_row_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "phase_row_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Contiguous aggregate-row index after deterministic phase/context sorting."
+        },
+        {
+          "name": "phase",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Exclusive service-time component.",
+          "enum": [
+            "search",
+            "bp_prepare",
+            "bp_iter",
+            "rank",
+            "solution",
+            "osd",
+            "other"
+          ]
+        },
+        {
+          "name": "cycle_index",
+          "arrow_type": "uint32",
+          "nullable": true,
+          "description": "Associated cycle, or null for invocation-level work."
+        },
+        {
+          "name": "node_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Associated candidate when applicable."
+        },
+        {
+          "name": "scope_count",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Number of disjoint native or adapter scopes aggregated into this row."
+        },
+        {
+          "name": "exclusive_cpu_ns",
+          "arrow_type": "int64",
+          "nullable": false,
+          "description": "Nonoverlapping work assigned to this phase/context. Process CPU time. Unit: nanoseconds; nonnegative when present."
+        },
+        {
+          "name": "exclusive_wall_ns",
+          "arrow_type": "int64",
+          "nullable": false,
+          "description": "Nonoverlapping work assigned to this phase/context. Monotonic wall time. Unit: nanoseconds; nonnegative when present."
+        }
+      ],
+      "constraints": [
+        "Only emitted when profiling == phases.",
+        "Sum exclusive CPU/wall across rows equals service CPU/wall, including adapter remainder in other.",
+        "Do not emit inclusive parent timers as additive phase rows.",
+        "Native/prefix/cycle/discovery spans are separate descriptive columns, not phase rows.",
+        "A negative residual remainder is an accounting error, not clamped silently to zero."
+      ]
+    },
+    "search_nodes": {
+      "grain": "Optional debug trace: one row per constructed node, including root and rejected nodes.",
+      "required": "trace_search_nodes",
+      "relative_directory": "tables/search_nodes",
+      "partition_columns": [
+        "condition_id",
+        "decoder_id"
+      ],
+      "primary_key": [
+        "run_id",
+        "condition_id",
+        "shot_id",
+        "decoder_id",
+        "node_id"
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Unique UTC-timestamped run identity; never reused for incompatible provenance."
+        },
+        {
+          "name": "condition_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the physical condition and prepared model identity."
+        },
+        {
+          "name": "shot_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Zero-based physical shot ordinal within this condition, independent of worker completion order."
+        },
+        {
+          "name": "decoder_id",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Hash of the fully resolved decoder algorithm/configuration and native build identity."
+        },
+        {
+          "name": "node_id",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Contiguous construction ID; root is zero."
+        },
+        {
+          "name": "parent_node_id",
+          "arrow_type": "uint64",
+          "nullable": true,
+          "description": "Search parent; null for root."
+        },
+        {
+          "name": "generated_cycle",
+          "arrow_type": "uint32",
+          "nullable": true,
+          "description": "Construction cycle; null for root outside cycles."
+        },
+        {
+          "name": "selected_one_index",
+          "arrow_type": "uint32",
+          "nullable": true,
+          "description": "One-bit chosen by this child; null for root."
+        },
+        {
+          "name": "added_zero_indices",
+          "arrow_type": "list<uint32 not null>",
+          "nullable": false,
+          "description": "Canonical child zero-prefix, sorted by fault index for storage."
+        },
+        {
+          "name": "ones_depth",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "Constructed node depth."
+        },
+        {
+          "name": "search_residual_weight",
+          "arrow_type": "uint64",
+          "nullable": false,
+          "description": "rho_v, never the BP residual."
+        },
+        {
+          "name": "g",
+          "arrow_type": "float64",
+          "nullable": false,
+          "description": "Physical cost g_v."
+        },
+        {
+          "name": "h",
+          "arrow_type": "float64",
+          "nullable": true,
+          "description": "Heuristic; null only for a locally infeasible node."
+        },
+        {
+          "name": "f",
+          "arrow_type": "float64",
+          "nullable": true,
+          "description": "g+h; null only for a locally infeasible node."
+        },
+        {
+          "name": "construction_status",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Status immediately after construction.",
+          "enum": [
+            "root",
+            "feasible",
+            "goal",
+            "locally_infeasible",
+            "depth_limited"
+          ]
+        },
+        {
+          "name": "search_final_status",
+          "arrow_type": "utf8",
+          "nullable": false,
+          "description": "Final independent Q lifecycle.",
+          "enum": [
+            "queued",
+            "expanded",
+            "partially_expanded",
+            "goal",
+            "locally_infeasible",
+            "depth_limited",
+            "det_beam_discarded"
+          ]
+        },
+        {
+          "name": "bp_admitted",
+          "arrow_type": "bool",
+          "nullable": false,
+          "description": "Whether this node was separately admitted to BP."
+        }
+      ],
+      "constraints": [
+        "Disabled by default; if enabled, generated_nodes equals this row count.",
+        "h/f are null for infeasibility, not Infinity or NaN.",
+        "This debug dataset must not be required for ordinary analysis or foreign-key validity."
+      ]
+    }
+  }
+}

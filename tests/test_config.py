@@ -16,8 +16,7 @@ def test_native_import():
 def test_examples_and_paths():
     c = load_config(ROOT / "config/legacy/smoke.yaml.example")
     assert c.circuit.cache == ROOT / "simulation_data"
-    assert c.output.root == c.analysis.input == ROOT / "assets/runs"
-    assert c.analysis.output == ROOT / "assets/analysis"
+    assert c.output.root == ROOT / "assets/runs"
     assert c.noise.expanded_rates == (.001,)
     assert c.execution.max_pending == 8
     assert len(c.resolved()["experiment"]["instances"]) == 4
@@ -41,6 +40,7 @@ def test_examples_and_paths():
     {"decoders": [{"profile": "screened_reference", "q": 17}]},
     {"decoders": [{"profile": "screened_reference", "Lmax": 31}]},
     {"experiment": {"codes": [{"family": "bb72", "distances": [12]}]}},
+    {"analysis": {"input": "../assets/runs"}},
 ])
 def test_reject(patch):
     with pytest.raises(ValidationError):

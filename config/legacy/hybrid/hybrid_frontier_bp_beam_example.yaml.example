@@ -1,0 +1,177 @@
+# HSBP-FB-2.0 starter configuration; requires the implementation described in the report.
+# This is not accepted by the unmodified v1 parser. Add strict v2 configuration models.
+# Values are implementation starting points, not measured optimal parameters.
+# Keep this production-size file unchanged; derive a separate bounded smoke configuration.
+config_schema_version: hsbp_fb_config/1
+experiment:
+  name: hybrid_frontier_bp_beam_v2_user_grid
+  purpose: Paired comparison of persistent-frontier BP beam against v1, beam8 and BP-OSD-CS10
+  codes:
+    - family: surface
+      distances: [5, 7]
+    - family: bb72
+      distances: [6]
+  memory_basis: Z
+  sector: Z_checks
+  round_rule: distance
+circuit:
+  surface_provider: stim
+  bb_provider: qldpc
+  surface_schedule: rotated_memory_z
+  bb_schedule: edge_coloring
+  edge_coloring_strategy: smallest_last
+  boundary: noisy_prepare_extract_readout
+  cache: ../simulation_data
+dem:
+  decompose_errors: false
+  approximate_disjoint_errors: false
+  allow_gauge_detectors: false
+  sector_mapping: measurement_provenance
+  merge: none
+  normalization: remove_zero_reject_above_half
+noise:
+  profile: circuit_depolarizing
+  rates: [0.002, 0.003, 0.005]
+  multipliers:
+    one_qubit: 1.0
+    two_qubit: 1.0
+    idle: 1.0
+    reset: 1.0
+    measurement: 1.0
+# To sweep, remove rates and provide the existing noise.sweep fields:
+# sweep: {kind: log, start: 0.001, stop: 0.005, count: 5}
+sampling:
+  shots_per_point: 30000
+  batch_size: 400
+  master_seed: 20260922
+  warmup_seed: 20260923
+  warmup_count: 1
+execution:
+  workers: 8
+timing:
+  mode: throughput
+  profiling: phases
+output:
+  root: ../assets/runs
+  layout: typed_datasets
+  data_schema_version: hsbp_fb_parquet/1
+  parquet:
+    compression: zstd
+    compression_level: 3
+    shots_per_flush: 1024
+    atomic_batch_commit: true
+  telemetry:
+    candidate_updates: true
+    beam_membership: true
+    solution_events: true
+    trace_search_nodes: false
+    raw_bp_messages: false
+    per_iteration_trace: false
+decoders:
+  - kind: hybrid_frontier_bp_beam_osd0
+    profile: hybrid_frontier_bp_beam_ms_osd0_v2
+    name: hybrid_frontier_bp_beam_ms_osd0_v2
+    enabled: true
+    algorithm_version: HSBP-FB-2.0
+    search:
+      max_depth: null
+      max_cycles: 8
+      expansions_per_cycle: [8, 8, 8, 8, 8, 8, 8, 8]
+      max_expansions: 64
+      max_generated_nodes: 4096
+      detector_order: canonical_index
+      branch_order: physical_weight_then_index
+      heuristic: residual_fractional_cover
+      goal_test: on_generation
+      det_beam: null
+      guidance_selection: best_unused_generated_pattern
+      prefix_cpu_budget_ns: null
+      cost_bound_pruning: false
+    bp:
+      enabled: true
+      method: minimum_sum
+      schedule: parallel
+      beam_width: 2
+      admissions_per_cycle: [2, 2, 2, 2, 2, 2, 2, 2]
+      max_total_iterations: 4294967296
+      max_iterations_per_candidate_per_cycle: 20
+      retention_score: residual_then_physical
+      state_inheritance: retained_ancestor
+      hint_max_depth: 10
+      hint_mode: soft
+      hint_policy: signed_channel_magnitude_plus_margin
+      hint_margin_llr: 8.0
+      replace_previous_hint: true
+      scaling_factor: 1.0
+      llr_clip: 25.0
+      hard_decision_zero: one
+    stopping:
+      mode: first_valid
+      post_solution_cycles: 1
+    fallback:
+      backend: ldpc_osd_only
+      osd_method: OSD_CS
+      osd_order: 0
+      llr_source: best_retained_guided
+      ordering: pinned_ldpc_signed_llr
+    numerics:
+      dtype: float64
+      heuristic_reduction: fixed_binary_tree
+      fast_math: false
+    native_threads: 1
+
+  # Preserve the user's high-budget v1 as a separately named control.
+  # Its 20 iterations per cycle apply to its single BP session.
+  - kind: hybrid_search_soft_bp_osd0
+    profile: hybrid_search_soft_ms_osd0_v1
+    name: hybrid_search_soft_ms_osd0_v1_high_budget
+    enabled: true
+    algorithm_version: HSBP-ALG-1.0
+    search:
+      max_depth: 10
+      max_cycles: 8
+      expansions_per_cycle: [8, 8, 8, 8, 8, 8, 8, 8]
+      max_generated_nodes: 4096
+      detector_order: canonical_index
+      branch_order: physical_weight_then_index
+      heuristic: residual_fractional_cover
+      goal_test: on_generation
+      guidance_selection: best_unused_generated_pattern
+      prefix_cpu_budget_ns: null
+    bp:
+      enabled: true
+      method: minimum_sum
+      schedule: parallel
+      iterations_per_cycle: [20, 20, 20, 20, 20, 20, 20, 20]
+      scaling_factor: 1.0
+      llr_clip: 25.0
+      hard_decision_zero: one
+      warm_start: true
+      hint_policy: signed_channel_magnitude_plus_margin
+      hint_margin_llr: 8.0
+      replace_previous_hint: true
+    fallback:
+      backend: ldpc_osd_only
+      osd_method: OSD_CS
+      osd_order: 0
+      llr_source: last_bp_else_clipped_channel
+      ordering: pinned_ldpc_signed_llr
+    numerics:
+      dtype: float64
+      heuristic_reduction: fixed_binary_tree
+      fast_math: false
+    native_threads: 1
+  - profile: beam8
+  - profile: bposd_ms30_cs10
+
+# Generate separately named variants rather than making inline, unrecorded overrides:
+# - Width 1/2/4: change beam_width and admissions_per_cycle; retain 20 iterations per candidate visit
+#   fixed iterations per candidate visit and the same search limits in every variant.
+# - Accuracy exploration: stopping.mode=bounded_improve, post_solution_cycles=2.
+# - Detector-beam exploration: search.det_beam=15; this is not width or depth.
+# - Inheritance control: bp.state_inheritance=cold; reset continuing states too.
+# - Hint control: bp.hint_mode=none; setting margin to zero is not equivalent.
+# - Ranking control: bp.retention_score=physical_only.
+# - Search-only: bp.enabled=false, beam_width=0, zero admissions and all BP budgets.
+# - Fallback controls: channel_only or best_retained_release.
+# For a separate latency run use timing.mode=isolated_latency and execution.workers=1.

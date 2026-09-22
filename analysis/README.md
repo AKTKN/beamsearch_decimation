@@ -1,4 +1,34 @@
-# Reusable verified analysis
+# Minimal current analysis
+
+`analysis.benchmark_plots` is the notebook-facing analysis module. Its public
+functions accept a minimal-layout run path and exact experiment selections:
+
+- `plot_logical_error_rate` reads logical-result columns and returns one figure per
+  code family. A logical error is decoder failure OR logical mismatch; the saved
+  `block_failure` field is deliberately not used. Shading is a two-sided Wilson
+  interval over physical shots.
+- `plot_mean_decode_time` reads complete service timings, including failed decodes,
+  and returns one figure per code family. Shading is a Student-t interval for the
+  mean because Wilson intervals are defined only for binomial proportions.
+- `plot_decode_time_histogram` selects one code/rate/distance condition and returns
+  one figure with a frequency subplot per decoder. Saved nanoseconds are displayed
+  in microseconds; vertical lines mark the mean, p95, and p99.
+- `decoder_event_rate_table` returns a pandas DataFrame whose row MultiIndex is
+  `(code, distance, physical_rate)` and whose column MultiIndex is
+  `(decoder, metric)`. Cells contain search-BP OSD-reach and beam-decoder
+  nonconvergence rates; storage IDs and execution metadata are omitted.
+
+Both functions create 3.4 x 2.55 inch, 300 dpi figures suitable for one column of
+a two-column RevTeX paper. They return live Matplotlib `Figure` objects and never
+write output files. The caller can edit `figure.axes[0]` or call `figure.savefig`.
+Only `*_condition.parquet`, `*_decoders.parquet`, and selected columns from
+`*_logicalerror.parquet` are read. There is no notebook-side table load, summary
+report, run merging, bootstrap, telemetry load, or decoder execution.
+
+The manifest-based modules described below are historical compatibility code;
+their preserved implementation is also available under `analysis.legacy`.
+
+## Historical verified analysis
 
 This directory is an installed Python package (`import analysis`). `io.load_run`
 checks run/artifact/provenance manifests, schemas, paired-shard checksums, counts,
@@ -70,9 +100,9 @@ remain insufficient for a scientific speed/accuracy conclusion.
 
 ## Current consumer and preserved legacy
 
-`load_analysis_config` accepts strict analysis-only YAML or an existing validated
-benchmark config without applying simulation execution settings. `analysis_runtime`
-identifies the active interpreter and consumer source hashes. `create_report` takes
+`load_analysis_config` accepts only strict analysis-only YAML; simulation settings
+are not part of that interface. `analysis_runtime` identifies the active interpreter
+and consumer source hashes. `create_report` takes
 an optional progress callback and records consumer provenance in its manifest.
 `bootstrap.PairedBootstrap` reuses exact integer unit totals with legacy-compatible
 RNG draws, including unequal batches and an overflow-safe Python-integer fallback.
@@ -91,3 +121,20 @@ clock and display all shots. Available decode shards are trusted directly,
 including uncommitted shards; this API is not the verified report reader.
 Scientific/run/decoder/execution grouping and physical-shot denominators remain.
 No bootstrap, hybrid details or shared all-data cache is used.
+
+Schema-version 3 loading verifies the search_bp inventory before joining its typed
+tables into the stable record surface. `RunData.frontier_tables` retains access to
+candidate/event diagnostics. Run comparison includes all non-timing v2 telemetry
+and keys physical shots by condition plus shot ID, so BB/surface indices cannot collide.
+
+## Lightweight frontier comparison
+
+`analysis.simple_search_bp` is the intentionally small consumer used by the local
+`notebook/benchmark_analysis.ipynb`. It reads only inventory-committed
+`decode_results` columns, so incomplete v3 runs can be inspected without loading
+patterns, cycles, BP updates, phase timings or other telemetry. It reports
+block failure over all physical shots (including decoder failures and logical
+mismatches) and complete adapter CPU/wall service time, including failed outputs.
+Its plotting API returns in-memory Matplotlib figures for notebook display and
+does not write image files. It does not replace the verified report workflow or
+establish a performance advantage from one run.

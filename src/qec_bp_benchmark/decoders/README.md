@@ -37,3 +37,13 @@ Per-node `diagnostics=True` is rejected; profiling collects compact events. Sess
 lifetimes and error/reset behavior are in docs/hybrid_native.md. No truth is passed
 to the service. Workers now export and label telemetry outside the timer for v2
 tables; see docs/hybrid_data.md.
+
+`SearchBP` dispatches to the `SEARCH-BP-1.0` hard-fixation native controller. Its
+`DecodeResult.frontier_summary` and `export_telemetry()` data own their contents.
+The adapter passes only H, A, physical priors and syndrome; sampled truth remains
+worker-side and is attached to each solution event after service timing. It passes
+scalar `max_cycles` and `expansions_per_cycle`; there is no generated-node cap.
+SearchBP's active telemetry adapter is column-oriented. `export_telemetry_columns`
+is called only after the opaque decoder service timer and before the next shot;
+truth labels and storage hashes remain Python-side. The row-oriented export method
+is compatibility-only and is not used by the current search_bp runner.

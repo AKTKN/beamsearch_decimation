@@ -1,0 +1,43 @@
+# Separate one-worker phase-instrumented validation; not a latency claim.
+config_schema_version: hsbp_fb_config/1
+experiment:
+  name: hybrid_frontier_bp_beam_v2_isolated_latency
+  purpose: Bounded phase-accounting validation only
+  codes: [{family: surface, distances: [3]}, {family: bb72, distances: [6]}]
+  memory_basis: Z
+  sector: Z_checks
+  round_rule: distance
+circuit:
+  surface_provider: stim
+  bb_provider: qldpc
+  surface_schedule: rotated_memory_z
+  bb_schedule: edge_coloring
+  edge_coloring_strategy: smallest_last
+  boundary: noisy_prepare_extract_readout
+  cache: ../simulation_data
+dem: {decompose_errors: false, approximate_disjoint_errors: false, allow_gauge_detectors: false,
+  sector_mapping: measurement_provenance, merge: none, normalization: remove_zero_reject_above_half}
+noise:
+  profile: circuit_depolarizing
+  rates: [0.003]
+  multipliers: {one_qubit: 1.0, two_qubit: 1.0, idle: 1.0, reset: 1.0, measurement: 1.0}
+sampling: {shots_per_point: 2, batch_size: 2, master_seed: 20260922, warmup_seed: 20260923, warmup_count: 1}
+execution: {workers: 1}
+timing: {mode: isolated_latency, profiling: phases}
+output:
+  root: ../assets/runs
+  layout: typed_datasets
+  data_schema_version: hsbp_fb_parquet/1
+  parquet: {compression: zstd, compression_level: 3, shots_per_flush: 1024, atomic_batch_commit: true}
+  telemetry: {candidate_updates: true, beam_membership: true, solution_events: true,
+    trace_search_nodes: false, raw_bp_messages: false, per_iteration_trace: false}
+decoders:
+  - kind: hybrid_frontier_bp_beam_osd0
+    profile: hybrid_frontier_bp_beam_ms_osd0_v2
+    name: hybrid_frontier_bp_beam_ms_osd0_v2
+    search: {max_cycles: 2, expansions_per_cycle: 2, max_expansions: 4, max_generated_nodes: 64}
+    bp: {beam_width: 2, admissions_per_cycle: 2,
+      max_total_iterations: 64, max_iterations_per_candidate_per_cycle: 4,
+      hint_max_depth: 4}
+  - {profile: beam8}
+  - {profile: bposd_ms30_cs10}
