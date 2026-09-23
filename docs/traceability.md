@@ -36,6 +36,19 @@ The headers are included in the project source-identity inventory. CMake adds on
 the standalone native target; no fork, binding, decoder, config or runner path is
 changed.
 
+## LPM-DP 1.0 Stage 2
+
+The exact-message fork audit and ownership/memory report are in
+[lpm_dp_stage2.md](lpm_dp_stage2.md).
+
+| Requirement | Implementation | Behavioral evidence |
+|---|---|---|
+| Exact completed-iteration `mu_(a->j)^(T)` | `decimated_bp.hpp::Snapshot::check_to_variable`; iteration writes the snapshot-owned buffer it consumes | scalar edge-message oracle plus posterior reconstruction each round |
+| Exact restore and owned parents | snapshot-owned `z_`; default copy/move; restore does not recompute/zero free entries | Python restore/detachment checks; native copy/move/restore checks |
+| Fixed child edges stay disabled | `reconstruct` zeros both `q_` and `z_` on fixed columns | before/after child-iteration edge-mask checks |
+| Bounded memory | one additional `8E` per retained/materialized snapshot; former session `8E` workspace removed | payload assertions and BB72 exact memory calculation |
+| Preserve existing decoders | no update/stopping/decision/controller changes | pinned BP and deterministic Beam/BP-OSD/SEARCH-BP regressions |
+
 | Migration requirement | Implementation | Evidence |
 |---|---|---|
 | Old algorithm excluded from active build | module.cpp, CMakeLists.txt, native_sources.py; native/legacy/search_bp_v1 | test_search_bp_v2_contract.py checks missing old symbols |

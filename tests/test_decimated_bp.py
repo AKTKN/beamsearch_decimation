@@ -23,6 +23,7 @@ class Scalar:
         self.edges = [(a, j) for a, row in enumerate(rows) for j in row if j not in self.fixed]
         self.weights = [math.log1p(-x) - math.log(x) for x in p]
         self.q = {e: self.weights[e[1]] for e in self.edges}
+        self.z = {e: 0. for e in self.edges}
         self.llr = self.weights.copy()
         self.decision = [self.fixed.get(j, int(x <= 0)) for j, x in enumerate(self.llr)]
         self.history = []
@@ -40,6 +41,7 @@ class Scalar:
             other = [self.q[a, k] for k in self.rows[a] if k != j and k not in self.fixed]
             sign = (-1) ** (self.residual[a] + sum(x <= 0 for x in other))
             z[a, j] = sign * self.alpha * min(map(abs, other), default=np.finfo(float).max)
+        self.z = z
         for j in range(len(self.p)):
             if j in self.fixed:
                 continue
@@ -89,6 +91,12 @@ def test_scalar_messages_and_rolling_clipped_mean(window):
         assert result.status.name == 'BUDGET_EXHAUSTED'
         assert bp.posterior_llr == pytest.approx(oracle.llr, rel=1e-12, abs=1e-12)
         assert bp.snapshot().q == pytest.approx(list(oracle.q.values()), rel=1e-12, abs=1e-12)
+        assert bp.check_to_variable == pytest.approx(list(oracle.z.values()), rel=1e-12, abs=1e-12)
+        assert bp.snapshot().check_to_variable == pytest.approx(
+            list(oracle.z.values()), rel=1e-12, abs=1e-12)
+        for j in range(len(p)):
+            used = oracle.weights[j] + sum(value for (a, k), value in oracle.z.items() if k == j)
+            assert bp.posterior_llr[j] == pytest.approx(used, rel=1e-12, abs=1e-12)
         explicit = np.mean(np.clip(oracle.history[-window:], -.8, .8), axis=0)
         assert bp.clipped_mean_llr == pytest.approx(explicit, rel=1e-12, abs=1e-12)
         assert bp.history_count == min(iteration + 1, window)
@@ -125,18 +133,23 @@ def test_continuation_restore_and_snapshot_ownership():
     split.continue_iterations(2)
     snapshot = split.snapshot()
     old_q = snapshot.q
+    old_z = snapshot.check_to_variable
     detached = snapshot.q; detached[0] = 1000
+    detached_z = snapshot.check_to_variable; detached_z[0] = 1000
     assert snapshot.q == old_q
+    assert snapshot.check_to_variable == old_z
     split.continue_iterations(9); whole.continue_iterations(11)
     assert split.snapshot().q == whole.snapshot().q
     assert split.posterior_llr == whole.posterior_llr
     assert split.clipped_mean_llr == whole.clipped_mean_llr
     split.restore(snapshot); assert split.total_iterations == 2
+    assert split.check_to_variable == old_z
     split.continue_iterations(9)
     assert split.clipped_mean_llr == whole.clipped_mean_llr
-    assert snapshot.q == old_q and snapshot.total_iterations == 2
-    # E=6,N=3,W=3,M=3; payload omits graph, z, decision and residual.
-    assert snapshot.payload_bytes == split.snapshot_payload_bytes == 8*(6+2*3+3*3)+3+3
+    assert snapshot.q == old_q and snapshot.check_to_variable == old_z
+    assert snapshot.total_iterations == 2
+    # E=6,N=3,W=3,M=3; payload omits graph, decision and residual.
+    assert snapshot.payload_bytes == split.snapshot_payload_bytes == 8*(2*6+2*3+3*3)+3+3
 
 
 def test_descendant_preserves_parent_messages_and_resets_history():
@@ -147,6 +160,10 @@ def test_descendant_preserves_parent_messages_and_resets_history():
     child.inherit_descendant(snapshot, [(0, 1)])
     assert child.fixed == [1, -1, -1, 0]
     assert child.history_count == child.total_iterations == 0
+    all_edges = [(a, j) for a, row in enumerate(rows) for j in row]
+    for e, q, z in zip(all_edges, child.snapshot().q, child.check_to_variable):
+        if e[1] in (0, 3):
+            assert q == z == 0
     oracle = Scalar(rows, p, syndrome, [(0, 1), (3, 0)])
     edge_values = dict(zip([(a, j) for a, row in enumerate(rows) for j in row], snapshot.q))
     oracle.q = {e: edge_values[e] for e in oracle.edges}
@@ -158,6 +175,9 @@ def test_descendant_preserves_parent_messages_and_resets_history():
         assert child.continue_iterations(1).actual_iterations == expected
         assert child.decision == oracle.decision
         assert [child.posterior_llr[j] for j in (1, 2)] == pytest.approx([oracle.llr[j] for j in (1, 2)], rel=1e-12, abs=1e-12)
+        for e, q, z in zip(all_edges, child.snapshot().q, child.check_to_variable):
+            if e[1] in (0, 3):
+                assert q == z == 0
     assert parent.snapshot().q == snapshot.q and parent.fixed == [-1, -1, -1, 0]
     for additional in ([], [(3, 0)], [(3, 1)], [(0, 0), (0, 1)], [(2, 0), (1, 1)]):
         child.reset_from_channel(syndrome, shot_id=12)

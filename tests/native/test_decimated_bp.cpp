@@ -1,6 +1,7 @@
 #include "decimated_bp.hpp"
 #include <cassert>
 #include <iostream>
+#include <utility>
 
 using namespace ldpc::decimated;
 
@@ -38,20 +39,32 @@ int main() {
     whole.reset_from_channel({1, 0, 0}, {}, 9);
     split.continue_iterations(4);
     auto saved = split.snapshot();
-    assert(saved.payload_bytes() == 8 * (6 + 2 * 3 + 3 * 3) + 3 + 3);
+    assert(saved.payload_bytes() == 8 * (2 * 6 + 2 * 3 + 3 * 3) + 3 + 3);
+    assert(saved.check_to_variable() == split.check_to_variable());
+    auto copied = saved;
+    auto copy_assigned = split.snapshot(); copy_assigned = saved;
+    auto moved = std::move(copied);
+    auto move_assigned = split.snapshot(); move_assigned = std::move(copy_assigned);
+    assert(moved.check_to_variable() == saved.check_to_variable());
+    assert(move_assigned.check_to_variable() == saved.check_to_variable());
     split.continue_iterations(9); whole.continue_iterations(13);
     assert(split.snapshot().q() == whole.snapshot().q());
     assert(split.clipped_mean_llr() == whole.clipped_mean_llr());
-    split.restore(saved); split.continue_iterations(9);
+    split.restore(moved);
+    assert(split.check_to_variable() == saved.check_to_variable());
+    split.continue_iterations(9);
     assert(split.clipped_mean_llr() == whole.clipped_mean_llr());
-    split.inherit_descendant(saved, {{0, 1}});
+    split.inherit_descendant(move_assigned, {{0, 1}});
     assert(split.history_count() == 0 && split.total_iterations() == 0);
     assert(split.residual_syndrome() == Bits({0, 0, 1}));
     split.continue_iterations(8);
     assert(split.decision()[0] == 1 && split.posterior_llr()[0] < 0);
     auto descendant = split.snapshot();
     for (size_t e = 0; e < triangle->col.size(); ++e)
-        if (triangle->col[e] == 0) assert(descendant.q()[e] == 0);
+        if (triangle->col[e] == 0) {
+            assert(descendant.q()[e] == 0);
+            assert(descendant.check_to_variable()[e] == 0);
+        }
     split.reset_from_channel({1, 0, 0}, {{0, 0}, {1, 0}}, 10);
     auto contradiction = split.continue_iterations(100);
     assert(contradiction.status == Status::LocalContradiction && contradiction.actual_iterations == 0);

@@ -52,7 +52,8 @@ also supported. q counts all additional zero/one fixations. Search state is fres
 per parent expansion and must not persist across future recursive BP cycles.
 Keep scoring/search/retention native; the Python adapter passes syndrome only.
 Stage 2 supplies ldpc.hybrid_bp.DecimatedMinSumSession (docs/decimated_bp.md):
-parallel min-sum, structural fixation, opaque snapshots and bounded clipped history.
+parallel min-sum, structural fixation, opaque snapshots, exact final check messages
+and bounded clipped history.
 Keep search/scoring/orchestration outside the fork. The existing hybrid, reference
 and upstream kernels are unchanged; fixed posterior infinities are not OSD inputs.
 Root `refined.tex` is normative; docs/search_bp_v2_design.md maps its equations

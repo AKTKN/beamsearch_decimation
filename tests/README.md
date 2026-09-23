@@ -94,6 +94,9 @@ continuation/restore, descendant message inheritance, contradictions, input
 boundaries, saturation, exact iteration counts and reset/ownership. The native
 `test_decimated_bp` target adds 360 pinned C++ BP comparisons and participates in
 Debug/ASan/UBSan and clean opt-in restoration. Existing baseline tests are retained.
+LPM-DP Stage 2 additionally compares the exposed completed-round check messages
+with the scalar oracle, reconstructs posteriors from them, preserves them across
+restore/copy/move, and proves fixed child edges keep both message directions zero.
 
 SEARCH-BP-2.0 Stage 3: `test_search_bp_stage3.py` independently recomputes the
 TeX formulas and both bounded-tree policies, with exhaustive probe patterns,

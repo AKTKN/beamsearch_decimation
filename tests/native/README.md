@@ -17,3 +17,7 @@ region and cavity conventions, four-state marginal/top-K DP, retained mass,
 64-bit fixation words, invalid inputs and 600 fixed-seed small local problems
 against an independent exhaustive oracle. It does not exercise a recursive
 decoder, OSD or simulator path.
+
+LPM-DP Stage 2 extends `test_decimated_bp.cpp` with native deep-copy, move,
+exact-check-message restore and fixed-child-edge checks for the opt-in fork
+snapshot. It does not add a decoder or change the standalone LPM-DP target.

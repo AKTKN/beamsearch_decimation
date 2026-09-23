@@ -47,3 +47,9 @@ cover the new header/bindings. No upstream bp.hpp/osd.hpp, reference, soft-hint
 kernel or baseline was changed. The fork implements no search/scoring/recursive
 controller. See docs/decimated_bp.md at repository root for exact history,
 inheritance, finite overflow, fixed-infinity and snapshot ownership conventions.
+
+LPM-DP Stage 2 minimally extends that opt-in snapshot with the already-computed
+final check-to-variable buffer. The buffer is moved from session-only workspace,
+not recomputed or duplicated; restore and snapshot copy/move preserve it exactly.
+See `docs/lpm_dp_stage2.md` for the audit and memory gate. Upstream BP equations,
+BP-OSD, Beam Search and existing SEARCH-BP control remain unchanged.

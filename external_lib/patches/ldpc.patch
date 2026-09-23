@@ -66,7 +66,7 @@ index 0000000..1ddd6e3
 +numerics, shapes, test evidence and the explicit build. No search code lives here.
 diff --git a/src_cpp/decimated_bp.hpp b/src_cpp/decimated_bp.hpp
 new file mode 100644
-index 0000000..b1242cc
+index 0000000..6ed6f58
 --- /dev/null
 +++ b/src_cpp/decimated_bp.hpp
 @@ -0,0 +1,257 @@
@@ -90,11 +90,11 @@ index 0000000..b1242cc
 +    bool valid() const { return status == Status::Converged; }
 +};
 +
-+// Immutable-by-interface owned snapshot. z, decision, residual and mean are
++// Immutable-by-interface owned snapshot. decision, residual and mean are
 +// derived/work buffers and are deliberately not copied. No graph is copied.
 +class Snapshot {
 +    friend class Session;
-+    Reals q_, llrs_, history_, sums_;
++    Reals q_, z_, llrs_, history_, sums_;
 +    std::vector<int8_t> fixed_;
 +    Bits syndrome_;
 +    uint64_t model_id_ = 0, shot_id_ = 0, iterations_ = 0;
@@ -107,6 +107,7 @@ index 0000000..b1242cc
 +    Snapshot& operator=(const Snapshot&) = default;
 +    Snapshot& operator=(Snapshot&&) noexcept = default;
 +    const Reals& q() const { return q_; }
++    const Reals& check_to_variable() const { return z_; }
 +    const Reals& llrs() const { return llrs_; }
 +    const std::vector<int8_t>& fixed() const { return fixed_; }
 +    const Bits& syndrome() const { return syndrome_; }
@@ -116,7 +117,7 @@ index 0000000..b1242cc
 +    size_t history_window() const { return window_; }
 +    // Vector payload only: excludes vector/control objects, capacities and allocator overhead.
 +    size_t payload_bytes() const {
-+        return sizeof(double) * (q_.size() + llrs_.size() + history_.size() + sums_.size())
++        return sizeof(double) * (q_.size() + z_.size() + llrs_.size() + history_.size() + sums_.size())
 +            + sizeof(int8_t) * fixed_.size() + sizeof(uint8_t) * syndrome_.size();
 +    }
 +};
@@ -127,7 +128,6 @@ index 0000000..b1242cc
 +class Session {
 +    std::shared_ptr<const Graph> graph_;
 +    Snapshot state_;
-+    Reals z_;                       // overwritten before use on each iteration
 +    Bits decision_, residual_;
 +    bool ready_ = false, contradiction_ = false;
 +
@@ -165,7 +165,7 @@ index 0000000..b1242cc
 +                    const size_t e = graph_->ce[k];
 +                    residual_[graph_->row[e]] ^= uint8_t(bit);
 +                    state_.q_[e] = 0;
-+                    z_[e] = 0;
++                    state_.z_[e] = 0;
 +                }
 +            }
 +            decision_[j] = bit >= 0 ? uint8_t(bit) : uint8_t(state_.llrs_[j] <= 0);
@@ -208,9 +208,9 @@ index 0000000..b1242cc
 +                else if (magnitude < second) second = magnitude;
 +            }
 +            for (size_t e = graph_->rp[a]; e < graph_->rp[a + 1]; ++e) {
-+                if (!active(e)) { z_[e] = 0; continue; }
++                if (!active(e)) { state_.z_[e] = 0; continue; }
 +                const double magnitude = state_.alpha_ * (e == minimum ? second : first);
-+                z_[e] = (sign ^ (state_.q_[e] <= 0)) ? -magnitude : magnitude;
++                state_.z_[e] = (sign ^ (state_.q_[e] <= 0)) ? -magnitude : magnitude;
 +            }
 +        }
 +        // Prefix/suffix extrinsics avoid subtracting a saturated posterior.
@@ -219,7 +219,7 @@ index 0000000..b1242cc
 +            for (size_t k = graph_->cp[j]; k < graph_->cp[j + 1]; ++k) {
 +                const size_t e = graph_->ce[k];
 +                state_.q_[e] = sum;
-+                sum = add(sum, z_[e]);
++                sum = add(sum, state_.z_[e]);
 +            }
 +            state_.llrs_[j] = sum;
 +            decision_[j] = uint8_t(sum <= 0);
@@ -227,7 +227,7 @@ index 0000000..b1242cc
 +            for (size_t k = graph_->cp[j + 1]; k > graph_->cp[j];) {
 +                const size_t e = graph_->ce[--k];
 +                state_.q_[e] = add(state_.q_[e], suffix);
-+                suffix = add(suffix, z_[e]);
++                suffix = add(suffix, state_.z_[e]);
 +            }
 +        }
 +        ++state_.iterations_;
@@ -246,7 +246,7 @@ index 0000000..b1242cc
 +            throw std::length_error("LLR history shape exceeds vector capacity");
 +        state_.model_id_ = graph_->model_id;
 +        state_.alpha_ = scaling_factor; state_.clip_ = history_clip; state_.window_ = window;
-+        state_.q_.resize(edges); z_.resize(edges);
++        state_.q_.resize(edges); state_.z_.resize(edges);
 +        state_.llrs_.resize(n); state_.sums_.resize(n); state_.history_.resize(n * window);
 +        state_.fixed_.resize(n); decision_.resize(n);
 +        state_.syndrome_.resize(size_t(graph_->m)); residual_.resize(size_t(graph_->m));
@@ -262,7 +262,7 @@ index 0000000..b1242cc
 +        for (auto [j, bit] : fixed) state_.fixed_[j] = int8_t(bit);
 +        state_.llrs_ = graph_->weights;
 +        for (size_t e = 0; e < state_.q_.size(); ++e) state_.q_[e] = graph_->weights[graph_->col[e]];
-+        std::fill(z_.begin(), z_.end(), 0);
++        std::fill(state_.z_.begin(), state_.z_.end(), 0);
 +        clear_history(); reconstruct(); ready_ = true;
 +    }
 +    Status status() const {
@@ -292,7 +292,6 @@ index 0000000..b1242cc
 +            source.clip_ != state_.clip_ || source.window_ != state_.window_)
 +            throw std::invalid_argument("snapshot model, shot, syndrome or numerical policy mismatch");
 +        state_ = source;
-+        std::fill(z_.begin(), z_.end(), 0);
 +        reconstruct();
 +    }
 +    // Additional pattern must be nonempty and disjoint from ancestor fixations.
@@ -308,6 +307,7 @@ index 0000000..b1242cc
 +    }
 +    const Bits& decision() const { require_ready(); return decision_; }
 +    const Reals& posterior_llr() const { require_ready(); return state_.llrs_; }
++    const Reals& check_to_variable() const { require_ready(); return state_.z_; }
 +    const Bits& residual_syndrome() const { require_ready(); return residual_; }
 +    const std::vector<int8_t>& fixed() const { require_ready(); return state_.fixed_; }
 +    uint64_t total_iterations() const { require_ready(); return state_.iterations_; }
@@ -839,10 +839,10 @@ index 0000000..c9c8602
 +                         DecimatedBPAdvance, DecimatedBPStatus)
 diff --git a/src_python/ldpc/hybrid_bp/__init__.pyi b/src_python/ldpc/hybrid_bp/__init__.pyi
 new file mode 100644
-index 0000000..262d15d
+index 0000000..6344abc
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/__init__.pyi
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,99 @@
 +from typing import Sequence
 +class Snapshot:
 +    fields: list[float]
@@ -898,6 +898,8 @@ index 0000000..262d15d
 +    @property
 +    def q(self) -> list[float]: ...
 +    @property
++    def check_to_variable(self) -> list[float]: ...
++    @property
 +    def posterior_llr(self) -> list[float]: ...
 +    @property
 +    def fixed(self) -> list[int]: ...
@@ -927,6 +929,8 @@ index 0000000..262d15d
 +    @property
 +    def posterior_llr(self) -> list[float]: ...
 +    @property
++    def check_to_variable(self) -> list[float]: ...
++    @property
 +    def clipped_mean_llr(self) -> list[float]: ...
 +    @property
 +    def residual_syndrome(self) -> list[int]: ...
@@ -940,10 +944,10 @@ index 0000000..262d15d
 +    def snapshot_payload_bytes(self) -> int: ...
 diff --git a/src_python/ldpc/hybrid_bp/bindings.cpp b/src_python/ldpc/hybrid_bp/bindings.cpp
 new file mode 100644
-index 0000000..6dbf422
+index 0000000..cbfe6af
 --- /dev/null
 +++ b/src_python/ldpc/hybrid_bp/bindings.cpp
-@@ -0,0 +1,81 @@
+@@ -0,0 +1,83 @@
 +#include <pybind11/pybind11.h>
 +#include <pybind11/stl.h>
 +#include "stateful_min_sum.hpp"
@@ -988,6 +992,7 @@ index 0000000..6dbf422
 +        .def_property_readonly("valid",&dec::Advance::valid);
 +    py::class_<dec::Snapshot>(m,"DecimatedBPSnapshot")
 +        .def_property_readonly("q",&dec::Snapshot::q)
++        .def_property_readonly("check_to_variable",&dec::Snapshot::check_to_variable)
 +        .def_property_readonly("posterior_llr",&dec::Snapshot::llrs)
 +        .def_property_readonly("fixed",&dec::Snapshot::fixed)
 +        .def_property_readonly("syndrome",&dec::Snapshot::syndrome)
@@ -1013,6 +1018,7 @@ index 0000000..6dbf422
 +        .def_property_readonly("status",&dec::Session::status)
 +        .def_property_readonly("decision",&dec::Session::decision)
 +        .def_property_readonly("posterior_llr",&dec::Session::posterior_llr)
++        .def_property_readonly("check_to_variable",&dec::Session::check_to_variable)
 +        .def_property_readonly("clipped_mean_llr",&dec::Session::clipped_mean_llr)
 +        .def_property_readonly("residual_syndrome",&dec::Session::residual_syndrome)
 +        .def_property_readonly("fixed",&dec::Session::fixed)

@@ -1,3 +1,51 @@
+# LPM-DP 1.0 Stage 2 exact final check messages (2026-09-23)
+
+The Stage-0 audit conclusion was confirmed: the fork computed the exact final
+check-to-variable array used by each completed parallel BP round, but kept it in
+a session-only workspace and zeroed it on snapshot restore. LPM-DP therefore
+could not receive the required `mu_(a->j)^(T)` for an arbitrary retained parent.
+
+The minimal fork change moves that existing `E`-double buffer into the owned
+decimated-BP snapshot and adds native/Python read-only `check_to_variable`
+accessors. There is no duplicate session buffer and no recomputation. Snapshot
+restore now preserves the exact array; descendant reconstruction zeros both
+message directions on fixed columns. Default snapshot copy/move semantics own or
+transfer all arrays. BP update equations, stopping, decisions and all decoder
+controllers are unchanged. The exact ownership and memory audit is in
+[docs/lpm_dp_stage2.md](docs/lpm_dp_stage2.md).
+
+For the largest checked-in model (BB72 d6/r6, `M=252`, `N=2232`, `E=7776`) at
+`W=8`, snapshot vector payload rises from 243,252 to 305,460 bytes; eight parents
+use 2,443,680 bytes; the reusable session remains 307,944 bytes; and one
+materialized child uses 305,460 bytes. Including validation-ABI inline objects
+but excluding allocator bookkeeping, the corresponding requested live figures
+are 305,692, 2,445,536, 308,248 and 305,692 bytes. The conservative simultaneous
+total is 3,059,476 bytes. No allocation is proportional to raw candidate count
+times `E` or `N`.
+
+Fork source changes are exactly `src_cpp/decimated_bp.hpp`,
+`src_python/ldpc/hybrid_bp/bindings.cpp` and
+`src_python/ldpc/hybrid_bp/__init__.pyi`; the tracked patch, manifest and build
+identity were regenerated. Executed in `search_decimation`:
+
+- exact-message/restore/fixation Python fork tests: **12 passed**;
+- selected upstream ldpc BP tests: **12 passed** with six existing warnings;
+- deterministic Beam Search, BP-OSD and SEARCH-BP regression selection:
+  **76 passed**, matching the pre-change baseline;
+- native Debug CTest: **8/8 passed**; ASan/UBSan CTest with leak detection:
+  **8/8 passed**;
+- dependency check, fork/source audit, hybrid binding rebuild and editable project
+  rebuild: passed;
+- isolated clean fork restoration, both binding builds, identity checks and native
+  CTest: **8/8 passed**;
+- full project pytest: **331 passed, 1 skipped, 1 failed**. The only failure is the
+  same pre-existing legacy-config discovery mismatch recorded by Stage 1; no
+  LPM-DP, BP, Beam, BP-OSD or SEARCH-BP regression failed.
+
+No numerical behavior changed. Stage 3 was not started.
+
+---
+
 # LPM-DP 1.0 Stage 1 standalone candidate generator (2026-09-23)
 
 Implemented the standalone C++ candidate generator from

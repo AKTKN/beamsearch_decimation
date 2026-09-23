@@ -41,3 +41,6 @@ strict native mapping, six-field schema and smoke-sized invariant tests.
 lpm_dp_stage1.md documents the standalone LPM-DP 1.0 candidate generator, its
 immutable native API, exact local marginal DP, bounded memory, and Stage-1 tests.
 It is not a decoder or simulator integration.
+lpm_dp_stage2.md documents the minimal fork snapshot/API extension that preserves
+the exact final check-to-variable messages required by that generator, including
+ownership, memory-gate arithmetic and regression scope.

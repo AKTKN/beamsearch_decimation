@@ -46,6 +46,7 @@ Native const views last until the next mutation or destruction.
 | `inherit_descendant(snapshot, additional_fixations)` | Same compatibility checks as restore; additions must be nonempty, sorted, unique and disjoint from ancestor fixations. Even reasserting an existing bit is rejected. Parent snapshot remains unchanged. |
 | `decision` | Full binary `(N,)` correction, including exact fixed bits. Available even on nonconvergence/contradiction. |
 | `posterior_llr` | Signed `(N,)` posterior; fixed bits use positive infinity for 0, negative infinity for 1, representing exact fixation. Free posteriors stay finite. |
+| `check_to_variable` | Exact edge-aligned check-to-variable messages from the last completed iteration. The session and snapshot expose the same owned buffer; reset initializes it to zero. |
 | `fixed`, `residual_syndrome` | `(N,)` mask with -1 free, 0/1 fixed; binary `(M,)` residual. |
 | `clipped_mean_llr`, `history_count`, `total_iterations` | `(N,)` bounded mean, number of real completed samples currently retained, and rounds completed since reset/inheritance. |
 | `status` | Current `READY`, `CONVERGED`, or `LOCAL_CONTRADICTION`. An advance result instead reports `BUDGET_EXHAUSTED` when its budget ends without a terminal state. |
@@ -76,7 +77,10 @@ separate calls. A strict descendant preserves ancestor free-edge messages and
 free posterior decisions, disables newly fixed edges, applies the new residual,
 and immediately tests the reconstructed full correction. Its next round updates
 all remaining checks using that inherited state. There is no cold restart of free
-messages and no persistent check-message buffer in a snapshot.
+messages. The exact check-to-variable array produced by that completed round is
+part of the snapshot. Restore copies it without recomputation; descendant
+reconstruction zeros only edges belonging to fixed columns. The next complete
+round overwrites every remaining active check message before it is consumed.
 
 A descendant starts a **fresh history and instance iteration counter**. Old
 posterior samples describe a different masked BP instance; they are not silently
@@ -105,17 +109,19 @@ Let E be original edge count, N variable count, M check count. Snapshot payload:
 | Contents | Bytes |
 |---|---:|
 | Variable-to-check messages q | 8E |
+| Final check-to-variable messages | 8E |
 | Current signed LLRs and rolling sums | 16N |
 | Clipped history ring | 8NW |
 | Fixed mask and original syndrome | N + M |
 
-Total logical vector payload is **8(E + NW + 2N) + N + M** bytes, plus fixed-size
+Total logical vector payload is **8(2E + NW + 2N) + N + M** bytes, plus fixed-size
 metadata/container overhead. Metadata is model/shot/iteration identity, window
 size/count/cursor and scaling/clip values. Rolling sums are saved to preserve
 floating-point continuation order exactly. Graph, probabilities, adjacency,
-decision, residual, check messages and derived means are not duplicated in a
-snapshot. The session additionally holds reusable check-message workspace (8E),
-decision/residual buffers (N+M), and a shared immutable graph. A mean query creates
+decision, residual and derived means are not duplicated in a snapshot. The session
+additionally holds only decision/residual buffers (N+M) and a shared immutable
+graph; its former 8E check-message workspace is now the snapshot-owned array, so
+total session vector payload is unchanged. A mean query creates
 one N-double return vector outside the iteration loop. Snapshot copying costs
 O(E+NW+N+M); moves transfer vector ownership. Reset/restore/inheritance reuse
 preallocated same-shape vectors, as do all iterations.
