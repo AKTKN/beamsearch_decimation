@@ -1,6 +1,8 @@
 # Result storage
 
 `minimal.py` defines the active six-field `search_bp_results/2` Arrow contract.
+It also defines the five-field `lpm_dp_results/1` contract, which omits
+`correction_by_search` and requires an exact nonnull `osd_called`.
 The read-only SEARCH-BP-2.0 five-field schema is under `legacy/search_bp_v2/`.
 `results.py` supplies a fixed-schema ResultStore and generic ShotChunkBuffer. The runner writes only
 config_resolved.json and data/<condition>_results.parquet; no raw samples,

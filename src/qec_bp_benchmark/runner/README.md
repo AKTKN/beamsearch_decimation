@@ -14,6 +14,10 @@ runs remain supported. See docs/simulation_output.md and docs/search_bp_stage5.m
 at repository root. The material below is historical
 pipeline documentation; manifests, replay and event writes are not active.
 
+LPM-DP-BP-1.0 uses the same one-call truth-free adapter and complete-service timer.
+Its `lpm_dp_results/1` rows omit SEARCH-BP-specific correction telemetry; schema
+routing changes no sampling, scheduling, truth comparison or timing boundary.
+
 # Paired runner
 
 `pipeline.run_benchmark(config_path, verbose=False)` returns an exclusively

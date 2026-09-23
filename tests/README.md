@@ -101,6 +101,9 @@ LPM-DP Stage 3 adds `native/test_lpm_dp_decoder.cpp` for the distinct native-onl
 decoder state machine, including per-parent ordering, hard masks, warm starts,
 online reference retention, bounded snapshots, recursive cycles, terminal OSD,
 shot reuse and non-reentrancy. No simulator path is exercised.
+LPM-DP Stage 4 adds `test_lpm_dp_stage4.py` for strict configuration/native mapping,
+truth-free adapter calls, exact failure/OSD semantics, five-column output and a
+bounded Surface-d3 run with unchanged Beam/BP-OSD adapters.
 
 SEARCH-BP-2.0 Stage 3: `test_search_bp_stage3.py` independently recomputes the
 TeX formulas and both bounded-tree policies, with exhaustive probe patterns,

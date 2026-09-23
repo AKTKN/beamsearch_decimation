@@ -97,7 +97,7 @@ class ShotChunkBuffer:
 
 
 class ResultStore:
-    """Append the five-field schema to one results Parquet file per condition.
+    """Append one configured minimal schema to one Parquet file per condition.
 
     Writers stay open for the run and are closed even after an execution error,
     so a failed run contains only readable partial simulation data.  No final
@@ -105,7 +105,8 @@ class ResultStore:
     """
 
     def __init__(self, run_directory: Path, prefixes: dict[str, str], *,
-                 benchmark_timings: MutableMapping[str, int] | None = None):
+                 benchmark_timings: MutableMapping[str, int] | None = None,
+                 schema_version: str = "search_bp_results/2"):
         import pyarrow.parquet as pq
 
         self.run_directory = Path(run_directory)
@@ -114,6 +115,7 @@ class ResultStore:
         self._prefixes = dict(prefixes)
         self._writers: dict[str, pq.ParquetWriter] = {}
         self._benchmark_timings = benchmark_timings
+        self._schema_version = schema_version
 
     def _add_timing(self, name: str, started_ns: int) -> None:
         if self._benchmark_timings is not None:
@@ -133,7 +135,7 @@ class ResultStore:
         """Create a dataset once; closing it without rows yields typed empty data."""
         import pyarrow.parquet as pq
 
-        from .minimal import SCHEMA
+        from .minimal import schema_for_version
 
         if condition_id in self._writers:
             return
@@ -144,7 +146,8 @@ class ResultStore:
         if compression == "zstd" and compression_level is not None:
             options["compression_level"] = compression_level
         started = time.perf_counter_ns()
-        self._writers[condition_id] = pq.ParquetWriter(path, SCHEMA, **options)
+        self._writers[condition_id] = pq.ParquetWriter(
+            path, schema_for_version(self._schema_version), **options)
         self._add_timing("parquet_writer_open", started)
 
     def append(self, condition_id: str, rows, *, compression: str,
@@ -157,7 +160,7 @@ class ResultStore:
                     if isinstance(rows, Mapping) else bool(rows))
         if has_rows:
             started = time.perf_counter_ns()
-            table = result_table(rows)
+            table = result_table(rows, schema_version=self._schema_version)
             self._add_timing("arrow_table_conversion", started)
             started = time.perf_counter_ns()
             # Every append is one deliberate row group.  The runner

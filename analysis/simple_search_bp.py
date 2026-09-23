@@ -7,7 +7,8 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 from qec_bp_benchmark.storage.minimal import (
-    LEGACY_SCHEMA, LEGACY_SCHEMA_VERSION, SCHEMA, SCHEMA_VERSION, result_table,
+    LEGACY_SCHEMA, LEGACY_SCHEMA_VERSION, LPM_DP_SCHEMA, LPM_DP_SCHEMA_VERSION,
+    SCHEMA, SCHEMA_VERSION, result_table,
 )
 from qec_bp_benchmark.storage.results import condition_prefix
 from .statistics import timing_statistics, wilson_interval
@@ -39,14 +40,20 @@ def summarize_run(run_path: str | Path, *, clock: str = "wall",
     if not paths:
         raise ValueError("no logical-error data found")
     versions = {(pq.read_schema(path).metadata or {}).get(b"qec_schema") for path in paths}
-    minimal_versions = {SCHEMA_VERSION.encode(), LEGACY_SCHEMA_VERSION.encode()}
+    minimal_versions = {
+        SCHEMA_VERSION.encode(), LEGACY_SCHEMA_VERSION.encode(), LPM_DP_SCHEMA_VERSION.encode()
+    }
     if not versions <= minimal_versions:
         from .legacy.search_bp_v1.simple_search_bp import summarize_run as legacy
         return legacy(run, clock=clock, confidence=confidence)
     if len(versions) != 1 or clock != "wall":
         raise ValueError("minimal results require a uniform schema and wall clock")
-    current = versions == {SCHEMA_VERSION.encode()}
-    expected_schema = SCHEMA if current else LEGACY_SCHEMA
+    version = next(iter(versions)).decode()
+    expected_schema = {
+        SCHEMA_VERSION: SCHEMA,
+        LEGACY_SCHEMA_VERSION: LEGACY_SCHEMA,
+        LPM_DP_SCHEMA_VERSION: LPM_DP_SCHEMA,
+    }[version]
     conditions = {}
     for code in config["experiment"]["instances"]:
         for rate in config["noise"]["expanded_rates"]:
@@ -66,8 +73,11 @@ def summarize_run(run_path: str | Path, *, clock: str = "wall",
         if not pq.read_schema(path).equals(expected_schema, check_metadata=True):
             raise ValueError(f"unexpected result schema: {path}")
         rows = pq.read_table(path).to_pylist()
-        if current:
+        if version == SCHEMA_VERSION:
             rows = result_table(rows).to_pylist()
+        elif version == LPM_DP_SCHEMA_VERSION:
+            rows = [{**row, "correction_by_search": None}
+                    for row in result_table(rows, schema_version=version).to_pylist()]
         else:
             rows = [{**row, "correction_by_search": None} for row in rows]
         groups = {}

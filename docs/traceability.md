@@ -68,6 +68,21 @@ The native architecture, exact state machine and memory audit are in
 No SEARCH-BP score/search/admission implementation is used, and no simulator or
 Python decoder registration is part of Stage 3.
 
+## LPM-DP-BP-1.0 Stage 4
+
+The integration boundary and simulator-core diff audit are in
+[lpm_dp_stage4.md](lpm_dp_stage4.md).
+
+| Requirement | Implementation | Behavioral evidence |
+|---|---|---|
+| Strict distinct config/defaults | `config.LPMDP`, `lpm_dp_config/1` | exact defaults, invalid/obsolete-field rejection |
+| One truth-free native call | `lpm_dp_bindings.hpp`, `DecoderAdapter` | every field mapped; signature and native construction checks |
+| Native-only algorithm loops | `LPMDPBPDecoder.decode` | adapter contains no generation, DP, ranking, BP loop or OSD control |
+| Declared failure and exact OSD flag | adapter result normalization plus existing `failure_labels` | real impossible syndrome with OSD off/on |
+| Minimal scientific output | `lpm_dp_results/1` | exact five-column Arrow/schema checks |
+| Complete-service timing | unchanged worker timer around `DecoderAdapter.decode` | latency present on success/failure; truth comparison outside call |
+| Preserve old decoders and physics | extension registration and schema routing only | bounded paired LPM-DP/Beam/BP-OSD smoke and old regression suites |
+
 | Migration requirement | Implementation | Evidence |
 |---|---|---|
 | Old algorithm excluded from active build | module.cpp, CMakeLists.txt, native_sources.py; native/legacy/search_bp_v1 | test_search_bp_v2_contract.py checks missing old symbols |

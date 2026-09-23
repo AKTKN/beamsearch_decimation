@@ -17,6 +17,21 @@ calling OSD. Nested fallback/numerics sections are rejected.
 are accepted. `python python_scripts/validate_config.py config/search_bp.yaml.example`
 validates without sampling. The enabled adapter calls the complete native decoder.
 
+## LPM-DP-BP-1.0
+
+`kind: lpm_dp_bp`, profile/name `lpm_dp_bp_v1`, algorithm version
+`LPM-DP-BP-1.0` and `config_schema_version: lpm_dp_config/1` are fixed. The flat
+decoder fields are `history_window`, `history_clip`, `pool_size`,
+`local_check_limit`, `max_fixations`, `candidates_per_parent`,
+`retained_mass_target`, `proposal_clip`, `initial_iterations`,
+`candidate_iterations`, `retained_parents`, `max_cycles`, `scaling_factor` and
+`osd_fallback`; their defaults and bounds are in [Stage 4](lpm_dp_stage4.md).
+SEARCH-BP solve/guide/admission fields are rejected. Output must use
+`minimal_results` with `lpm_dp_results/1`; profiling is `none`. The decoder can be
+paired with ordinary baselines but not SEARCH-BP, whose saved schema has an extra
+algorithm-specific field. Validate the bounded template with
+`python python_scripts/validate_config.py config/lpm_dp.yaml.example`.
+
 `load_config(path)` safely reads YAML, rejects duplicate/unknown keys, validates
 parameters and resolves all paths relative to the YAML file. Config models are
 frozen. `config.resolved()` returns finite JSON with explicit expanded rate/code

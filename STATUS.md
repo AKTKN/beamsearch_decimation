@@ -1,3 +1,47 @@
+# LPM-DP-BP-1.0 Stage 4 simulator integration (2026-09-23)
+
+Integrated the existing native Stage-3 decoder with the simulator under the
+distinct kind/profile `lpm_dp_bp` / `lpm_dp_bp_v1` and fixed algorithm version
+`LPM-DP-BP-1.0`. The strict `lpm_dp_config/1` model contains only the 14 settings
+from the note, with reference defaults and native-compatible bounds. The Python
+adapter constructs one native decoder per worker and makes exactly one
+truth-free native `decode(syndrome)` call per shot; all candidate generation,
+fixation, BP, retention and optional OSD control remain native.
+
+LPM-DP writes `lpm_dp_results/1`, an exact five-column schema containing
+`shot_id`, `decoder_name`, `logical_error`, `latency_ns` and the native
+`osd_called` flag. Native declared failures carry no synthesized correction and
+are counted as logical errors. The existing complete-service timer is unchanged.
+Circuit/DEM construction, noise, sampling, syndrome and truth generation, seed
+derivation, scheduling, and truth comparison were not edited. The only runner
+and storage changes route the selected minimal result schema. No production
+sweep was run; the bounded Surface-d3 integration check used two shots.
+
+Executed in `search_decimation`:
+
+- Stage-4 focused configuration, binding, adapter, result-contract and paired
+  simulator tests: **4 passed**;
+- deterministic Beam Search, BP-OSD and SEARCH-BP regression selection:
+  **76 passed**, unchanged from Stages 2 and 3;
+- exact-message decimated-BP plus selected upstream ldpc BP tests:
+  **24 passed** with six existing warnings;
+- native Debug CTest: **9/9 passed**;
+- ASan/UBSan CTest with leak detection and halt-on-error: **9/9 passed**;
+- dependency/source audit, editable source-hashed extension rebuild and strict
+  example validation: passed;
+- isolated pristine-fork restoration, both opt-in binding builds, source
+  identities and native CTest: **9/9 passed**;
+- full project pytest: **335 passed, 1 skipped, 1 failed**. The only failure is
+  the same pre-existing legacy SEARCH-BP-v2 config-discovery mismatch recorded in
+  Stages 1-3; no LPM-DP or old-decoder regression failed.
+
+Full contracts and the simulator-core diff audit are in
+[docs/lpm_dp_stage4.md](docs/lpm_dp_stage4.md). There are no LPM-DP numerical
+changes from Stage 3 and no changes to existing decoder behavior. Stage 5 has not
+started.
+
+---
+
 # LPM-DP-BP-1.0 Stage 3 native decoder (2026-09-23)
 
 Implemented the distinct native-only `lpm_dp_bp` / `lpm_dp_bp_v1` decoder state

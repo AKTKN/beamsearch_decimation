@@ -28,18 +28,20 @@ data/output destinations when moving configs.
 Use the search_decimation conda environment for all programs. Production
 physical rates remain user-supplied; do not launch a production sweep implicitly.
 
-LPM-DP-BP-1.0 is complete through native Stage 3
-(docs/lpm_dp_stage3.md). Its identity is kind `lpm_dp_bp`, profile/name
-`lpm_dp_bp_v1`; no Python or simulator registration exists yet. The decoder uses
-per-parent Stage-1 local-parity candidates, Stage-2 exact-message snapshots,
-warm hard-decimation, main-note post-BP retention, bounded online child capture and
-optional one-time terminal OSD-0. It does not use SEARCH-BP solve/guide search or
-global admission. Reference execution keeps at most B old and B child snapshots
-plus one session, with no raw-candidate-times-E/N allocation. Stage-3 evidence is
-native Debug and ASan/UBSan 9/9, restoration 9/9, upstream BP 12, old-decoder
-regressions 76; the full Python suite retains the documented legacy-config-only
-331-pass/1-skip/1-failure baseline. Do not begin simulator integration without
-Stage-4 authorization.
+LPM-DP-BP-1.0 is integrated through simulator Stage 4
+(docs/lpm_dp_stage4.md). Its identity is kind `lpm_dp_bp`, profile/name
+`lpm_dp_bp_v1`, with strict `lpm_dp_config/1`. The adapter makes one truth-free
+native call per shot; candidate generation, exact-message snapshots, structural
+fixation, warm BP, main-note post-BP retention and optional terminal OSD-0 remain
+native. It does not use SEARCH-BP solve/guide search or global admission. Results
+use the distinct five-field `lpm_dp_results/1` contract; do not mix LPM-DP and
+SEARCH-BP in one run. Declared failures are logical errors and `osd_called` is the
+exact native flag. Reference execution keeps at most B old and B child snapshots
+plus one session, with no raw-candidate-times-E/N allocation. Stage-4 evidence is
+focused 4, old-decoder regressions 76, upstream/exact-message BP 24, native Debug
+and ASan/UBSan 9/9, restoration 9/9; the full suite has 335 passes, one skip and
+the documented legacy-config-only failure. Do not begin Stage 5 without explicit
+authorization.
 
 SEARCH-BP-2.0's active implementation/audit map is docs/search_bp_implementation.md.
 The final pass preserves the root TeX and changes only search vector reservations;

@@ -10,7 +10,7 @@ import sys
 import time
 from typing import Callable, Iterable, Iterator, MutableMapping, TypeVar
 
-from ..config import SearchBPOutput, load_config, require_available_decoder
+from ..config import LPMDPOutput, SearchBPOutput, load_config, require_available_decoder
 from ..identity import content_hash, decoder_identity, sampling_identity
 from ..storage import atomic_json
 from ..storage.results import ResultStore, ShotChunkBuffer, condition_prefix
@@ -180,17 +180,20 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                    f"workers={config.execution.workers}, timing={config.timing.mode}; "
                    f"oversubscribed={execution['oversubscribed']}")
 
-            configured_parquet = isinstance(config.output, SearchBPOutput)
+            configured_parquet = isinstance(config.output, (SearchBPOutput, LPMDPOutput))
             compression = config.output.compression
             compression_level = (config.output.parquet.compression_level if configured_parquet else None)
+            from ..storage.minimal import SCHEMA_VERSION, schema_for_version
+            result_schema_version = getattr(config.output, "data_schema_version", SCHEMA_VERSION)
+            result_schema = schema_for_version(result_schema_version)
             completed_batches = 0
             completed_shots = 0
             seen = set()
 
             with ResultStore(directory, prefixes,
-                             benchmark_timings=_simulation_timings) as store:
+                             benchmark_timings=_simulation_timings,
+                             schema_version=result_schema_version) as store:
                 phase_started = time.perf_counter_ns()
-                from ..storage.minimal import SCHEMA
                 for condition_id in prefixes:
                     store.ensure(condition_id, compression=compression,
                                  compression_level=compression_level)
@@ -227,7 +230,8 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                         by_shot.setdefault(row["shot_id"], []).append(row)
                     for shot in by_shot.values():
                         buffer.append({"condition_id": task.instance_id, "tables": {
-                            "results": {name: [row[name] for row in shot] for name in SCHEMA.names}
+                            "results": {name: [row[name] for row in shot]
+                                        for name in result_schema.names}
                         }})
                     seen.add(key)
                     completed_batches += 1

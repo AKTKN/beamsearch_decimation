@@ -180,6 +180,7 @@ HYBRID_PROFILES = (
     "hybrid_search_soft_ms_osd0_cold_v1",
 )
 SEARCH_BP_PROFILE = "search_bp"
+LPM_DP_PROFILE = "lpm_dp_bp_v1"
 
 
 class HybridSearch(StrictModel):
@@ -299,6 +300,35 @@ class SearchBP(StrictModel):
     native_threads: Annotated[int, Field(strict=True, ge=1, le=1)] = 1
 
 
+class LPMDP(StrictModel):
+    """LPM-DP-BP-1.0 native decoder with no search-derived correction path."""
+    kind: Literal["lpm_dp_bp"] = "lpm_dp_bp"
+    profile: Literal["lpm_dp_bp_v1"] = LPM_DP_PROFILE
+    name: Literal["lpm_dp_bp_v1"] = "lpm_dp_bp_v1"
+    enabled: Annotated[bool, Field(strict=True)] = True
+    algorithm_version: Literal["LPM-DP-BP-1.0"] = "LPM-DP-BP-1.0"
+    history_window: PositiveNativeCount = 8
+    history_clip: Annotated[float, Field(strict=True, gt=0, le=30)] = 25.0
+    pool_size: PositiveNativeCount = 32
+    local_check_limit: Literal[1, 2] = 2
+    max_fixations: Annotated[int, Field(strict=True, ge=1, le=64)] = 4
+    candidates_per_parent: Annotated[int, Field(strict=True, ge=2, le=2**31 - 1)] = 2
+    retained_mass_target: Annotated[float, Field(strict=True, gt=0, le=1)] = 0.9
+    proposal_clip: Annotated[float, Field(strict=True, gt=0, le=30)] = 30.0
+    initial_iterations: PositiveNativeCount = 30
+    candidate_iterations: PositiveNativeCount = 20
+    retained_parents: PositiveNativeCount = 8
+    max_cycles: PositiveNativeCount = 10
+    scaling_factor: Annotated[float, Field(strict=True, gt=0, le=1)] = 1.0
+    osd_fallback: Annotated[bool, Field(strict=True)] = False
+
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.history_window > min(self.initial_iterations, self.candidate_iterations):
+            raise ValueError("history_window exceeds a BP iteration budget")
+        return self
+
+
 def _cycle_budgets(value: int | tuple[int, ...], cycles: int, field: str) -> tuple[int, ...]:
     """Resolve bounded scalars/lists without mutation; reject length/uint64 overflow."""
     result = (value,) * cycles if isinstance(value, int) else value
@@ -367,6 +397,8 @@ def require_available_decoder(profile: str) -> None:
     """Reject unknown profiles without numerical imports or mutation (ValueError)."""
     if profile == SEARCH_BP_PROFILE:
         return
+    if profile == LPM_DP_PROFILE:
+        return
     if profile in HYBRID_PROFILES:
         return
     if profile not in ("screened_reference", "bposd_ms30_cs10", "bposd_ms30_cs0", "beam8", "beam32"):
@@ -392,7 +424,8 @@ class Beam(StrictModel):
         return value
 
 
-Decoder = Annotated[Screened | Bposd | Bposd0 | Beam | Hybrid | SearchBP, Field(discriminator="profile")]
+Decoder = Annotated[Screened | Bposd | Bposd0 | Beam | Hybrid | SearchBP | LPMDP,
+                    Field(discriminator="profile")]
 
 
 class Sampling(StrictModel):
@@ -469,6 +502,26 @@ class SearchBPOutput(StrictModel):
         return False
 
 
+class LPMDPOutput(StrictModel):
+    """Five-column LPM-DP result contract without SEARCH-BP telemetry."""
+    root: Path = Path("../assets/runs")
+    layout: Literal["minimal_results"] = "minimal_results"
+    data_schema_version: Literal["lpm_dp_results/1"] = "lpm_dp_results/1"
+    parquet: ParquetOutput = ParquetOutput()
+
+    @property
+    def compression(self) -> str:
+        return self.parquet.compression
+
+    @property
+    def retain_traces(self) -> bool:
+        return False
+
+    @property
+    def retain_corrections(self) -> bool:
+        return False
+
+
 class Analysis(StrictModel):
     """Legacy analysis settings type, excluded from simulation ``Config``.
 
@@ -498,7 +551,7 @@ class Analysis(StrictModel):
 
 
 class Config(StrictModel):
-    config_schema_version: Literal["search_bp_config/4"] | None = Field(
+    config_schema_version: Literal["search_bp_config/4", "lpm_dp_config/1"] | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     experiment: Experiment = Experiment()
@@ -509,7 +562,7 @@ class Config(StrictModel):
     sampling: Sampling = Sampling()
     execution: Execution = Execution()
     timing: Timing = Timing()
-    output: Output | SearchBPOutput = Output()
+    output: Output | SearchBPOutput | LPMDPOutput = Output()
 
     @model_validator(mode="after")
     def check(self) -> Self:
@@ -519,12 +572,23 @@ class Config(StrictModel):
         if len(set(names)) != len(names) or not any(d.enabled for d in self.decoders):
             raise ValueError("decoder names must be unique, with at least one enabled")
         has_search_bp = any(isinstance(d, SearchBP) for d in self.decoders)
+        has_lpm_dp = any(isinstance(d, LPMDP) for d in self.decoders)
+        if has_search_bp and has_lpm_dp:
+            raise ValueError("search_bp and lpm_dp_bp use different minimal result contracts")
         if has_search_bp and not isinstance(self.output, SearchBPOutput):
             raise ValueError("search_bp requires minimal_results output")
         if has_search_bp and self.config_schema_version != "search_bp_config/4":
             raise ValueError("search_bp requires config_schema_version: search_bp_config/4")
         if has_search_bp and self.timing.profiling != "none":
             raise ValueError("search_bp does not emit phase profiling")
+        if has_lpm_dp and not isinstance(self.output, LPMDPOutput):
+            raise ValueError("lpm_dp_bp requires lpm_dp_results/1 minimal output")
+        if not has_lpm_dp and isinstance(self.output, LPMDPOutput):
+            raise ValueError("lpm_dp_results/1 requires an lpm_dp_bp decoder")
+        if has_lpm_dp and self.config_schema_version != "lpm_dp_config/1":
+            raise ValueError("lpm_dp_bp requires config_schema_version: lpm_dp_config/1")
+        if has_lpm_dp and self.timing.profiling != "none":
+            raise ValueError("lpm_dp_bp does not emit phase profiling")
         return self
 
     def resolved(self) -> dict:

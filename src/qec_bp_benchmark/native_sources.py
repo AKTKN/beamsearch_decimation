@@ -9,6 +9,7 @@ HYBRID_PROJECT_FILES = tuple('src/qec_bp_benchmark/native/' + name for name in (
     'search_bp_stage3.hpp', 'search_bp_bindings.hpp',
     'search_bp_admission.hpp', 'search_bp_decoder.hpp',
     'lpm_dp_model.hpp', 'lpm_dp_candidates.hpp', 'lpm_dp_decoder.hpp',
+    'lpm_dp_bindings.hpp',
 )) + ('CMakeLists.txt', 'src/qec_bp_benchmark/native_sources.py')
 
 

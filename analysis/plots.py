@@ -22,6 +22,10 @@ def decoder_label(row: dict) -> str:
         search=d.get('search',{});bp=d.get('bp',{})
         text=(f"hard-fixation search E/cycle={search.get('expansions_per_cycle','?')}; "
               f"BP beam W={bp.get('beam_width','?')}, T/visit={bp.get('max_iteration','?')}; direct OSD0")
+    elif profile == 'lpm_dp_bp_v1':
+        text=(f"LPM-DP hard decimation; W={d.get('history_window','?')}, "
+              f"K={d.get('candidates_per_parent','?')}, B={d.get('retained_parents','?')}, "
+              f"cycles={d.get('max_cycles','?')}, OSD0={d.get('osd_fallback','?')}")
     else: raise ValueError(f'unsupported decoder label profile: {profile}')
     return f'{row["decoder_name"]} [{row["decoder_id"][:8]}]\n{text}'
 

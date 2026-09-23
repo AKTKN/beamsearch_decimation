@@ -1,0 +1,53 @@
+# Bounded integration smoke template; never a production sweep.
+# Defaults below are the LPM-DP-BP-1.0 reference parameters.
+config_schema_version: lpm_dp_config/1
+experiment:
+  name: lpm_dp_smoke
+  purpose: LPM-DP-BP-1.0 simulator integration validation only
+  codes:
+  - family: surface
+    distances: [3]
+circuit:
+  cache: ../simulation_data
+noise:
+  rates: [0.003]
+sampling:
+  shots_per_point: 2
+  batch_size: 2
+  master_seed: 20260923
+  warmup_seed: 20260924
+  warmup_count: 1
+execution:
+  workers: 1
+timing:
+  mode: throughput
+  profiling: none
+output:
+  root: ../assets/runs
+  layout: minimal_results
+  data_schema_version: lpm_dp_results/1
+  parquet:
+    compression: zstd
+    compression_level: 3
+    shots_per_flush: 2
+decoders:
+- kind: lpm_dp_bp
+  profile: lpm_dp_bp_v1
+  name: lpm_dp_bp_v1
+  algorithm_version: LPM-DP-BP-1.0
+  history_window: 8
+  history_clip: 25.0
+  pool_size: 32
+  local_check_limit: 2
+  max_fixations: 4
+  candidates_per_parent: 2
+  retained_mass_target: 0.9
+  proposal_clip: 30.0
+  initial_iterations: 30
+  candidate_iterations: 20
+  retained_parents: 8
+  max_cycles: 10
+  scaling_factor: 1.0
+  osd_fallback: false
+- profile: beam8
+- profile: bposd_ms30_cs0

@@ -1,9 +1,11 @@
-# Minimal simulation output: search_bp_results/2
+# Minimal simulation output
 
 SEARCH-BP-2.1 uses this schema. Decoder-only
 microbenchmark/profile evidence lives under `docs/test_results/`, outside run
 directories; it adds no production telemetry or columns. See the
 [active implementation audit](search_bp_implementation.md).
+LPM-DP-BP-1.0 uses the same directory/naming/timing contract with the separate
+five-column `lpm_dp_results/1` schema documented below.
 
 Every new run contains exactly:
 
@@ -51,7 +53,7 @@ BB observables. No truth enters the decoder service.
 
 No sample/syndrome/correction vectors, search nodes, BP iterations, candidate or
 beam tables, solution events, phase breakdowns or raw messages are persisted.
-The worker returns only six-field scalar result rows and generic batch metadata;
+The worker returns only the configured minimal scalar result rows and generic batch metadata;
 it does not construct or transport raw-sample or wide telemetry rows. The generic
 scheduler keeps bounded physical batch futures. Parent shot grouping
 uses output.parquet.shots_per_flush when minimal_results is configured, or the
@@ -75,3 +77,13 @@ rewritten. Historical
 wide schemas dispatch to the legacy reader and are never relabeled as this schema.
 Historical `search_bp_results/1` runs remain read-only and report the new search
 indicator as unavailable; it cannot be reconstructed from their OSD flag.
+
+## LPM-DP-BP-1.0 result schema
+
+LPM-DP runs use Arrow metadata `qec_schema=lpm_dp_results/1`. Their exact fields
+are `shot_id`, `decoder_name`, `logical_error`, `latency_ns` and nonnull exact
+`osd_called`, with the meanings and timing boundary above. The schema deliberately
+omits SEARCH-BP's `correction_by_search` column and stores no LPM-DP candidate,
+cycle, retention, history or message telemetry. LPM-DP may share physical shots
+with ordinary baselines under this five-column contract, but cannot be configured
+in the same run as SEARCH-BP because their minimal schemas differ.

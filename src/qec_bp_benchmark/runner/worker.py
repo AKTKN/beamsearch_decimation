@@ -67,10 +67,11 @@ def process_batch(task: BatchTask) -> dict:
     """Process one bounded physical batch with unchanged paired decoder scheduling."""
     import numpy as np
     from ..storage import failure_labels
-    from ..storage.minimal import minimal_record
+    from ..storage.minimal import SCHEMA_VERSION, minimal_record
     from ..provenance import timer_diagnostics
     from threadpoolctl import threadpool_info
     assert _CONFIG is not None and _CONTEXT is not None
+    result_schema_version = getattr(_CONFIG.output, "data_schema_version", SCHEMA_VERSION)
     benchmark = bool(_CONTEXT.get("simulation_benchmark"))
     benchmark_total_start = time.perf_counter_ns() if benchmark else 0
     benchmark_phases: dict[str, int] = {}
@@ -127,7 +128,8 @@ def process_batch(task: BatchTask) -> dict:
                 decoder_profile=decoder.config.profile,status=result.status,
                 syndrome_valid=result.syndrome_valid,valid_logical_mismatch=labels['valid_logical_mismatch'],
                 wall_ns=wall_ns,osd_called=result.osd_called,
-                correction_by_search=result.correction_by_search))
+                correction_by_search=result.correction_by_search),
+                schema_version=result_schema_version)
             results.append(record)
             add_phase("result_normalization", phase_start)
     phase_start = time.perf_counter_ns() if benchmark else 0

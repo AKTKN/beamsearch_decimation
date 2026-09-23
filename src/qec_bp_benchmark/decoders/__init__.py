@@ -11,8 +11,8 @@ from types import ModuleType
 import time
 import numpy as np
 from ..bp import verified_backend, verified_hybrid_backend
-from ..config import (Decoder, Screened, Bposd, Beam, Hybrid, SearchBP,
-                      HYBRID_PROFILES, require_available_decoder)
+from ..config import (Decoder, Screened, Bposd, Beam, Hybrid, SearchBP, LPMDP,
+                      HYBRID_PROFILES, LPM_DP_PROFILE, require_available_decoder)
 from ..dem.model import DetectorProblem
 from ..identity import decoder_identity
 
@@ -54,7 +54,7 @@ def implementation_identity(kind: str) -> dict:
     if kind == 'screened_reference':
         module=native_search()
         detail=dict(module.source_identity(), build=module.build_identity())
-    elif kind in HYBRID_PROFILES or kind == 'search_bp':
+    elif kind in HYBRID_PROFILES or kind in ('search_bp', LPM_DP_PROFILE):
         import platform
         module=native_hybrid()
         detail=dict(module.hybrid_source_identity(), build=module.build_identity(),
@@ -115,7 +115,9 @@ class DecoderAdapter:
             raise ValueError("hybrid per-node traces are unsupported; use profiling and export_telemetry after decode")
         if isinstance(config,SearchBP) and (diagnostics or profiling):
             raise ValueError("SEARCH-BP-2.1 exposes no diagnostic or phase telemetry")
-        if not isinstance(config, (Screened, Bposd, Beam, Hybrid, SearchBP)):
+        if isinstance(config,LPMDP) and (diagnostics or profiling):
+            raise ValueError("LPM-DP-BP-1.0 exposes no diagnostic or phase telemetry")
+        if not isinstance(config, (Screened, Bposd, Beam, Hybrid, SearchBP, LPMDP)):
             raise TypeError(f'unsupported decoder configuration: {type(config).__name__}')
         self.problem=problem
         self.config=config
@@ -150,6 +152,32 @@ class DecoderAdapter:
                 csr=matrix.tocsr()
                 return [csr.indices[csr.indptr[a]:csr.indptr[a+1]].tolist() for a in range(csr.shape[0])]
             self._native=native.SearchBP2Decoder(rows(problem.H),n,problem.probabilities.tolist(),rows(problem.A),settings)
+            return
+        if isinstance(config,LPMDP):
+            native=native_hybrid()
+            settings=native.LPMDPBPSettings()
+            for key,value in {
+                'history_window':config.history_window,
+                'history_clip':config.history_clip,
+                'pool_size':config.pool_size,
+                'local_check_limit':config.local_check_limit,
+                'max_fixations':config.max_fixations,
+                'candidates_per_parent':config.candidates_per_parent,
+                'retained_mass_target':config.retained_mass_target,
+                'proposal_clip':config.proposal_clip,
+                'initial_iterations':config.initial_iterations,
+                'candidate_iterations':config.candidate_iterations,
+                'retained_parents':config.retained_parents,
+                'max_cycles':config.max_cycles,
+                'scaling_factor':config.scaling_factor,
+                'osd_fallback':config.osd_fallback,
+            }.items():
+                setattr(settings,key,value)
+            def rows(matrix):
+                csr=matrix.tocsr()
+                return [csr.indices[csr.indptr[a]:csr.indptr[a+1]].tolist() for a in range(csr.shape[0])]
+            self._native=native.LPMDPBPDecoder(
+                rows(problem.H),n,problem.probabilities.tolist(),rows(problem.A),settings)
             return
         # The exactly normalized empty model has a unique length-zero correction.
         # No native baseline accepts every empty shape, so handle it algebraically.
@@ -216,6 +244,14 @@ class DecoderAdapter:
             if type(r.correction_by_search) is not bool:
                 raise ValueError('SEARCH-BP-2.1 must expose an exact boolean correction_by_search')
             correction_by_search=r.correction_by_search
+        elif isinstance(self.config,LPMDP):
+            r=self._native.decode(s.tolist())
+            candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None
+            declared=not r.valid
+            native_status='VALID' if r.valid else 'DECLARED_FAILURE'
+            if type(r.osd_called) is not bool:
+                raise ValueError('LPM-DP-BP-1.0 must expose an exact boolean osd_called')
+            osd_called=r.osd_called
         elif isinstance(self.config,Hybrid):
             r=self._native.decode(s.tolist(),self.profiling)
             candidate=np.asarray(r.correction,dtype=np.uint8) if r.valid else None

@@ -6,6 +6,7 @@ Top-level templates cover the active workflow:
 
 - bposd_cs0_smoke.yaml.example: current upstream CS0/CS10/beam baseline comparison.
 - search_bp.yaml.example: smoke-sized paired SEARCH-BP-2.1/native, beam8 and BP-OSD validation.
+- lpm_dp.yaml.example: bounded LPM-DP-BP-1.0/native, beam8 and BP-OSD integration smoke.
 
 `python python_scripts/validate_config.py CONFIG` prints resolved JSON without
 preparing circuits or executing decoders.
