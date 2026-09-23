@@ -1,5 +1,11 @@
 # Specification-to-implementation-to-test traceability
 
+The LPM-DP final audit is [lpm_dp_final_report.md](lpm_dp_final_report.md). It
+closes the Stage-1--4 maps below with clean-source restoration, full project and
+upstream tests, all nine Debug/sanitizer targets, serial/spawn scientific equality,
+the final live-memory formula, simulator-boundary audit and appendix scoring
+assessment. No reference-decoder scoring change is part of the final pass.
+
 SEARCH-BP-2.0 simulator integration is complete through Stage 5. The final
 [active implementation audit](search_bp_implementation.md#tex-to-code-traceability)
 maps every TeX step/equation to functions and independent tests. Final-pass evidence

@@ -29,3 +29,21 @@ def test_fork_patch_restores_ignored_binding_in_pristine_worktree(tmp_path):
             assert (worktree/relative).read_bytes()==(fork/relative).read_bytes()
     finally:
         subprocess.run(['git','-C',str(fork),'worktree','remove','--force',str(worktree)],check=True)
+
+
+def test_clean_build_restores_every_untracked_hybrid_source():
+    """The per-file bootstrap list must cover sources absent from the upstream pin."""
+    import subprocess
+    from ldpc.hybrid_bp import SOURCE_FILES
+    from python_scripts.build_dependencies import OPT_IN_FORK_FILES
+
+    fork = ROOT/'external_lib/ldpc'
+    upstream = 'd3429964cd4ffe1abfc041c6ec8b8425cb174f40'
+    missing = {
+        relative for relative in SOURCE_FILES
+        if subprocess.run(
+            ['git', '-C', str(fork), 'cat-file', '-e', f'{upstream}:{relative}'],
+            capture_output=True,
+        ).returncode != 0
+    }
+    assert missing <= set(OPT_IN_FORK_FILES)

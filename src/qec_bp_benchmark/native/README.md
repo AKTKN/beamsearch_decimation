@@ -85,3 +85,9 @@ fixation-count selection. The parent supplies explicit edge-aligned final
 check-to-variable messages; the BP fork, recursive decoder, beam, OSD and Python
 bindings are intentionally untouched. `test_lpm_dp` includes an independent
 small-problem exhaustive oracle. See `docs/lpm_dp_stage1.md`.
+
+`lpm_dp_decoder.hpp` composes that generator with the fork's exact-message
+decimated-BP session, structural warm inheritance, deterministic online top-B
+post-BP retention and optional one-time OSD-0. `lpm_dp_bindings.hpp` exposes only
+settings, a compact result and one truth-free decode call. The LPM-DP path includes
+no SEARCH-BP search/admission header. See `docs/lpm_dp_final_report.md`.

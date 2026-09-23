@@ -18,6 +18,15 @@ the project editable. `native_sources.py` lists the active project hash inputs.
 `python tests/check_hybrid_restoration.py` rebuilds both opt-in bindings and the
 nine active native test targets from restored sources in an isolated directory.
 
+The clean bootstrap's explicit opt-in restoration inventory includes every
+untracked source consumed by either binding, including `src_cpp/decimated_bp.hpp`.
+`test_clean_build_restores_every_untracked_hybrid_source` compares that inventory
+with the hybrid binding's hashed source list at the pinned upstream commit, so a
+source present in the patch cannot again be omitted from a pristine build.
+All packages declared by `pyproject.toml`, including pandas, are also pinned in
+`requirements.lock.txt`; the isolated bootstrap finishes with `pip check` so a
+missing runtime dependency fails the build.
+
 Create the locked environment and build every required native dependency from its
 pinned checkout. The helper also installs the optimized project extension and
 the independent pristine BP-OSD reference used by regression tests:

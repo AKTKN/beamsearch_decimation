@@ -28,8 +28,8 @@ data/output destinations when moving configs.
 Use the search_decimation conda environment for all programs. Production
 physical rates remain user-supplied; do not launch a production sweep implicitly.
 
-LPM-DP-BP-1.0 is integrated through simulator Stage 4
-(docs/lpm_dp_stage4.md). Its identity is kind `lpm_dp_bp`, profile/name
+LPM-DP-BP-1.0 is complete through final validation
+(docs/lpm_dp_final_report.md). Its identity is kind `lpm_dp_bp`, profile/name
 `lpm_dp_bp_v1`, with strict `lpm_dp_config/1`. The adapter makes one truth-free
 native call per shot; candidate generation, exact-message snapshots, structural
 fixation, warm BP, main-note post-BP retention and optional terminal OSD-0 remain
@@ -37,11 +37,14 @@ native. It does not use SEARCH-BP solve/guide search or global admission. Result
 use the distinct five-field `lpm_dp_results/1` contract; do not mix LPM-DP and
 SEARCH-BP in one run. Declared failures are logical errors and `osd_called` is the
 exact native flag. Reference execution keeps at most B old and B child snapshots
-plus one session, with no raw-candidate-times-E/N allocation. Stage-4 evidence is
-focused 4, old-decoder regressions 76, upstream/exact-message BP 24, native Debug
-and ASan/UBSan 9/9, restoration 9/9; the full suite has 335 passes, one skip and
-the documented legacy-config-only failure. Do not begin Stage 5 without explicit
-authorization.
+plus one session, with no raw-candidate-times-E/N allocation. Final evidence is
+337 project tests passed with one unavailable historical-artifact skip, 128
+focused LPM-DP/fork/old-decoder regressions, 12 upstream BP tests, native Debug
+and ASan/UBSan 9/9, restoration 9/9, and exact serial/two-worker non-latency
+output equality. A new-prefix/new-checkout clean build and its repeated full suite
+passed. The measured representative process peak is 4,436 KiB; see the
+report for the exact core formula and exclusions. Replay is unavailable under the
+minimal active output contract. No production sweep was run.
 
 SEARCH-BP-2.0's active implementation/audit map is docs/search_bp_implementation.md.
 The final pass preserves the root TeX and changes only search vector reservations;

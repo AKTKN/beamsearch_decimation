@@ -143,7 +143,8 @@ def test_cs0_identity_and_legacy_parameters():
         if template.name == 'analysis.yaml.example':
             from analysis import load_analysis_config
             assert load_analysis_config(template).analysis.bootstrap_count == 2000
-        elif 'production' in template.name or 'hybrid_frontier' in template.name or 'search_bp_v1' in str(template):
+        elif ('production' in template.name or 'hybrid_frontier' in template.name or
+              'search_bp_v1' in str(template) or 'search_bp_v2' in str(template)):
             with pytest.raises(ValidationError):
                 load_config(template)
         else:

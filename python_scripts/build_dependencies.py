@@ -8,6 +8,14 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
+OPT_IN_FORK_FILES = (
+    'src_cpp/reference_bp.hpp', 'src_python/ldpc/reference_bp/bindings.cpp',
+    'src_python/ldpc/reference_bp/__init__.py', 'setup_reference.py',
+    'src_cpp/hybrid_graph.hpp', 'src_cpp/stateful_min_sum.hpp', 'src_cpp/decimated_bp.hpp',
+    'src_cpp/osd0_bridge.hpp', 'src_python/ldpc/hybrid_bp/bindings.cpp',
+    'src_python/ldpc/hybrid_bp/__init__.py', 'src_python/ldpc/hybrid_bp/__init__.pyi',
+    'src_python/ldpc/hybrid_bp/source_files.py', 'setup_hybrid.py',
+)
 
 
 def run(*args: str, cwd: Path=ROOT) -> None:
@@ -55,11 +63,7 @@ def main() -> None:
         run(*pip,'install','--no-deps','--target',str(reference),str(pristine_wheels[0]))
     # Restore each missing opt-in file independently, preserving existing user
     # edits and recovering incomplete patch installations without overwriting.
-    for name in ('src_cpp/reference_bp.hpp','src_python/ldpc/reference_bp/bindings.cpp',
-                 'src_python/ldpc/reference_bp/__init__.py','setup_reference.py',
-                 'src_cpp/hybrid_graph.hpp','src_cpp/stateful_min_sum.hpp','src_cpp/osd0_bridge.hpp',
-                 'src_python/ldpc/hybrid_bp/bindings.cpp','src_python/ldpc/hybrid_bp/__init__.py',
-                 'src_python/ldpc/hybrid_bp/__init__.pyi','src_python/ldpc/hybrid_bp/source_files.py','setup_hybrid.py'):
+    for name in OPT_IN_FORK_FILES:
         if not (fork/name).exists():
             run('git','apply','--include='+name,str(ROOT/'external_lib/patches/ldpc.patch'),cwd=fork)
             if not (fork/name).is_file(): raise RuntimeError(f'Locked patch does not restore {name}')

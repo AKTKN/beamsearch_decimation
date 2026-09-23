@@ -55,3 +55,8 @@ fork-owned BP and project-owned scores/local search. See docs/search_bp_stage3.m
 Stage 4 additionally exposes `_native.SearchBP2Decoder` for full native recursive
 decoding with a compact result. Stage 5 integrates it into the existing simulator with truth-free dispatch and
 six-field results only. See docs/search_bp_stage5.md.
+
+The separate `LPM-DP-BP-1.0` service is complete: native candidate generation,
+hard-decimated warm BP, bounded retention and optional OSD are exposed through one
+truth-free call and the five-field `lpm_dp_results/1` contract. See
+docs/lpm_dp_final_report.md.

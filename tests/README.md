@@ -103,7 +103,11 @@ online reference retention, bounded snapshots, recursive cycles, terminal OSD,
 shot reuse and non-reentrancy. No simulator path is exercised.
 LPM-DP Stage 4 adds `test_lpm_dp_stage4.py` for strict configuration/native mapping,
 truth-free adapter calls, exact failure/OSD semantics, five-column output and a
-bounded Surface-d3 run with unchanged Beam/BP-OSD adapters.
+bounded Surface-d3 run with unchanged Beam/BP-OSD adapters. Final validation runs
+that smoke under one-worker serial and two-worker spawn execution and compares all
+saved scientific fields except latency. `test_provenance.py` also proves that the
+clean dependency bootstrap restores every untracked source hashed by the hybrid
+binding, including the decimated-BP header.
 
 SEARCH-BP-2.0 Stage 3: `test_search_bp_stage3.py` independently recomputes the
 TeX formulas and both bounded-tree policies, with exhaustive probe patterns,

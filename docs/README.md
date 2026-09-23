@@ -48,3 +48,6 @@ lpm_dp_stage3.md documents the separate native LPM-DP-BP-1.0 decoder state
 machine, bounded online post-BP retention, one-time optional OSD and native tests.
 lpm_dp_stage4.md documents its strict configuration, truth-free native adapter,
 five-column result contract, timing boundary and bounded simulator smoke tests.
+lpm_dp_final_report.md records final clean-build, test/sanitizer, deterministic
+worker, memory, call-graph and simulator audits, plus the separate appendix-scoring
+assessment and known limitations.

@@ -149,22 +149,36 @@ def test_bounded_simulator_smoke_and_old_decoders(tmp_path):
         history_window=1, initial_iterations=1, candidate_iterations=1,
         pool_size=4, max_fixations=1, retained_parents=1, max_cycles=1)
     path = tmp_path / "lpm.yaml"
-    path.write_text(yaml.safe_dump(data))
-    run = run_benchmark(path)
-    assert {item.name for item in run.iterdir()} == {"config_resolved.json", "data"}
-    files = list((run / "data").glob("*_results.parquet"))
-    assert len(files) == 1
-    parquet = pq.ParquetFile(files[0])
-    assert parquet.schema_arrow.equals(LPM_DP_SCHEMA, check_metadata=True)
-    assert parquet.metadata.num_rows == 6
-    rows = parquet.read().to_pylist()
-    assert set(rows[0]) == set(LPM_DP_SCHEMA.names)
-    assert {row["decoder_name"] for row in rows} == {
-        "lpm_dp_bp_v1", "beam8", "bposd_ms30_cs0"}
-    assert all(type(row["logical_error"]) is bool and row["latency_ns"] >= 0
-               and type(row["osd_called"]) is bool for row in rows)
-    resolved = json.loads((run / "config_resolved.json").read_text())
-    assert resolved["output"]["data_schema_version"] == LPM_DP_SCHEMA_VERSION
-    summaries = summarize_run(run)
-    assert len(summaries) == 3 and all(item["shots"] == 2 for item in summaries)
-    assert all(item["correction_by_search_unknown"] == 2 for item in summaries)
+    runs = []
+    for workers in (1, 2):
+        data["execution"]["workers"] = workers
+        path.write_text(yaml.safe_dump(data))
+        run = run_benchmark(path)
+        runs.append(run)
+        assert {item.name for item in run.iterdir()} == {"config_resolved.json", "data"}
+        files = list((run / "data").glob("*_results.parquet"))
+        assert len(files) == 1
+        parquet = pq.ParquetFile(files[0])
+        assert parquet.schema_arrow.equals(LPM_DP_SCHEMA, check_metadata=True)
+        assert parquet.metadata.num_rows == 6
+        rows = parquet.read().to_pylist()
+        assert set(rows[0]) == set(LPM_DP_SCHEMA.names)
+        assert {row["decoder_name"] for row in rows} == {
+            "lpm_dp_bp_v1", "beam8", "bposd_ms30_cs0"}
+        assert all(type(row["logical_error"]) is bool and row["latency_ns"] >= 0
+                   and type(row["osd_called"]) is bool for row in rows)
+        resolved = json.loads((run / "config_resolved.json").read_text())
+        assert resolved["output"]["data_schema_version"] == LPM_DP_SCHEMA_VERSION
+        summaries = summarize_run(run)
+        assert len(summaries) == 3 and all(item["shots"] == 2 for item in summaries)
+        assert all(item["correction_by_search_unknown"] == 2 for item in summaries)
+
+    def scientific(run):
+        return sorted(
+            json.dumps({key: value for key, value in row.items() if key != "latency_ns"},
+                       sort_keys=True)
+            for file in (run / "data").glob("*.parquet")
+            for row in pq.read_table(file).to_pylist()
+        )
+
+    assert scientific(runs[0]) == scientific(runs[1])

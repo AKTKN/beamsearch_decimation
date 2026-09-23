@@ -1,3 +1,55 @@
+# LPM-DP-BP-1.0 final validation (2026-09-23)
+
+Final validation preserves the Stage-4 `LPM-DP-BP-1.0` scientific and simulator
+paths. The final call graph contains only initial BP, per-parent polynomial LPM-DP
+candidate generation, structural fixation, warm child BP, bounded post-BP
+retention and optional one-time OSD-0. It contains no SEARCH-BP solve/guide,
+admission, Tesseract/A*, frontier search or exponential fixation enumeration.
+Python still performs one truth-free native call per shot, and saved results remain
+the exact five-field `lpm_dp_results/1` contract.
+
+The final clean-build audit found and corrected two bootstrap-only omissions:
+the pristine restoration inventory did not copy the required untracked
+`src_cpp/decimated_bp.hpp`, and pandas was declared in `pyproject.toml` but absent
+from `requirements.lock.txt`. The restoration list and dependency lock now cover
+both, with a derived provenance regression for every untracked hybrid input.
+Neither correction changes decoder numerics or simulator physics.
+The recursive config test also correctly treats preserved SEARCH-BP-v2 templates
+as legacy expected-invalid inputs, eliminating the previously documented
+test-discovery-only failure without changing parser behavior.
+
+Executed in `search_decimation` without a production sweep:
+
+- isolated build `assets/acceptance/20260923T062443.251415Z_77b03b3e46`
+  completed from new pinned checkouts and a new conda prefix, without copied
+  native binaries, wheels, build directories or circuit cache;
+- dependency, fork and native source identity checks plus `pip check`: passed;
+- complete project pytest: **337 passed, 1 skipped** in both the working and
+  isolated clean environments; the skip is an unavailable historical artifact;
+- focused LPM-DP, exact-BP, Beam Search, BP-OSD and SEARCH-BP regressions:
+  **128 passed**, including all 288 pristine/fork BP-OSD comparisons;
+- selected upstream ldpc BP tests: **12 passed**, with six existing warnings;
+- fresh native Debug CTest: **9/9 passed**;
+- ASan/UBSan CTest with leak detection and halt-on-error: **9/9 passed**;
+- pristine-fork restoration, both bindings, identities and native CTest:
+  **9/9 passed**;
+- one-worker serial versus two-worker spawn Surface-d3 smoke: every non-latency
+  saved value, including `osd_called`, matched for LPM-DP, Beam and BP-OSD;
+- representative bounded native workload: exact vector payload **1,896 bytes**,
+  measured process peak RSS **4,436 KiB**.
+
+The active minimal runner deliberately has no retained-sample replay, so no replay
+claim is made. The final ownership audit proves at most B old snapshots, B online
+retained child snapshots and one reusable full session, bounded candidate/DP
+scratch and exact `NW` history; it has no raw-candidate-times-N/E term. The exact
+formula, BB72 bound, file inventory, limitations and separate appendix assessment
+of deletion-biased retention are in
+[docs/lpm_dp_final_report.md](docs/lpm_dp_final_report.md). The proposed debiased
+score is not part of the reference decoder and is reserved for a named future
+ablation.
+
+---
+
 # LPM-DP-BP-1.0 Stage 4 simulator integration (2026-09-23)
 
 Integrated the existing native Stage-3 decoder with the simulator under the

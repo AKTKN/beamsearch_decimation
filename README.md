@@ -38,11 +38,12 @@ and orchestration. No production simulations were run for this stage.
 SEARCH-BP-1.0 sources, bindings, contracts and tests are
 preserved under `legacy/search_bp_v1` areas and excluded from the active build.
 
-The separate LPM-DP work is complete through simulator Stage 4. Its distinct
+The separate LPM-DP work is complete through final validation. Its distinct
 `LPM-DP-BP-1.0` state machine uses per-parent local-parity candidates, warm-started
 hard-decimated BP and bounded post-BP retention; it does not use SEARCH-BP search
 scores or global admission. The truth-free adapter saves only the five-column
-`lpm_dp_results/1` contract. See [the Stage-4 report](docs/lpm_dp_stage4.md).
+`lpm_dp_results/1` contract. See the
+[final implementation report](docs/lpm_dp_final_report.md).
 
 New simulations save one minimal result file per condition. SEARCH-BP uses its
 six-column contract; LPM-DP uses shot identity, decoder name, logical error, full
