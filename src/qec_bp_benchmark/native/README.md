@@ -75,3 +75,13 @@ signed DBL_MAX. The decoder has an atomic non-reentrant guard and owns no
 telemetry. The seventh target `test_search_bp_stage4` observes the same loop only
 in its standalone test build. See docs/search_bp_stage4.md. The simulator adapter
 remains guarded.
+
+## LPM-DP 1.0 standalone candidate generation
+
+`lpm_dp_model.hpp` and `lpm_dp_candidates.hpp` implement the Stage-1-only local
+parity marginal candidate generator. The four responsibilities are region
+selection, cavity-field construction, parity DP construction, and retained-mass
+fixation-count selection. The parent supplies explicit edge-aligned final
+check-to-variable messages; the BP fork, recursive decoder, beam, OSD and Python
+bindings are intentionally untouched. `test_lpm_dp` includes an independent
+small-problem exhaustive oracle. See `docs/lpm_dp_stage1.md`.

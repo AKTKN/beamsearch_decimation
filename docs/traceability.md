@@ -18,6 +18,24 @@ edge-mask/history/state tests; `native/test_decimated_bp.cpp` compares pinned
 parallel min-sum. The source inventory and restoration test cover the new header.
 No confidence/check-ranking/search/admission equations are implemented in the fork.
 
+## LPM-DP 1.0 Stage 1
+
+The standalone-only implementation and executed evidence are detailed in
+[lpm_dp_stage1.md](lpm_dp_stage1.md).
+
+| Note requirement | Implementation | Behavioral evidence |
+|---|---|---|
+| Exact eight settings and parent summary | `lpm_dp_model.hpp::Settings`, `summarize_parent` | defaults/ranges, clipped history, fixed/disconnected exclusion, ties |
+| Sparse one/two-check region and nested locations | `select_region` | single/pair/shared-variable and nesting fixtures |
+| Cavity field and joint parity labels | `build_local_fields` | selected-message exclusion, ordered clipping, shared label |
+| Boundary/full-mass/list DP | `build_dp_tables`, `evaluate_fixation_count` | one/four-state, boundary/empty/infeasible fixtures; random exhaustive oracle |
+| Exact top-K mass and largest q | `choose_fixation_count` | worked 0.9 example, fallback, random selected-q comparison, q=64 |
+| Standalone composition and input contract | `generate_candidates`, `ParentView` | end-to-end and malformed-input cases; Debug and ASan/UBSan |
+
+The headers are included in the project source-identity inventory. CMake adds only
+the standalone native target; no fork, binding, decoder, config or runner path is
+changed.
+
 | Migration requirement | Implementation | Evidence |
 |---|---|---|
 | Old algorithm excluded from active build | module.cpp, CMakeLists.txt, native_sources.py; native/legacy/search_bp_v1 | test_search_bp_v2_contract.py checks missing old symbols |

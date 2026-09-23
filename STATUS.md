@@ -1,3 +1,48 @@
+# LPM-DP 1.0 Stage 1 standalone candidate generator (2026-09-23)
+
+Implemented the standalone C++ candidate generator from
+`local_parity_decimation_note.tex`: exact eight-parameter validation, immutable
+parent summary, sparse shared-check selection, nested fixation locations,
+edge-aligned cavity fields, joint one/two-check sum-product and top-K DP, complete
+local normalizer/retained mass, and largest-q selection through q=64. The generator
+returns canonical patterns and normalized local log probabilities. It contains no
+old solve/guide scoring, assignment enumeration, recursive BP, beam retention,
+OSD, bindings or simulator integration. The BP fork and scientific artifacts are
+unchanged.
+
+New native headers are source-identity inputs. CMake adds `test_lpm_dp`; its
+independent exhaustive oracle checked 600 deterministic random models (576
+feasible, 24 infeasible) and 1,646 fixation marginals, plus explicit history,
+region, cavity, worked-example, empty-boundary, ordering, q=64, mass, fallback,
+infeasibility, validation and end-to-end cases.
+
+Executed in `search_decimation`:
+
+- focused Debug test: passed;
+- focused ASan/UBSan test with leak detection: passed;
+- complete Debug native CTest: **8/8 passed**;
+- `scripts/build_dependencies.sh --check`: passed; the editable source-hashed
+  project extension rebuilt successfully;
+- `python tests/check_hybrid_restoration.py`: restored both fork bindings, rebuilt
+  a fresh project extension, verified source identities and passed native CTest
+  **8/8** after adding the new target to its explicit build list;
+- full `python -m pytest -q`: **331 passed, 1 skipped, 1 failed**. The sole failure
+  is pre-existing branch inconsistency in
+  `test_cs0_identity_and_legacy_parameters`: its recursive template scan treats
+  tracked `config/legacy/search_bp_v2/search_bp.yaml.example` as current even
+  though that preserved file declares schema `/3`, SEARCH-BP-2.0 and results-v1
+  while current validation requires `/4`, SEARCH-BP-2.1 and results-v2. Neither
+  file is changed in this stage; all LPM-DP and other collected tests passed.
+
+The derived live-memory bound is
+`O(n+m+M d_v^2+|V_A|+S K q0)` once per parent and `O(q0)` per returned candidate;
+there is no unbounded frontier or `2^q`/`2^|B|` storage. At default `S=4,q0=4,K=2`,
+the DP allocation payload subtotal described in `docs/lpm_dp_stage1.md` is 1,968
+bytes on the validation ABI, excluding sparse-map allocator overhead, parent-wide
+summary arrays, outer objects and owned results.
+
+---
+
 # SEARCH-BP-2.0 final validation and conservative optimization (2026-09-22)
 
 Completed the seven-step TeX-to-function audit in

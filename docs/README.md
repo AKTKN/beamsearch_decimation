@@ -37,3 +37,7 @@ search_bp_implementation.md is the active SEARCH-BP-2.1 equation/function map,
 complete defaults, allocation/memory audit and final validation record.
 search_bp_stage5.md documents the SEARCH-BP-2.1 simulator integration,
 strict native mapping, six-field schema and smoke-sized invariant tests.
+
+lpm_dp_stage1.md documents the standalone LPM-DP 1.0 candidate generator, its
+immutable native API, exact local marginal DP, bounded memory, and Stage-1 tests.
+It is not a decoder or simulator integration.

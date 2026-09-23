@@ -77,7 +77,8 @@ print('Both restored bindings, complete source digests, decimation/history, stat
             subprocess.run(['cmake','-S',str(project),'-B',str(build),'-DCMAKE_BUILD_TYPE=Release',
                 '-DQEC_BUILD_TESTS=ON',f'-DPython_EXECUTABLE={sys.executable}',f'-Dpybind11_DIR={pybind11.get_cmake_dir()}'],check=True)
             subprocess.run(['cmake','--build',str(build),'--target','_native','test_reference_bp','test_search',
-                'test_hybrid_bp','test_hybrid','test_decimated_bp','test_search_bp_stage3','test_search_bp_stage4','-j2'],check=True)
+                'test_hybrid_bp','test_hybrid','test_decimated_bp','test_search_bp_stage3','test_search_bp_stage4',
+                'test_lpm_dp','-j2'],check=True)
             subprocess.run(['ctest','--test-dir',str(build),'--output-on-failure'],check=True)
             program='''
 from pathlib import Path
