@@ -49,6 +49,25 @@ The exact-message fork audit and ownership/memory report are in
 | Bounded memory | one additional `8E` per retained/materialized snapshot; former session `8E` workspace removed | payload assertions and BB72 exact memory calculation |
 | Preserve existing decoders | no update/stopping/decision/controller changes | pinned BP and deterministic Beam/BP-OSD/SEARCH-BP regressions |
 
+## LPM-DP-BP-1.0 Stage 3
+
+The native architecture, exact state machine and memory audit are in
+[lpm_dp_stage3.md](lpm_dp_stage3.md).
+
+| Requirement | Implementation | Behavioral evidence |
+|---|---|---|
+| Distinct identity/defaults | `lpm_dp_decoder.hpp::DecoderSettings` and identity constants | exact default/invalid-setting assertions |
+| Per-parent local candidates, no global quota | nested parent/candidate loop over `generate_candidates` | multi-parent cycles and `B_keep*K` evaluation bound |
+| Hard mask and warm start | `Session::inherit_descendant` from the donor snapshot | fixed-zero/one, free `q/mu` equality and immediate contradiction checks |
+| Main-note post-BP retention | online ordered `ParentState` insertion | independent full-sort comparison, deterministic replay and no pattern deduplication |
+| Bounded generations | competitive-only `capture`, bounded parent/child vectors | maximum snapshot/candidate counts and generation-release assertions |
+| First valid correction/original validation | original graph check before every success result | root success, child convergence, zero syndrome and explicit `H/s` checks |
+| Optional terminal OSD-0 | one call after bounded exhaustion, best retained/channel LLR convention | enabled/disabled, no-survivor input and exact call/flag checks |
+| Reuse and non-reentrancy | per-shot reset plus atomic guard | repeated-shot equality and nested-call rejection |
+
+No SEARCH-BP score/search/admission implementation is used, and no simulator or
+Python decoder registration is part of Stage 3.
+
 | Migration requirement | Implementation | Evidence |
 |---|---|---|
 | Old algorithm excluded from active build | module.cpp, CMakeLists.txt, native_sources.py; native/legacy/search_bp_v1 | test_search_bp_v2_contract.py checks missing old symbols |

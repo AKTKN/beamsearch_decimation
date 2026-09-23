@@ -97,11 +97,25 @@ void test_parent_and_region() {
     assert(summary.uncertain_pool == std::vector<int>({1,4,2}));
     assert(std::find(summary.uncertain_pool.begin(), summary.uncertain_pool.end(), 0) == summary.uncertain_pool.end());
     assert(std::find(summary.uncertain_pool.begin(), summary.uncertain_pool.end(), 5) == summary.uncertain_pool.end());
+    AveragedParentView averaged{graph, syndrome, fixed, summary.mean_llr, messages, 17};
+    const auto averaged_summary = summarize_parent(averaged, settings);
+    assert(averaged_summary.status == summary.status && averaged_summary.residual == summary.residual);
+    assert(averaged_summary.mean_llr == summary.mean_llr &&
+           averaged_summary.uncertainty == summary.uncertainty &&
+           averaged_summary.uncertain_pool == summary.uncertain_pool);
     const auto region = select_region(graph, summary, settings);
     assert(region.checks == std::vector<int>({0,1}));
     assert(region.variables == std::vector<int>({1,2,4}));
     assert(region.uncertain_local == std::vector<int>({1,4,2}));
     assert(region.fixation_order == region.uncertain_local); // Nested F_q are prefixes.
+    const auto fields = build_local_fields(view, region, settings);
+    const auto averaged_fields = build_local_fields(averaged, region, settings);
+    assert(fields.variables.size() == averaged_fields.variables.size());
+    for (size_t i = 0; i < fields.variables.size(); ++i) {
+        assert(fields.variables[i].id == averaged_fields.variables[i].id);
+        assert(fields.variables[i].field == averaged_fields.variables[i].field);
+        assert(fields.variables[i].unary_cost == averaged_fields.variables[i].unary_cost);
+    }
 
     settings.local_check_limit = 1;
     const auto single = select_region(graph, summary, settings);

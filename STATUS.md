@@ -1,3 +1,46 @@
+# LPM-DP-BP-1.0 Stage 3 native decoder (2026-09-23)
+
+Implemented the distinct native-only `lpm_dp_bp` / `lpm_dp_bp_v1` decoder state
+machine. It uses the Stage-1 per-parent local-parity generator, Stage-2 exact
+check-message snapshots, structural hard fixation, warm-started parallel min-sum,
+the main-note post-BP retention order and an optional one-time OSD-0 fallback.
+SEARCH-BP search, solve/guide scoring, global admission and search corrections are
+not used. No Python binding, configuration, adapter, worker or simulator route was
+added; Stage 4 has not started.
+
+Execution is bounded to eight old parents, eight online-retained full child
+snapshots and one reusable session at reference settings. Noncompetitive children
+are never snapshotted, and the worst retained child is destroyed before a
+competitive replacement is captured. The parent mean is derived after snapshot
+restore rather than stored redundantly. For BB72 d6/r6 at the reference defaults,
+the final-cycle vector-payload bound is 5,218,344 bytes and 5,223,048 bytes with
+the validation ABI's inline state/session/temporary objects. There is no
+`raw_candidate_count*E` or `raw_candidate_count*N` term. The focused fixture's
+bound is 1,896 bytes and its measured process peak RSS is 4,308 KiB. Full formulas
+and exclusions are in [docs/lpm_dp_stage3.md](docs/lpm_dp_stage3.md).
+
+Executed in `search_decimation`:
+
+- native Debug CTest: **9/9 passed**;
+- ASan/UBSan CTest with leak detection and halt-on-error: **9/9 passed**;
+- exact-message decimated-BP Python tests: **12 passed**;
+- selected upstream ldpc BP tests: **12 passed** with six existing warnings;
+- deterministic Beam Search, BP-OSD and SEARCH-BP regression selection:
+  **76 passed**, matching the Stage-2 baseline;
+- dependency/source audit and editable source-hashed extension rebuild: passed;
+- isolated pristine-fork restoration, both opt-in binding builds, source identity
+  checks and native CTest: **9/9 passed**;
+- full project pytest: **331 passed, 1 skipped, 1 failed**. The only failure is the
+  same pre-existing legacy SEARCH-BP-v2 config-discovery mismatch recorded in
+  Stages 1 and 2; no LPM-DP or old-decoder regression failed.
+
+There are no deviations from the main-body retention rule. The implementation
+uses the decimation session's documented running-sum addition order for the clipped
+history mean, a convention explicitly permitted by the note; the appendix's
+debiased retention is absent. No existing decoder numerical behavior changed.
+
+---
+
 # LPM-DP 1.0 Stage 2 exact final check messages (2026-09-23)
 
 The Stage-0 audit conclusion was confirmed: the fork computed the exact final

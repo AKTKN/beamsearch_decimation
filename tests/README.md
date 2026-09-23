@@ -97,6 +97,10 @@ Debug/ASan/UBSan and clean opt-in restoration. Existing baseline tests are retai
 LPM-DP Stage 2 additionally compares the exposed completed-round check messages
 with the scalar oracle, reconstructs posteriors from them, preserves them across
 restore/copy/move, and proves fixed child edges keep both message directions zero.
+LPM-DP Stage 3 adds `native/test_lpm_dp_decoder.cpp` for the distinct native-only
+decoder state machine, including per-parent ordering, hard masks, warm starts,
+online reference retention, bounded snapshots, recursive cycles, terminal OSD,
+shot reuse and non-reentrancy. No simulator path is exercised.
 
 SEARCH-BP-2.0 Stage 3: `test_search_bp_stage3.py` independently recomputes the
 TeX formulas and both bounded-tree policies, with exhaustive probe patterns,

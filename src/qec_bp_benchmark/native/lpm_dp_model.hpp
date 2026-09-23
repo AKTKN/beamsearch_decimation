@@ -48,6 +48,18 @@ struct ParentView {
     uint64_t parent_id = 0;
 };
 
+// Decoder-facing view of the same parent. The mean must be the exact clipped
+// W-sample mean exported by a session whose history_count == W. This avoids
+// duplicating the snapshot's O(NW) ring in every retained parent.
+struct AveragedParentView {
+    const Graph& graph;
+    const Bits& syndrome;
+    const std::vector<int8_t>& fixed;
+    const Reals& mean_llr;
+    const Reals& check_to_variable;
+    uint64_t parent_id = 0;
+};
+
 enum class Status {
     Ok,
     ParentContradiction,

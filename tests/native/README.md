@@ -21,3 +21,9 @@ decoder, OSD or simulator path.
 LPM-DP Stage 2 extends `test_decimated_bp.cpp` with native deep-copy, move,
 exact-check-message restore and fixed-child-edge checks for the opt-in fork
 snapshot. It does not add a decoder or change the standalone LPM-DP target.
+
+`test_lpm_dp_decoder.cpp` exercises the Stage-3 native LPM-DP-BP-1.0 state
+machine: exact parent/candidate order, both fixation values, inherited messages,
+contradiction filtering, child convergence, online reference retention, bounded
+snapshot counts, generation release, repeated cycles/shots, original-H checks,
+one-time optional OSD and non-reentrancy. It has no simulator dependency.

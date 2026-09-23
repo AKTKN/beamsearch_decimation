@@ -2,7 +2,7 @@
 
 The final SEARCH-BP-2.0 audit is in search_bp_implementation.md. After project
 search header edits, rebuild the editable extension; the fork is unchanged in
-this pass. Final native builds use all seven test targets below, including under
+this pass. Current native builds use all nine test targets below, including under
 ASan/UBSan (detect_leaks=1, halt_on_error=1); the standalone decoder microbenchmark
 is separately compiled without sanitizers. Logs are `test_results/search_bp_final_*`.
 
@@ -16,7 +16,7 @@ targets retain C++17, no fast-math and no contraction. After a watched ldpc hybr
 source changes, rebuild its opt-in extension, audit dependencies, then reinstall
 the project editable. `native_sources.py` lists the active project hash inputs.
 `python tests/check_hybrid_restoration.py` rebuilds both opt-in bindings and the
-seven active native test targets from restored sources in an isolated directory.
+nine active native test targets from restored sources in an isolated directory.
 
 Create the locked environment and build every required native dependency from its
 pinned checkout. The helper also installs the optimized project extension and

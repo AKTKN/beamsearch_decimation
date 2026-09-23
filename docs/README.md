@@ -44,3 +44,6 @@ It is not a decoder or simulator integration.
 lpm_dp_stage2.md documents the minimal fork snapshot/API extension that preserves
 the exact final check-to-variable messages required by that generator, including
 ownership, memory-gate arithmetic and regression scope.
+lpm_dp_stage3.md documents the separate native LPM-DP-BP-1.0 decoder state
+machine, bounded online post-BP retention, one-time optional OSD and native tests.
+It is not yet registered with Python or the simulator.

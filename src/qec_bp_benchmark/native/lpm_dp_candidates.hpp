@@ -64,30 +64,45 @@ inline StateCosts sum_step(const StateCosts& old, const LocalVariable& variable,
     return next;
 }
 
-inline void validate_parent(const ParentView& parent, const Settings& settings) {
+template<class Parent> inline void validate_parent_common(const Parent& parent, const Settings& settings) {
     settings.validate();
     const auto& graph = parent.graph;
     ldpc::hybrid::binary(parent.syndrome, size_t(graph.m));
-    if (parent.fixed.size() != size_t(graph.n) ||
-        parent.posterior_history.size() != size_t(settings.history_window) ||
-        parent.check_to_variable.size() != graph.col.size())
+    if (parent.fixed.size() != size_t(graph.n) || parent.check_to_variable.size() != graph.col.size())
         throw std::invalid_argument("LPM-DP parent array shape mismatch");
     for (int8_t value : parent.fixed)
         if (value < -1 || value > 1) throw std::invalid_argument("invalid LPM-DP fixed mask");
-    for (const auto& sample : parent.posterior_history) {
-        if (sample.size() != size_t(graph.n))
-            throw std::invalid_argument("LPM-DP history row shape mismatch");
-        for (int j = 0; j < graph.n; ++j) {
-            const double value = sample[size_t(j)];
-            if (std::isnan(value) || (parent.fixed[size_t(j)] < 0 && !std::isfinite(value)))
-                throw std::invalid_argument("free history LLRs must be finite and no history value may be NaN");
-        }
-    }
     for (size_t edge = 0; edge < parent.check_to_variable.size(); ++edge) {
         const double value = parent.check_to_variable[edge];
         if (std::isnan(value) ||
             (parent.fixed[size_t(graph.col[edge])] < 0 && !std::isfinite(value)))
             throw std::invalid_argument("free check-to-variable messages must be finite and no message may be NaN");
+    }
+}
+
+inline void validate_parent(const ParentView& parent, const Settings& settings) {
+    validate_parent_common(parent, settings);
+    if (parent.posterior_history.size() != size_t(settings.history_window))
+        throw std::invalid_argument("LPM-DP parent history shape mismatch");
+    for (const auto& sample : parent.posterior_history) {
+        if (sample.size() != size_t(parent.graph.n))
+            throw std::invalid_argument("LPM-DP history row shape mismatch");
+        for (int j = 0; j < parent.graph.n; ++j) {
+            const double value = sample[size_t(j)];
+            if (std::isnan(value) || (parent.fixed[size_t(j)] < 0 && !std::isfinite(value)))
+                throw std::invalid_argument("free history LLRs must be finite and no history value may be NaN");
+        }
+    }
+}
+
+inline void validate_parent(const AveragedParentView& parent, const Settings& settings) {
+    validate_parent_common(parent, settings);
+    if (parent.mean_llr.size() != size_t(parent.graph.n))
+        throw std::invalid_argument("LPM-DP parent mean shape mismatch");
+    for (int j = 0; j < parent.graph.n; ++j) {
+        const double value = parent.mean_llr[size_t(j)];
+        if (std::isnan(value) || (parent.fixed[size_t(j)] < 0 && !std::isfinite(value)))
+            throw std::invalid_argument("free mean LLRs must be finite and no mean value may be NaN");
     }
 }
 
@@ -102,7 +117,8 @@ inline void validate_region_shape(const Region& region) {
 
 } // namespace detail
 
-inline ParentSummary summarize_parent(const ParentView& parent, const Settings& settings) {
+template<class Parent, class Mean> inline ParentSummary summarize_parent_impl(
+        const Parent& parent, const Settings& settings, Mean mean_at) {
     detail::validate_parent(parent, settings);
     const auto& graph = parent.graph;
     ParentSummary out;
@@ -136,10 +152,7 @@ inline ParentSummary summarize_parent(const ParentView& parent, const Settings& 
     std::priority_queue<PoolItem, std::vector<PoolItem>, decltype(better)> heap(better);
     for (int j = 0; j < graph.n; ++j) {
         if (parent.fixed[size_t(j)] >= 0) continue;
-        double sum = 0;
-        for (const auto& sample : parent.posterior_history)
-            sum += detail::clipped(sample[size_t(j)], settings.history_clip);
-        const double mean = sum / double(settings.history_window);
+        const double mean = mean_at(j);
         out.mean_llr[size_t(j)] = mean;
         const double uncertainty = 2.0 / (1.0 + std::exp(std::abs(mean)));
         out.uncertainty[size_t(j)] = uncertainty;
@@ -155,6 +168,19 @@ inline ParentSummary summarize_parent(const ParentView& parent, const Settings& 
     });
     if (out.uncertain_pool.empty()) out.status = Status::NoActiveVariables;
     return out;
+}
+
+inline ParentSummary summarize_parent(const ParentView& parent, const Settings& settings) {
+    return summarize_parent_impl(parent, settings, [&](int j) {
+        double sum = 0;
+        for (const auto& sample : parent.posterior_history)
+            sum += detail::clipped(sample[size_t(j)], settings.history_clip);
+        return sum / double(settings.history_window);
+    });
+}
+
+inline ParentSummary summarize_parent(const AveragedParentView& parent, const Settings& settings) {
+    return summarize_parent_impl(parent, settings, [&](int j) { return parent.mean_llr[size_t(j)]; });
 }
 
 inline Region select_region(const Graph& graph, const ParentSummary& parent, const Settings& settings) {
@@ -227,8 +253,8 @@ inline Region select_region(const Graph& graph, const ParentSummary& parent, con
     return out;
 }
 
-inline LocalFields build_local_fields(const ParentView& parent, const Region& region,
-                                      const Settings& settings) {
+template<class Parent> inline LocalFields build_local_fields_impl(
+        const Parent& parent, const Region& region, const Settings& settings) {
     detail::validate_parent(parent, settings);
     detail::validate_region_shape(region);
     std::set<int> expected_variables;
@@ -273,6 +299,16 @@ inline LocalFields build_local_fields(const ParentView& parent, const Region& re
                         [](const LocalVariable& a, const LocalVariable& b) { return a.id < b.id; }))
         throw std::invalid_argument("local region variables must be sorted");
     return out;
+}
+
+inline LocalFields build_local_fields(const ParentView& parent, const Region& region,
+                                      const Settings& settings) {
+    return build_local_fields_impl(parent, region, settings);
+}
+
+inline LocalFields build_local_fields(const AveragedParentView& parent, const Region& region,
+                                      const Settings& settings) {
+    return build_local_fields_impl(parent, region, settings);
 }
 
 inline DPTables build_dp_tables(const Region& region, const LocalFields& fields,
@@ -432,7 +468,7 @@ inline Result choose_fixation_count(uint64_t parent_id, const Region& region,
     return out;
 }
 
-inline Result generate_candidates(const ParentView& parent, const Settings& settings = {}) {
+template<class Parent> inline Result generate_candidates_impl(const Parent& parent, const Settings& settings) {
     settings.validate();
     const auto summary = summarize_parent(parent, settings);
     Result out; out.status = summary.status; out.parent_id = parent.parent_id;
@@ -441,6 +477,14 @@ inline Result generate_candidates(const ParentView& parent, const Settings& sett
     const auto fields = build_local_fields(parent, region, settings);
     const auto tables = build_dp_tables(region, fields, summary.residual, settings);
     return choose_fixation_count(parent.parent_id, region, tables, settings);
+}
+
+inline Result generate_candidates(const ParentView& parent, const Settings& settings = {}) {
+    return generate_candidates_impl(parent, settings);
+}
+
+inline Result generate_candidates(const AveragedParentView& parent, const Settings& settings = {}) {
+    return generate_candidates_impl(parent, settings);
 }
 
 } // namespace qec::lpm_dp
