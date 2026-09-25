@@ -1,0 +1,1282 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=23mm]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{booktabs,longtable,array}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{microtype}
+
+\newcommand{\Ftwo}{\mathbb F_2}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\TopK}{\operatorname{TopK}}
+\newcommand{\N}{\mathcal N}
+\newcommand{\Bcal}{\mathcal B}
+\newcommand{\Crel}{\mathcal C_{\mathrm{rel}}}
+\newcommand{\Vrel}{\mathcal V_{\mathrm{rel}}}
+\newcommand{\Vphys}{\mathcal V_{\mathrm{phys}}}
+\newcommand{\Cphys}{\mathcal C_{\mathrm{phys}}}
+\newcommand{\xor}{\mathbin{\oplus}}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\ind}{\mathbf 1}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+
+\title{Adaptive Failure-Localized Graph Refactorization for BP Decoding\\
+\large Algorithm Specification and Initial Implementation Design}
+\author{}
+\date{Draft specification, September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note specifies an initial adaptive graph-refactorization decoder for binary
+syndrome-decoding problems. The decoder alternates between belief-propagation
+(BP) decoding and exact, local factor-graph transformations. After a failed BP
+run, a set of suspicious physical variables is selected from BP-derived failure
+weights. Biclique candidates are then enumerated from pairs of relevant check
+nodes. A selected biclique is factorized by introducing one auxiliary variable
+and one auxiliary check, preserving the physical solution set exactly while
+changing the factorization seen by BP. Two factorization-selection policies
+are defined: an adaptive failure-weighted net 4-cycle score and a Shen-style
+greedy internal 4-cycle-count baseline. Multiple transformations are performed
+sequentially with candidate recomputation after every accepted transformation,
+which removes ambiguity caused by overlapping bicliques. Three BP variants are
+specified: synchronous parallel Min-Sum, horizontal serial Min-Sum, and the
+qDither algorithm of Cai et al. The purpose of this document is to define the
+first implementation unambiguously; it does not claim that the proposed
+adaptive score is optimal.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Scope and design principles}
+
+The decoder considered here does not search directly over complete corrections.
+Its adaptive degree of freedom is the \emph{factorization} used by BP. Every
+graph transformation must preserve the original physical decoding problem
+exactly. The graph may acquire auxiliary variables and auxiliary checks, but
+the set of valid physical corrections must remain unchanged.
+
+The first implementation is deliberately restricted to biclique
+factorizations. Arbitrary linear refactorizations, explicit optimization over
+larger check subsets, 6-cycle-specific transformations, and joint optimization
+of several transformations are outside the present specification.
+
+The complete decoder has the following structure:
+\[
+\boxed{
+\text{BP}
+\;\longrightarrow\;
+\text{failure weighting}
+\;\longrightarrow\;
+\text{biclique discovery}
+\;\longrightarrow\;
+\text{bounded exact factorization}
+\;\longrightarrow\;
+\text{BP on the new graph}.
+}
+\]
+The BP--factorization relay is repeated a bounded number of times.
+
+\section{Original decoding problem and current factorization}
+
+\subsection{Physical decoding problem}
+
+Let
+\[
+H_0\in\Ftwo^{m_0\times n_0},\qquad
+s_0\in\Ftwo^{m_0}
+\]
+denote the immutable physical decoding matrix and measured syndrome. The
+physical fault vector is
+\[
+x\in\Ftwo^{n_0},
+\]
+and a valid physical correction satisfies
+\[
+H_0x=s_0.
+\]
+
+For physical variable $j$, let $p_j$ be its prior fault probability and
+define the base LLR
+\[
+\lambda_j^{\mathrm{base}}
+=
+\log\frac{1-p_j}{p_j}.
+\]
+Positive LLR favors the value $0$.
+
+The original physical Tanner graph is denoted
+\[
+G_0=(\Vphys,\Cphys,E_0).
+\]
+
+\subsection{Current augmented factor graph}
+
+At graph-relay stage $r$, BP runs on
+\[
+G^{(r)}=(V^{(r)},C^{(r)},E^{(r)})
+\]
+with binary linear constraints
+\[
+H^{(r)}z=s^{(r)}.
+\]
+The current variable vector $z$ contains all physical variables and possibly
+auxiliary variables.
+
+Every current variable $v\in V^{(r)}$ is assigned a physical-support vector
+\[
+P(v)\in\Ftwo^{n_0}
+\]
+such that the value of $v$ is the parity
+\[
+z_v=P(v)^Tx.
+\]
+For an original physical variable $x_j$,
+\[
+P(x_j)=e_j,
+\]
+where $e_j$ is the $j$-th standard basis vector.
+
+For an auxiliary variable $y$ defined as
+\[
+y=\bigoplus_{v\in S} z_v,
+\]
+its physical support is
+\[
+P(y)=\bigoplus_{v\in S}P(v).
+\]
+The XOR here is essential: if a physical variable occurs an even number of
+times through nested auxiliary definitions, it cancels.
+
+The central invariant of every graph transformation is
+\[
+\boxed{
+\{x:H_0x=s_0\}
+=
+\left\{
+x:\exists!\,z_{\mathrm{aux}}\;
+H^{(r)}z=s^{(r)}
+\right\}.
+}
+\]
+Thus each valid physical assignment has exactly one compatible assignment of
+the current auxiliary variables.
+
+\subsection{Unary priors}
+
+The immutable unary prior for a physical variable remains
+\[
+\lambda_v^{\mathrm{base}}=\lambda_j^{\mathrm{base}}
+\qquad (v=x_j).
+\]
+An auxiliary variable represents a deterministic parity and receives no
+independent physical evidence:
+\[
+\boxed{
+\lambda_y^{\mathrm{base}}=0.
+}
+\]
+This zero LLR is a neutral unary factor; it must not be replaced by an
+inherited BP marginal as a permanent prior. Inherited marginals are used only
+to initialize message passing, as specified in Section~\ref{sec:handoff}.
+
+\section{BP engine interface}
+
+The graph-refactorization logic treats BP through a common interface.
+
+\subsection{BP input and output}
+
+A call
+\[
+\mathrm{RunBP}(G,\lambda^{\mathrm{base}},q^{\mathrm{init}},\Theta_{\mathrm{BP}})
+\]
+takes a current factor graph, its immutable unary LLR vector, an initialization
+vector used only for initial variable-to-check messages, and BP-variant
+parameters. The call returns
+\[
+\mathsf{BPResult}
+=
+(\mathsf{converged},\hat z,L^{\mathrm{final}},
+\mathcal H_L,\mathsf{iterations}),
+\]
+where $L^{\mathrm{final}}$ is the final marginal LLR vector and $\mathcal H_L$
+is the trailing marginal history required by the failure diagnostic.
+
+Any candidate solution is accepted only after projecting $\hat z$ to its
+physical coordinates $\hat x$ and checking
+\[
+H_0\hat x=s_0.
+\]
+
+\subsection{Common Min-Sum rule}
+
+For the parallel and serial variants, and for the inner Min-Sum recursion of
+qDither, the base check update is
+\[
+m_{a\to v}
+=
+\alpha_{\mathrm{MS}}
+(-1)^{s_a}
+\left(
+\prod_{u\in N(a)\setminus\{v\}}
+\sgn m_{u\to a}
+\right)
+\min_{u\in N(a)\setminus\{v\}}
+|m_{u\to a}|,
+\]
+and the variable update is
+\[
+m_{v\to a}
+=
+\lambda_v^{\mathrm{base}}
++
+\sum_{b\in N(v)\setminus\{a\}}
+m_{b\to v}.
+\]
+The marginal is
+\[
+L_v
+=
+\lambda_v^{\mathrm{base}}
++
+\sum_{b\in N(v)}m_{b\to v}.
+\]
+The normalization parameter satisfies $0<\alpha_{\mathrm{MS}}\le1$; setting
+$\alpha_{\mathrm{MS}}=1$ gives ordinary Min-Sum.
+
+\subsection{Variant P: parallel Min-Sum}
+
+The parallel variant is synchronous. At iteration $t$, all check-to-variable
+messages are computed from variable-to-check messages from iteration $t-1$;
+then all variable-to-check messages are updated; then marginals and the hard
+decision are computed. No message produced by one check during a given
+check-update half-iteration is used by another check in that same
+half-iteration.
+
+\subsection{Variant S: horizontal serial Min-Sum}
+
+The serial variant processes check nodes one at a time. Let
+\[
+\pi_t=(a_1,\ldots,a_{|C|})
+\]
+be the check order in iteration $t$. When check $a_k$ is processed, its new
+check-to-variable messages are computed using the currently available
+variable-to-check messages. The affected variable marginals and outgoing
+variable-to-check messages are updated immediately, so later checks in the
+same iteration can use the new information.
+
+The serial-order option is
+\[
+\texttt{serial\_order}\in
+\{\texttt{natural},\texttt{random\_per\_iteration}\}.
+\]
+The randomized option draws an independent permutation $\pi_t$ at the start of
+each iteration using the decoder RNG seed. GARI uses a randomized horizontal
+serial schedule in the serial portion of its hybrid schedule~\cite{gari}.
+
+\subsection{Variant D: qDither Min-Sum}
+
+The qDither variant follows Cai et al.~\cite{qdither}. A faithful paper-mode
+run has two phases.
+
+\paragraph{Phase I.}
+Run standard syndrome-based Min-Sum from the base priors. If a valid solution
+is found, return it.
+
+\paragraph{Phase II.}
+For chain $r=1,\ldots,n_{\mathrm{chain}}$, form a new bias
+\[
+\lambda_j^{(r)}
+=
+(1-\chi_j^{(r)})\lambda_j^{\mathrm{base}}
++
+\chi_j^{(r)}q_j^{(r-1)},
+\qquad
+\chi_j^{(r)}\sim\mathrm{Unif}[\alpha_D,\beta_D].
+\]
+For each variable $j$, draw once per chain
+\[
+I_j^{(r)}\sim\mathrm{Bernoulli}(\rho_D).
+\]
+After the ordinary variable-to-check update produces a provisional
+$m_{j\to a}^{(\ell)}$, define
+\[
+\delta_{j\to a}^{(\ell)}
+=
+\frac{
+1-
+\sgn m_{j\to a}^{(\ell)}
+\sgn m_{j\to a}^{(\ell-1)}
+}{2}.
+\]
+If $I_j^{(r)}=1$, replace the message by
+\[
+m_{j\to a}^{(\ell)}
+\leftarrow
+m_{j\to a}^{(\ell)}
++
+\delta_{j\to a}^{(\ell)}
+m_{j\to a}^{(\ell-1)}.
+\]
+After an unsuccessful chain, set
+\[
+q_j^{(r)}=L_j^{\mathrm{final}}
+\]
+and continue to the next chain. The qDither specification in Cai et al. uses
+$q^{(0)}=\lambda^{\mathrm{base}}$.
+
+The implementation option
+\[
+\texttt{qdither\_handoff}\in
+\{\texttt{paper},\texttt{graph\_warm}\}
+\]
+is defined as follows. In \texttt{paper} mode, the paper initialization is used
+exactly and cross-graph marginal inheritance is not injected into qDither
+Phase I. In \texttt{graph\_warm} mode, the first qDither message state is
+initialized from the graph-relay handoff vector defined in
+Section~\ref{sec:handoff}; this is a graph-relay/qDither hybrid and must not be
+reported as an exact reproduction of qDither.
+
+\section{Failure weights and suspicious physical variables}
+
+\subsection{Residual syndrome}
+
+If BP fails, project the final hard decision to physical variables $\hat x$
+and compute the residual in the immutable original basis:
+\[
+r^{\mathrm{phys}}
+=
+s_0\oplus H_0\hat x.
+\]
+Let
+\[
+\mathcal R
+=
+\{a\in\Cphys:r_a^{\mathrm{phys}}=1\}.
+\]
+
+\subsection{Uncertainty and oscillation}
+
+For physical variable $j$, let the last $W$ physical marginal LLRs of the
+failed BP call be $L_j^{(t)}$. Define
+\[
+\bar L_j
+=
+\frac1W\sum_{t=T-W+1}^{T}L_j^{(t)},
+\]
+\[
+u_j
+=
+1-\left|\tanh\frac{\bar L_j}{2}\right|,
+\]
+and
+\[
+o_j
+=
+\frac1{W-1}
+\sum_{t=T-W+2}^{T}
+\ind\!\left[
+\sgn L_j^{(t)}
+\ne
+\sgn L_j^{(t-1)}
+\right].
+\]
+
+Let $d_j$ be the Tanner-graph distance, measured on the immutable physical
+graph $G_0$, from physical variable $j$ to the nearest residual check in
+$\mathcal R$. The reference failure weight is
+\[
+\boxed{
+\omega_j
+=
+\ind[d_j\le D]
+\,\rho_{\mathrm{dist}}^{\,d_j}
+\frac{\eta_u u_j+\eta_o o_j}{\eta_u+\eta_o}.
+}
+\]
+If $\mathcal R=\varnothing$, the projected physical hard decision already
+satisfies $H_0\hat x=s_0$, so the decoder must have terminated before this
+subroutine.
+
+For qDither, $\mathcal H_L$ is taken from the final unsuccessful internal
+chain only. Histories from distinct qDither chains are not concatenated.
+
+\subsection{Selecting the suspicious physical set $U$}
+
+Two selection modes are defined.
+
+\paragraph{Top-$K$ mode.}
+\[
+U
+=
+\TopK_{j\in\Vphys}\omega_j,
+\]
+retaining at most $K_U$ variables with positive weight. Ties are broken by
+ascending physical variable index.
+
+\paragraph{Threshold mode.}
+\[
+U
+=
+\{j\in\Vphys:\omega_j\ge\tau_U\}.
+\]
+The implementation option is
+\[
+\texttt{U\_selection}\in
+\{\texttt{top\_k},\texttt{threshold}\}.
+\]
+
+\section{Extending failure activity to auxiliary variables}
+
+Graph factorization may already have introduced auxiliary variables. A current
+graph variable $v\in V^{(r)}$ is considered related to the suspicious physical
+set if
+\[
+\supp P(v)\cap U\ne\varnothing.
+\]
+Define
+\[
+U^{(r)}
+=
+\left\{
+v\in V^{(r)}:
+\supp P(v)\cap U\ne\varnothing
+\right\}.
+\]
+
+For weighted-cycle scoring, extend the physical weights to every current graph
+variable by
+\[
+\boxed{
+\widetilde\omega_v
+=
+\begin{cases}
+\max_{j\in\supp P(v)}\omega_j,
+& \supp P(v)\ne\varnothing,\\
+0,&\supp P(v)=\varnothing.
+\end{cases}
+}
+\]
+The maximum rule is part of the reference specification. It prevents a
+large-support auxiliary variable from receiving a larger score merely because
+its support contains many physical variables.
+
+\section{Biclique-discovery subroutine}
+
+\subsection{Relevant local graph}
+
+Given $U^{(r)}$, define
+\[
+\boxed{
+\Crel
+=
+N_{G^{(r)}}(U^{(r)})
+}
+\]
+and, for bookkeeping,
+\[
+\Vrel
+=
+N_{G^{(r)}}(\Crel).
+\]
+The role of $\Vrel$ is only to describe the induced local graph
+\[
+G_{\mathrm{rel}}^{(r)}
+=
+G^{(r)}[\Vrel,\Crel].
+\]
+It is not used redundantly inside the neighborhood definitions below.
+
+\subsection{Check-pair seeds}
+
+For every unordered pair
+\[
+a,b\in\Crel,\qquad a<b,
+\]
+compute
+\[
+\boxed{
+S_{ab}
+=
+N_{G^{(r)}}(a)\cap N_{G^{(r)}}(b).
+}
+\]
+Discard the pair unless
+\[
+|S_{ab}|\ge2
+\]
+and
+\[
+S_{ab}\cap U^{(r)}\ne\varnothing.
+\]
+
+For every surviving pair define the check closure
+\[
+\boxed{
+C_{ab}
+=
+\left\{
+c\in\Crel:
+S_{ab}\subseteq N_{G^{(r)}}(c)
+\right\}.
+}
+\]
+Because $S_{ab}\cap U^{(r)}\ne\varnothing$, any check in the complete graph
+that contains all of $S_{ab}$ is automatically adjacent to $U^{(r)}$ and hence
+belongs to $\Crel$. Therefore this local closure is also the complete check
+closure for this candidate.
+
+Moreover, because $a,b\in C_{ab}$,
+\[
+\bigcap_{c\in C_{ab}}N(c)
+\subseteq
+N(a)\cap N(b)
+=
+S_{ab},
+\]
+while the definition of $C_{ab}$ gives the opposite inclusion. Hence
+\[
+\boxed{
+S_{ab}
+=
+\bigcap_{c\in C_{ab}}N(c).
+}
+\]
+Thus the pair seed produces a closed biclique
+\[
+B_{ab}=(S_{ab},C_{ab}).
+\]
+
+Identical pairs $(S_{ab},C_{ab})$ generated by different check seeds are
+deduplicated using sorted variable and check identifier lists.
+
+\subsection{Output}
+
+The output of biclique discovery is
+\[
+\boxed{
+\Bcal(G^{(r)},U)
+=
+\operatorname{unique}
+\left\{
+(S_{ab},C_{ab})
+\right\}.
+}
+\]
+
+\begin{algorithm}[H]
+\caption{\textsc{DiscoverBicliques}}
+\begin{algorithmic}[1]
+\Require Current graph $G$, support map $P$, suspicious physical set $U$
+\Ensure Unique biclique set $\Bcal$
+\State $U_G\gets\{v:\supp P(v)\cap U\ne\varnothing\}$
+\State $\Crel\gets N_G(U_G)$
+\State $\Bcal\gets\varnothing$
+\ForAll{unordered pairs $a<b$ in $\Crel$}
+    \State $S\gets N_G(a)\cap N_G(b)$
+    \If{$|S|<2$ or $S\cap U_G=\varnothing$}
+        \State \textbf{continue}
+    \EndIf
+    \State $C\gets\{c\in\Crel:S\subseteq N_G(c)\}$
+    \State insert canonical pair $(S,C)$ into $\Bcal$
+\EndFor
+\State \Return $\Bcal$
+\end{algorithmic}
+\end{algorithm}
+
+An implementation may generate only check pairs that share variables by
+accumulating pairs from variable-to-check adjacency. This optimization must
+produce exactly the same mathematical output as the algorithm above.
+
+\section{Exact biclique factorization}
+
+Let
+\[
+B=(S,C)\in\Bcal,
+\qquad
+|S|\ge2,\quad |C|\ge2,
+\]
+be a biclique in the current graph $G$. Introduce a fresh auxiliary variable
+$y_B$ and a fresh auxiliary check $q_B$. Add the defining equation
+\[
+\boxed{
+z_{y_B}
+\oplus
+\bigoplus_{v\in S}z_v
+=0.
+}
+\]
+Equivalently,
+\[
+N(q_B)=S\cup\{y_B\},
+\qquad
+s_{q_B}=0.
+\]
+
+For every check $c\in C$, replace
+\[
+N(c)
+\]
+by
+\[
+\boxed{
+N'(c)
+=
+\left(N(c)\setminus S\right)\cup\{y_B\}.
+}
+\]
+All other check neighborhoods remain unchanged.
+
+The new auxiliary variable support is
+\[
+\boxed{
+P(y_B)
+=
+\bigoplus_{v\in S}P(v).
+}
+\]
+Its immutable base prior is
+\[
+\lambda_{y_B}^{\mathrm{base}}=0.
+\]
+
+The new check enforces $z_{y_B}=\oplus_{v\in S}z_v$; substituting this equality
+into every transformed check reproduces the original check exactly. Therefore
+the transformation preserves the physical solution set one-to-one. This is
+the basic AVN/ACN construction used for all-ones submatrices by Shen et
+al.~\cite{shen} and the biclique rewiring principle used by GARI~\cite{gari}.
+
+If $p=|C|$ and $q=|S|$, the biclique contains $pq$ internal edges and
+\[
+\binom p2\binom q2
+\]
+internal 4-cycles. The transformed repeated-parity subgraph uses $p+q+1$
+edges. Candidate A intentionally does not include edge-count, maximum-degree,
+or auxiliary-count penalties in its selection score; these quantities should
+still be logged as diagnostics.
+
+\section{Failure-weighted net 4-cycle score}
+
+For any current graph $G=(V,C,E)$, define
+\[
+\boxed{
+\Phi(G;\omega)
+=
+\sum_{\{a,b\}\subseteq C}
+\;
+\sum_{\{u,v\}\subseteq N(a)\cap N(b)}
+\widetilde\omega_u\widetilde\omega_v.
+}
+\]
+Each unordered pair of checks and unordered pair of shared variables
+corresponds to exactly one 4-cycle, so every 4-cycle is counted exactly once.
+
+For candidate biclique $B$, let
+\[
+G_B=T_B(G)
+\]
+be the trial graph produced by exact biclique factorization. Define
+\[
+\boxed{
+\Delta\Phi^{\mathrm{net}}(B)
+=
+\Phi(G;\omega)-\Phi(G_B;\omega).
+}
+\]
+A positive value means that the transformation reduces the current
+failure-weighted 4-cycle score after accounting for both removed and newly
+created 4-cycles.
+
+\section{Factorization subroutine}
+
+\subsection{Policy A: adaptive net-cycle selection}
+
+At each factorization step, compute the complete current biclique set
+$\Bcal(G,U)$. For every $B\in\Bcal$, build the trial transformed graph $G_B$
+and compute $\Delta\Phi^{\mathrm{net}}(B)$. Select
+\[
+\boxed{
+B^\star
+=
+\argmax_{B\in\Bcal}
+\Delta\Phi^{\mathrm{net}}(B).
+}
+\]
+Ties are broken deterministically by lexicographic order of the sorted
+variable-ID list $S$, followed by the sorted check-ID list $C$.
+
+If
+\[
+\boxed{
+\Delta\Phi^{\mathrm{net}}(B^\star)\le0,
+}
+\]
+no transformation is applied and the factorization subroutine terminates
+early. Thus larger positive score is better.
+
+\subsection{Policy B: Shen-style internal-cycle baseline}
+
+For every current biclique $B=(S,C)$, compute
+\[
+\boxed{
+\delta(B)
+=
+\binom{|S|}{2}
+\binom{|C|}{2}.
+}
+\]
+Select
+\[
+\boxed{
+B^\star
+=
+\argmax_{B\in\Bcal}\delta(B).
+}
+\]
+The same deterministic lexicographic tie rule is used. A candidate in
+$\Bcal$ always has $|S|\ge2$ and $|C|\ge2$, hence $\delta(B)\ge1$; this policy
+applies the selected transformation whenever $\Bcal\ne\varnothing$.
+
+This is a \emph{Shen-style selection baseline}, not a reproduction of every
+detail of Shen et al.'s optimized 4-cycle-removal procedure. In particular,
+the present baseline does not include their additional degree-1/degree-2
+cleanup rules. The purpose of policy B is to isolate the effect of selecting
+the biclique with the largest number of internal 4-cycles.
+
+\subsection{Multiple transformations and overlapping bicliques}
+
+Let $n_{\mathrm{fact}}$ be the maximum number of accepted factorization
+operations performed in one graph-refactorization call.
+
+Transformations are strictly sequential. After every accepted transform, the
+actual graph is replaced by the transformed graph, the support map and base
+prior are extended, the biclique candidate set is discarded, biclique
+discovery is rerun on the new graph, and candidate scores are recomputed.
+Therefore overlapping bicliques are never treated as independent static
+objects. A candidate that was valid before a transformation has no standing
+after the graph is modified unless it is rediscovered in the updated graph.
+
+The physical failure weights $\omega$ and suspicious physical set $U$ remain
+fixed throughout the $n_{\mathrm{fact}}$ inner transformations because no BP
+run occurs between them. Their extension $\widetilde\omega$ to newly introduced
+auxiliary variables is recomputed from the updated physical-support map.
+
+\begin{algorithm}[H]
+\caption{\textsc{FactorizeGraph}}
+\begin{algorithmic}[1]
+\Require $G,\lambda^{\mathrm{base}},P,\omega,U,n_{\mathrm{fact}}$, policy
+\Ensure Transformed $G,\lambda^{\mathrm{base}},P$, number $n_{\mathrm{applied}}$
+\State $n_{\mathrm{applied}}\gets0$
+\For{$t=1,\ldots,n_{\mathrm{fact}}$}
+    \State $\Bcal\gets\textsc{DiscoverBicliques}(G,P,U)$
+    \If{$\Bcal=\varnothing$}
+        \State \textbf{break}
+    \EndIf
+    \If{policy = \texttt{adaptive\_cycle}}
+        \ForAll{$B\in\Bcal$}
+            \State form trial $G_B\gets T_B(G)$
+            \State $\Delta_B\gets\Phi(G;\omega)-\Phi(G_B;\omega)$
+        \EndFor
+        \State $B^\star\gets\argmax_B\Delta_B$
+        \If{$\Delta_{B^\star}\le0$}
+            \State \textbf{break}
+        \EndIf
+    \Else
+        \State $\delta_B\gets\binom{|S_B|}{2}\binom{|C_B|}{2}$ for all $B\in\Bcal$
+        \State $B^\star\gets\argmax_B\delta_B$
+    \EndIf
+    \State Apply $T_{B^\star}$ exactly to $G,\lambda^{\mathrm{base}},P$
+    \State $n_{\mathrm{applied}}\gets n_{\mathrm{applied}}+1$
+\EndFor
+\State \Return updated state and $n_{\mathrm{applied}}$
+\end{algorithmic}
+\end{algorithm}
+
+Shen et al. similarly apply a greedy 4-cycle-removal operation and continue on
+the updated matrix rather than treating initially detected overlapping
+all-ones blocks as independent transformations~\cite{shen}. The adaptive
+procedure here differs in its selection objective and in stopping after a
+configurable number of transformations.
+
+\section{Marginal handoff after graph transformation}
+\label{sec:handoff}
+
+The graph-relay algorithm inherits the previous BP state only as an
+\emph{initialization}; it does not overwrite the immutable unary factors.
+
+Let $L_v^{\mathrm{parent}}$ be the final marginal of the failed BP call for
+every variable that existed before factorization. Define the relay
+initialization vector $q^{\mathrm{relay}}$ on the transformed graph. For every
+surviving existing variable,
+\[
+q_v^{\mathrm{relay}}
+=
+L_v^{\mathrm{parent}}.
+\]
+
+For a newly introduced auxiliary variable
+\[
+y=\bigoplus_{v\in S}z_v,
+\]
+compute an approximate parity LLR from the currently available relay marginals:
+\[
+\boxed{
+q_y^{\mathrm{relay}}
+=
+2\,\operatorname{atanh}
+\left(
+\prod_{v\in S}
+\tanh\frac{q_v^{\mathrm{relay}}}{2}
+\right).
+}
+\]
+Numerically, the product must be clipped to
+\[
+[-1+\epsilon_{\mathrm{atanh}},\,1-\epsilon_{\mathrm{atanh}}].
+\]
+This formula is an independence approximation used only to initialize the new
+auxiliary message state; it is not treated as a new physical prior.
+
+If several factorizations are applied in one call, the new auxiliary marginal
+is computed immediately after each accepted transform so that it is available
+if a later transform uses that auxiliary variable.
+
+For ordinary parallel or serial BP, initialize
+\[
+m_{v\to a}^{(0)}
+=
+q_v^{\mathrm{relay}}
+\]
+on every edge of the transformed graph. Starting with the first actual BP
+iteration, all variable updates use the immutable $\lambda_v^{\mathrm{base}}$,
+not $q_v^{\mathrm{relay}}$. Thus marginal inheritance changes the BP trajectory
+but does not change the exact factorization.
+
+\section{Top-level adaptive graph-relay decoder}
+
+Let $R_{\mathrm{graph}}$ denote the maximum number of
+factorization--redecode rounds \emph{after} the initial BP call. Hence the
+maximum number of BP calls is $R_{\mathrm{graph}}+1$.
+
+\begin{algorithm}[H]
+\caption{\textsc{AdaptiveGraphRelayDecode}}
+\begin{algorithmic}[1]
+\Require $H_0,s_0,p$, BP options, failure-weight options,
+         $U$-selection options, factorization policy,
+         $n_{\mathrm{fact}},R_{\mathrm{graph}}$
+\Ensure Valid physical correction or declared failure
+\State Build $G\gets G_0$, $P(x_j)\gets e_j$,
+       $\lambda_j^{\mathrm{base}}\gets\log((1-p_j)/p_j)$
+\State $q^{\mathrm{init}}\gets\lambda^{\mathrm{base}}$
+\For{$r=0,\ldots,R_{\mathrm{graph}}$}
+    \State $R_{\mathrm{BP}}\gets
+    \textsc{RunBP}(G,\lambda^{\mathrm{base}},q^{\mathrm{init}},\Theta_{\mathrm{BP}})$
+    \If{$R_{\mathrm{BP}}$ contains $\hat x$ with $H_0\hat x=s_0$}
+        \State \Return $\hat x$
+    \EndIf
+    \If{$r=R_{\mathrm{graph}}$}
+        \State \textbf{break}
+    \EndIf
+    \State $(\omega,U)\gets
+    \textsc{ComputeFailureWeights}(R_{\mathrm{BP}},H_0,s_0,\Theta_\omega)$
+    \If{$U=\varnothing$}
+        \State \textbf{break}
+    \EndIf
+    \State Save $L^{\mathrm{parent}}\gets R_{\mathrm{BP}}.L^{\mathrm{final}}$
+    \State $(G,\lambda^{\mathrm{base}},P,n_{\mathrm{applied}})
+    \gets\textsc{FactorizeGraph}
+    (G,\lambda^{\mathrm{base}},P,\omega,U,n_{\mathrm{fact}},\text{policy})$
+    \If{$n_{\mathrm{applied}}=0$}
+        \State \textbf{break}
+    \EndIf
+    \State $q^{\mathrm{init}}\gets
+    \textsc{TransferMarginals}(L^{\mathrm{parent}},\text{factorization log})$
+\EndFor
+\State \Return declared failure
+\end{algorithmic}
+\end{algorithm}
+
+\section{Subroutine contracts}
+
+\begin{longtable}{@{}p{34mm}p{48mm}p{48mm}p{33mm}@{}}
+\toprule
+Subroutine & Input & Output & Main options \\
+\midrule
+\endhead
+\textsc{RunBP}
+&
+$G,\lambda^{\mathrm{base}},q^{\mathrm{init}}$
+&
+convergence flag, hard decision, final marginals, trailing marginal history
+&
+BP variant, iteration budget, Min-Sum normalization, serial order, qDither parameters
+\\[1mm]
+
+\textsc{ComputeFailureWeights}
+&
+failed BP result, immutable $H_0,s_0,G_0$
+&
+physical $\omega$, suspicious physical set $U$
+&
+history window, residual radius, distance decay, uncertainty/oscillation weights, $U$-selection mode
+\\[1mm]
+
+\textsc{DiscoverBicliques}
+&
+current $G$, support map $P$, physical $U$
+&
+unique current bicliques $\Bcal$
+&
+pair seeds only in version 1
+\\[1mm]
+
+\textsc{ApplyBicliqueFactorization}
+&
+current graph state, one biclique $B=(S,C)$
+&
+exact transformed graph, extended base prior, extended support map
+&
+none in version 1
+\\[1mm]
+
+\textsc{FactorizeGraph}
+&
+current graph state, $\omega,U,n_{\mathrm{fact}}$
+&
+transformed graph state and number of accepted transforms
+&
+\texttt{adaptive\_cycle} or \texttt{shen\_cycle\_count}
+\\[1mm]
+
+\textsc{TransferMarginals}
+&
+parent final marginals and accepted transform sequence
+&
+initialization vector on transformed graph
+&
+parity-LLR clipping parameter
+\\
+\bottomrule
+\end{longtable}
+
+\section{Initial parameter set}
+
+The values below are implementation defaults for the first study; they are not
+claimed to be optimized.
+
+\begin{longtable}{@{}p{46mm}p{31mm}p{84mm}@{}}
+\toprule
+Parameter & Initial default & Meaning \\
+\midrule
+\endhead
+\texttt{bp\_variant}
+& \texttt{parallel}
+& \texttt{parallel}, \texttt{serial}, or \texttt{qdither}. \\
+\texttt{bp\_iterations}
+& 50
+& Maximum iterations for one ordinary parallel/serial BP call. \\
+\texttt{ms\_scale}
+& 1.0
+& Min-Sum normalization $\alpha_{\mathrm{MS}}$. \\
+\texttt{serial\_order}
+& \texttt{random\_per\_iteration}
+& Horizontal serial check order. \\
+\texttt{history\_window}
+& 8
+& Number of final marginal iterations used in $u_j,o_j$. \\
+\texttt{residual\_radius} $D$
+& 2
+& Maximum original-graph distance receiving nonzero $\omega_j$. \\
+\texttt{distance\_decay} $\rho_{\mathrm{dist}}$
+& 0.5
+& Multiplicative residual-distance decay. \\
+\texttt{uncertainty\_weight} $\eta_u$
+& 1
+& Relative contribution of marginal uncertainty. \\
+\texttt{oscillation\_weight} $\eta_o$
+& 1
+& Relative contribution of sign oscillation. \\
+\texttt{U\_selection}
+& \texttt{top\_k}
+& Suspicious-variable selection rule. \\
+\texttt{U\_top\_k} $K_U$
+& 32
+& Maximum suspicious physical variables in top-$K$ mode. \\
+\texttt{U\_threshold} $\tau_U$
+& 0.5
+& Used only in threshold mode. \\
+\texttt{factorization\_policy}
+& \texttt{adaptive\_cycle}
+& Candidate A or Shen-style candidate B. \\
+\texttt{n\_fact}
+& 1
+& Maximum accepted factorizations between two BP calls. \\
+\texttt{graph\_rounds} $R_{\mathrm{graph}}$
+& 4
+& Maximum factorization--redecode rounds after initial BP. \\
+\texttt{atanh\_epsilon}
+& $10^{-12}$
+& Numerical clip for auxiliary parity-LLR initialization. \\
+\texttt{qdither\_chains}
+& implementation value
+& Number of qDither Phase-II chains. \\
+\texttt{qdither\_iterations\_per\_chain}
+& implementation value
+& Iteration budget $b$ for each qDither chain. \\
+\texttt{qdither\_alpha}, \texttt{qdither\_beta}
+& experiment-specific
+& Uniform mixing range $[\alpha_D,\beta_D]$ in qDither. \\
+\texttt{qdither\_rho}
+& experiment-specific
+& Bernoulli probability for enhanced RSF in qDither. \\
+\texttt{qdither\_handoff}
+& \texttt{paper}
+& Faithful paper initialization or explicit graph-warm hybrid. \\
+\bottomrule
+\end{longtable}
+
+For qDither, paper-specific numerical values depend on the benchmark and should
+not be hard-coded as universal defaults~\cite{qdither}.
+
+\section{Complexity of the initial design}
+
+Let
+\[
+R=|\Crel|,
+\qquad
+d_v=\max_{v\in V}|N(v)|,
+\qquad
+d_c=\max_{c\in C}|N(c)|.
+\]
+Naively testing all unordered check pairs requires
+\[
+\binom R2=O(R^2)
+\]
+pair seeds.
+
+In a sparse implementation, pairs can instead be accumulated from each
+variable $v$ by enumerating
+\[
+\binom{|N(v)\cap\Crel|}{2}
+\]
+check pairs. The total pair-incidence work is
+\[
+O\!\left(
+\sum_{v\in\Vrel}
+\binom{|N(v)\cap\Crel|}{2}
+\right),
+\]
+which is linear in the local graph size for bounded-degree qLDPC graphs.
+
+Policy B requires only biclique sizes after discovery. Policy A is more
+expensive because every candidate requires a trial transform and an exact net
+weighted-4-cycle delta. A correct implementation need not copy the whole graph
+for each trial: only check pairs whose neighborhoods change under $T_B$
+contribute to $\Delta\Phi^{\mathrm{net}}(B)$. Local incremental evaluation is
+therefore an implementation optimization that preserves the reference
+definition.
+
+The factorization stage performs at most $n_{\mathrm{fact}}$ accepted
+transforms per graph-relay round and recomputes candidates after every accepted
+transform.
+
+\section{Required validation invariants}
+
+The implementation should assert or unit-test the following properties.
+
+\paragraph{Exact factorization.}
+For small random instances, enumerate all physical $x$ and verify
+\[
+H_0x=s_0
+\iff
+\exists!\,z_{\mathrm{aux}}:\;H^{(r)}z=s^{(r)}.
+\]
+
+\paragraph{Support-map correctness.}
+For every auxiliary variable, verify that its value equals $P(v)^Tx$ on
+enumerated assignments.
+
+\paragraph{Biclique correctness.}
+Every reported $B=(S,C)$ must satisfy
+\[
+S\subseteq N(c)
+\quad\forall c\in C,
+\]
+\[
+|S|\ge2,\qquad |C|\ge2,
+\]
+and the closure identities specified in the discovery section.
+
+\paragraph{Cycle-score correctness.}
+For small graphs, compare $\Phi$ and $\Delta\Phi^{\mathrm{net}}$ against explicit
+4-cycle enumeration.
+
+\paragraph{Overlap handling.}
+Construct overlapping bicliques, apply one transform, and verify that the next
+candidate set is regenerated from the transformed graph rather than reused
+from the stale candidate list.
+
+\paragraph{Prior invariance.}
+Physical base priors must never change under graph factorization; newly
+introduced auxiliary variables must have zero base LLR.
+
+\paragraph{Warm-start semantics.}
+Inherited marginals may initialize edge messages but must not replace the
+immutable base unary factors in ordinary parallel/serial BP.
+
+\paragraph{Original-problem validation.}
+Every declared successful correction must satisfy
+\[
+H_0\hat x=s_0
+\]
+after projection to physical variables.
+
+\section{Logical-ambiguity audit}
+
+The following points are fixed explicitly in this specification because they
+would otherwise be ambiguous in implementation.
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{Sign of policy-A score.}
+      The score is before minus after. Larger is better; a non-positive best
+      score causes no transform.
+
+\item \textbf{Meaning of $n_{\mathrm{fact}}$.}
+      It counts accepted transformations between two BP calls, not candidate
+      evaluations and not graph-relay rounds.
+
+\item \textbf{Overlapping bicliques.}
+      They are not batch-applied. Candidate discovery and scoring are rerun
+      after every accepted transformation.
+
+\item \textbf{Failure weights during several inner factorizations.}
+      The physical $\omega$ and $U$ from the preceding failed BP call remain
+      fixed until BP is run again. Only their extension to new auxiliaries is
+      recomputed.
+
+\item \textbf{Search depth.}
+      Version 1 uses only unordered check-pair seeds. Three-check and larger
+      seed sets are outside this implementation.
+
+\item \textbf{Relevant checks.}
+      They are exactly the current checks adjacent to current variables whose
+      physical support intersects $U$.
+
+\item \textbf{Candidate closure.}
+      $C_{ab}$ is the complete closure of $S_{ab}$, not merely the seed pair
+      $\{a,b\}$.
+
+\item \textbf{Auxiliary priors.}
+      Auxiliary variables have zero immutable unary LLR. Parent marginals are
+      initialization state, not new physical priors.
+
+\item \textbf{qDither comparison.}
+      qDither is not merely a message-update schedule. It changes the iterative
+      dynamics through enhanced RSF and chained randomized bias inheritance.
+      Therefore the implementation option is named \texttt{bp\_variant}, not
+      \texttt{schedule}. Paper-faithful and graph-warm qDither initialization
+      are reported separately.
+
+\item \textbf{Policy B terminology.}
+      The implemented baseline is Shen-style biclique selection by
+      $\binom{|S|}{2}\binom{|C|}{2}$. Unless the degree-1/degree-2 cleanup from
+      Shen et al. is also implemented, it must not be called an exact
+      reproduction of their complete optimized removal algorithm.
+
+\item \textbf{Graph-round count.}
+      $R_{\mathrm{graph}}$ counts factorization--redecode rounds after the
+      initial BP call. The total number of BP calls is at most
+      $R_{\mathrm{graph}}+1$.
+
+\item \textbf{Physical diagnostic basis.}
+      The residual syndrome used to form $\omega$ is always computed with
+      $H_0,s_0$, never with the changing augmented check basis.
+\end{enumerate}
+
+\section{Initial comparison matrix}
+
+The implementation supports two independent experimental axes. First,
+factorization selection:
+\[
+\texttt{adaptive\_cycle}
+\quad\text{vs.}\quad
+\texttt{shen\_cycle\_count}.
+\]
+Second, BP dynamics:
+\[
+\texttt{parallel}
+\quad\text{vs.}\quad
+\texttt{serial}
+\quad\text{vs.}\quad
+\texttt{qdither}.
+\]
+The full adaptive decoder comparison is therefore a $2\times3$ design before
+varying $n_{\mathrm{fact}}$, graph rounds, or suspicious-variable selection.
+
+This comparison is end-to-end. Because $\omega$, $U$, and therefore the
+selected graph transformations depend on the preceding BP trajectory, changing
+the BP variant can also change the graph sequence. A separate mechanistic
+ablation that freezes a transformation sequence would be needed to isolate
+only the effect of the BP update schedule on a fixed graph.
+
+\section{Summary of the reference version}
+
+The first implementation is fully determined by the following sequence:
+\[
+\boxed{
+\begin{aligned}
+&\text{Run the selected BP variant on }G^{(r)}.\\
+&\text{If it fails, compute physical }\omega\text{ and }U.\\
+&\text{Repeat up to }n_{\mathrm{fact}}\text{ times:}\\
+&\qquad
+\text{discover all pair-seeded closed bicliques on the current graph;}\\
+&\qquad
+\text{select one biclique by policy A or policy B;}\\
+&\qquad
+\text{apply one exact AVN/ACN factorization;}\\
+&\qquad
+\text{discard and recompute the candidate set.}\\
+&\text{Transfer the failed BP marginals as an initialization state.}\\
+&\text{Run BP again on the transformed graph.}\\
+&\text{Repeat for at most }R_{\mathrm{graph}}\text{ graph-relay rounds.}
+\end{aligned}
+}
+\]
+
+No batch application of stale bicliques, no higher-order check-set seed search,
+and no edge/degree/auxiliary penalty is part of candidate A in this initial
+version.
+
+\begin{thebibliography}{9}
+
+\bibitem{gari}
+A.~S.~Maan, F.~M.~Garcia Herrero, A.~Paler, and V.~Savin,
+``Decoding correlated errors in quantum LDPC codes,''
+\emph{Nature Communications}, vol.~17, 3965, 2026.
+\url{https://doi.org/10.1038/s41467-026-70556-3}.
+
+\bibitem{shen}
+Y.~Shen, Z.~Li, Y.~Ren, E.~Boutillon, A.~Balatsoukas-Stimming,
+C.~Zhang, X.~You, and A.~Burg,
+``Toward Universal Belief Propagation Decoding for Short Binary Block Codes,''
+\emph{IEEE Journal on Selected Areas in Communications},
+vol.~43, no.~4, pp.~1135--1152, 2025.
+\url{https://doi.org/10.1109/JSAC.2025.3536505}.
+
+\bibitem{qdither}
+Z.~Cai, M.~A.~Jarkas, B.~Zhao, and W.~J.~Gross,
+``Dithered Belief Propagation for Real-Time Quantum Memory Decoding,''
+in \emph{2026 IEEE International Conference on Quantum Computing and
+Engineering (QCE)}, 2026.
+DOI: 10.1109/QCE68830.2026.00100.
+
+\end{thebibliography}
+
+\end{document}
