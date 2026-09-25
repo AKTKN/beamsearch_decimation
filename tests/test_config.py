@@ -40,6 +40,7 @@ def test_examples_and_paths():
     {"decoders": [{"profile": "screened_reference", "q": 17}]},
     {"decoders": [{"profile": "screened_reference", "Lmax": 31}]},
     {"experiment": {"codes": [{"family": "bb72", "distances": [12]}]}},
+    {"experiment": {"codes": [{"family": "bb144", "distances": [6]}]}},
     {"analysis": {"input": "../assets/runs"}},
 ])
 def test_reject(patch):
@@ -78,3 +79,14 @@ def test_identity_separation():
 def test_linear_grid():
     c = Config.model_validate({"noise": {"sweep": {"kind": "linear", "start": 0, "stop": .02, "count": 3}}})
     assert c.noise.expanded_rates == (0, .01, .02)
+
+
+def test_bb144_code_configuration():
+    config = Config.model_validate({
+        "noise": {"rates": [.001]},
+        "experiment": {"codes": [{"family": "bb144", "distances": [12]}]},
+    })
+    assert config.resolved()["experiment"]["instances"] == [{
+        "family": "bb144", "distance": 12, "rounds": 12,
+        "round_override": False,
+    }]

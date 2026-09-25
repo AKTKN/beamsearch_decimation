@@ -9,7 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from qec_bp_benchmark.storage.minimal import SCHEMA
+from qec_bp_benchmark.storage.minimal import LPM_DP_SCHEMA, SCHEMA
 
 from analysis import (
     decoder_event_rate_table,
@@ -99,6 +99,49 @@ def current_run(tmp_path):
     return run
 
 
+@pytest.fixture
+def lpm_dp_run(tmp_path):
+    run = tmp_path / "2026_09_23_16_16_7411703b"
+    data = run / "data"
+    data.mkdir(parents=True)
+    config = {
+        "experiment": {
+            "instances": [{"family": "bb72", "distance": 6, "rounds": 6}],
+            "memory_basis": "Z",
+        },
+        "noise": {"expanded_rates": [.001, .002]},
+        "decoders": [
+            {"name": "lpm_dp_bp_v1", "profile": "lpm_dp_bp_v1",
+             "kind": "lpm_dp_bp", "enabled": True},
+            {"name": "beam8", "profile": "beam8", "enabled": True},
+            {"name": "bposd_ms30_cs0", "profile": "bposd_ms30_cs0", "enabled": True},
+        ],
+        "timing": {"mode": "throughput"},
+        "execution": {"workers": 5},
+    }
+    (run / "config_resolved.json").write_text(json.dumps(config))
+    for tag, rate in (("p001", .001), ("p002", .002)):
+        rows = []
+        for decoder, errors, osd, times in (
+            ("lpm_dp_bp_v1", (False, True, True), (False, False, False),
+             (1_000, 2_000, 3_000)),
+            ("beam8", (False, False, True), (False, False, False),
+             (4_000, 5_000, 6_000)),
+            ("bposd_ms30_cs0", (False, True, False), (False, True, False),
+             (7_000, 8_000, 9_000)),
+        ):
+            rows.extend({
+                "shot_id": f"bb72-6-{rate}:{index}", "decoder_name": decoder,
+                "logical_error": errors[index], "latency_ns": times[index],
+                "osd_called": osd[index],
+            } for index in range(3))
+        pq.write_table(
+            pa.Table.from_pylist(rows, schema=LPM_DP_SCHEMA),
+            data / f"bb72_d6_r6_{tag}_Z_results.parquet",
+        )
+    return run
+
+
 def test_current_results_figures_and_osd_denominator(current_run):
     logical = plot_logical_error_rate(current_run, log_scale=False)
     timing = plot_mean_decode_time(current_run, log_scale=False)
@@ -124,6 +167,37 @@ def test_current_results_figures_and_osd_denominator(current_run):
             plt.close(figure)
     with pytest.raises(ValueError, match="wall latency only"):
         plot_mean_decode_time(current_run, clock="cpu")
+
+
+def test_lpm_dp_results_figures_and_osd_denominator(lpm_dp_run):
+    logical = plot_logical_error_rate(lpm_dp_run, log_scale=False)
+    timing = plot_mean_decode_time(lpm_dp_run, log_scale=False)
+    histogram = plot_decode_time_histogram(
+        lpm_dp_run, code="bb72", physical_rate=.002, distance=6, bins=3,
+    )
+    try:
+        assert len(logical) == len(timing) == 1
+        assert [line.get_ydata().tolist() for line in logical[0].axes[0].lines] == [
+            pytest.approx([1 / 3, 1 / 3]),
+            pytest.approx([1 / 3, 1 / 3]),
+            pytest.approx([2 / 3, 2 / 3]),
+        ]
+        assert [line.get_ydata().tolist() for line in timing[0].axes[0].lines] == [
+            pytest.approx([.005, .005]),
+            pytest.approx([.008, .008]),
+            pytest.approx([.002, .002]),
+        ]
+        assert len(histogram.axes) == 3
+        table = decoder_event_rate_table(lpm_dp_run)
+        assert table.loc[("bb72", 6, .001),
+                         ("bposd_ms30_cs0", "osd_call_rate")] == pytest.approx(1 / 3)
+        assert table.loc[("bb72", 6, .002),
+                         ("lpm_dp_bp_v1", "osd_call_rate")] == 0
+        assert not any(metric == "correction_by_search_rate"
+                       for _, metric in table.columns)
+    finally:
+        for figure in logical + timing + [histogram]:
+            plt.close(figure)
 
 
 def test_logical_error_plot_reads_labels_and_separates_code_families(minimal_run):

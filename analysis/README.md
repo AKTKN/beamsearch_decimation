@@ -1,18 +1,20 @@
 # Minimal current analysis
 
-For current six-field results, use `analysis.simple_search_bp.summarize_run(run)`
+For current minimal results, use `analysis.simple_search_bp.summarize_run(run)`
 for detached statistics and the public `analysis.plot_*` functions for figures.
 The plot readers consume `*_results.parquet` directly, with condition and decoder
-labels from `config_resolved.json`. Current results support logical-error rate,
-complete wall latency, latency histograms and OSD-call rates. CPU latency, failure
-components and internal decoder events are absent and are not reconstructed.
+labels from `config_resolved.json`. Both six-field `search_bp_results/2` and
+five-field `lpm_dp_results/1` support logical-error rate, complete wall latency,
+latency histograms and OSD-call rates. Only SEARCH-BP stores the additional
+direct-search correction flag. CPU latency, failure components and internal decoder
+events are absent and are not reconstructed.
 It directly reads `<condition>_results.parquet` plus resolved config and reports
 logical-error rate/Wilson bounds, mean/median/p95/p99 latency including failures,
 and OSD fraction with known/unknown denominators, grouped by condition and decoder.
 Earlier `_logicalerror.parquet` minimal files remain readable. No telemetry or
 inventories are required. See docs/search_bp_stage5.md.
 
-The plotting interfaces below support the current six-field layout and preserve
+The plotting interfaces below support both current minimal layouts and preserve
 earlier wide-layout consumers.
 
 `analysis.benchmark_plots` is the notebook-facing analysis module. Its public
@@ -31,7 +33,9 @@ functions accept a minimal-layout run path and exact experiment selections:
 - `decoder_event_rate_table` returns a pandas DataFrame whose row MultiIndex is
   `(code, distance, physical_rate)` and whose column MultiIndex is
   `(decoder, metric)`. Current cells contain OSD-call rates over known flags;
-  historical layouts retain search-BP OSD-reach and beam nonconvergence rates.
+  SEARCH-BP results/2 also contains its direct-search rate, while LPM-DP does not
+  infer that unavailable metric. Historical layouts retain search-BP OSD-reach and
+  beam nonconvergence rates.
 
 Both functions create 3.4 x 2.55 inch, 300 dpi figures suitable for one column of
 a two-column RevTeX paper. They return live Matplotlib `Figure` objects and never

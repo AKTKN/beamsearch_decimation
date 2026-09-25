@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import stim
 import numpy as np
-from .algebra import validate_bb72
+from .algebra import validate_bb
 
 
 @dataclass(frozen=True)
@@ -18,11 +18,11 @@ class CircuitTemplate:
 
 
 def make_template(family: str, distance: int, rounds: int | None = None) -> CircuitTemplate:
-    """Create full extraction circuit for surface or BB72 Z memory.
+    """Create full extraction circuit for surface or supported BB Z memory.
 
     Args:
-        family: 'surface' or 'bb72'.
-        distance: Odd surface distance >=3, or published BB72 distance 6.
+        family: 'surface', 'bb72' or 'bb144'.
+        distance: Odd surface distance >=3, or the family's published BB distance.
         rounds: Positive extraction count; None resolves to distance.
     Returns:
         New circuit and provider-derived check/physical-qubit bookkeeping.
@@ -57,14 +57,20 @@ def make_template(family: str, distance: int, rounds: int | None = None) -> Circ
                         raise ValueError("surface extraction orientation does not match inferred check sector")
         schedule = "Stim rotated_memory_z CNOT schedule"
         n, k = distance**2, 1
-    elif family == "bb72":
-        if distance != 6:
-            raise ValueError("bb72 has published distance label 6")
+    elif family in ("bb72", "bb144"):
+        order_x, order_y, published_distance = {
+            "bb72": (6, 6, 6),
+            "bb144": (12, 6, 12),
+        }[family]
+        if distance != published_distance:
+            raise ValueError(f"{family} has published distance label {published_distance}")
         from qldpc import codes, circuits
         from qldpc.objects import Pauli
         from sympy.abc import x, y
-        code = codes.BBCode({x: 6, y: 6}, x**3 + y + y**2, y**3 + x + x**2)
-        algebra = validate_bb72(code)
+        code = codes.BBCode(
+            {x: order_x, y: order_y}, x**3 + y + y**2, y**3 + x + x**2,
+        )
+        algebra = validate_bb(code, order_x, order_y)
         parts = circuits.get_memory_experiment_parts(code, basis=Pauli.Z, num_rounds=resolved_rounds,
                                                      syndrome_measurement_strategy=circuits.EdgeColoring(strategy="smallest_last"))
         c = (parts.initialization + parts.qec_cycle + parts.readout).flattened()
@@ -85,7 +91,7 @@ def make_template(family: str, distance: int, rounds: int | None = None) -> Circ
         if observed != supports:
             raise ValueError("BB circuit check supports differ from CSS matrices")
         schedule = "qLDPC EdgeColoring(smallest_last); X subgraph then Z subgraph"
-        n, k = 72, 12
+        n, k = 2 * order_x * order_y, 12
     else:
         raise ValueError(f"unsupported family: {family}")
     if c.num_observables != k or len(data) != n or not all(supports.values()):

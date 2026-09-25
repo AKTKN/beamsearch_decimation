@@ -40,7 +40,7 @@ An empty production grid is a validation error; no production rates are invented
 
 | Group | Fields and conventions |
 |---|---|
-| experiment | name, purpose, codes[{family,distances,rounds}], memory_basis=Z, sector=Z_checks, round_rule=distance. Omitted rounds means R=d; explicit rounds is labeled an override. Surface distances are odd >=3; bb72 distances must be [6]. |
+| experiment | name, purpose, codes[{family,distances,rounds}], memory_basis=Z, sector=Z_checks, round_rule=distance. Omitted rounds means R=d; explicit rounds is labeled an override. Surface distances are odd >=3; bb72 distances must be [6]; bb144 distances must be [12]. |
 | noise | profile=circuit_depolarizing; exactly one of rates or sweep. rates is unique, nonempty, finite [0,0.5]. sweep={kind:linear/log,start,stop,count} is endpoint-inclusive, count>=2, increasing, positive for log. multipliers has one_qubit,two_qubit,idle,reset,measurement, each nonnegative and products <=1. |
 | circuit | surface_provider=stim, bb_provider=qldpc, surface_schedule=rotated_memory_z, bb_schedule=edge_coloring, edge_coloring_strategy=smallest_last, boundary=noisy_prepare_extract_readout, cache path. Other providers/schedules are rejected. |
 | dem | decompose_errors=false, approximate_disjoint_errors=false by default (explicit true recorded), allow_gauge_detectors=false, sector_mapping=measurement_provenance, merge=none, normalization=remove_zero_reject_above_half. |

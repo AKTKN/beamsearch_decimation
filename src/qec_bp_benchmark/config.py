@@ -21,7 +21,7 @@ class StrictModel(BaseModel):
 
 
 class Code(StrictModel):
-    family: Literal["surface", "bb72"]
+    family: Literal["surface", "bb72", "bb144"]
     distances: tuple[Positive, ...] = (5, 7, 9)
     rounds: Positive | None = None
 
@@ -31,6 +31,8 @@ class Code(StrictModel):
             raise ValueError("distances must be nonempty and unique")
         if self.family == "bb72" and self.distances != (6,):
             raise ValueError("bb72 requires distances: [6]")
+        if self.family == "bb144" and self.distances != (12,):
+            raise ValueError("bb144 requires distances: [12]")
         if self.family == "surface" and any(d < 3 or d % 2 == 0 for d in self.distances):
             raise ValueError("surface distances must be odd and at least 3")
         return self

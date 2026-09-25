@@ -1,9 +1,11 @@
-# Current five-field results
+# Current minimal results
 
 Use `analysis.simple_search_bp.summarize_run(run)` for new runs: logical error,
 complete wall latency and OSD-call fraction, grouped within one run/condition/
-decoder/execution context. No raw samples or event diagnostics are available.
-The plotting API below reads current results directly and retains historical
+decoder/execution context. Both five-field `lpm_dp_results/1` and six-field
+`search_bp_results/2` are supported; only the latter includes the direct-search
+correction flag. No raw samples or internal event diagnostics are available. The
+plotting API below reads current results directly and retains historical
 wider-schema compatibility. The full report APIs remain historical consumers.
 
 # Saved-data analysis
@@ -47,8 +49,9 @@ gets condition and decoder labels from resolved config and projects only require
 columns from each `*_results.parquet`; it does not read samples or telemetry.
 Historical layouts continue through their existing companion-file readers.
 
-Current logical error uses the contract-defined saved boolean: decoder failure OR
-logical mismatch. Historical wide rows retain their explicit recomputation. The
+Current SEARCH-BP and LPM-DP logical errors use the contract-defined saved boolean:
+decoder failure OR logical mismatch. Historical wide rows retain their explicit
+recomputation. The
 point denominator is the number of physical shots and the default shaded band is a
 95% two-sided Wilson interval. Mean wall service time uses every shot, including
 failures. Current data do not save CPU time, so `clock="cpu"` raises instead of
@@ -62,7 +65,9 @@ conditions. Times are shown in microseconds, one decoder per subplot, with mean,
 p95, and p99 vertical lines. The event-rate API returns a pandas DataFrame indexed
 by `(code, distance, physical_rate)`, with `(decoder, metric)` columns and rate
 values in the cells. Current rows expose `osd_call_rate` for every decoder over
-nonnull saved flags. Historical layouts retain search-BP OSD reach and beam
+nonnull saved flags. SEARCH-BP results/2 additionally exposes
+`correction_by_search_rate`; LPM-DP does not synthesize this unavailable metric.
+Historical layouts retain search-BP OSD reach and beam
 nonconvergence interpretations. Storage IDs and execution metadata are not included
 in the displayed table; exact known/unknown denominators remain in `summarize_run`.
 

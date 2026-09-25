@@ -1,16 +1,17 @@
 # Current saved-data notebook
 
 `benchmark_analysis.ipynb.example` is the maintained current-layout consumer, and
-`benchmark_analysis.ipynb` is its editable local copy. They read
-`search_bp_results/2` through the public `analysis` summary and plotting APIs.
-The configured default is the BB72 d6 run
-`assets/runs/2026_09_22_19_37_199b4d87`; set `QEC_ANALYSIS_RUN` or edit `RUN_PATH`
-to analyze another current run.
+`benchmark_analysis.ipynb` is its editable local copy. They read both
+`search_bp_results/2` and `lpm_dp_results/1` through the public `analysis` summary
+and plotting APIs. The configured default is the BB72 d6 LPM-DP run
+`assets/runs/2026_09_23_16_16_7411703b`; set `QEC_ANALYSIS_RUN` or edit `RUN_PATH`
+to analyze another supported current run.
 
 The notebook performs no simulation or decoding. One BB physical shot is one block
-trial across all 12 logical labels. The current schema supplies only the saved
-logical-error boolean, complete wall latency, nullable OSD-called flag, and the
-exact SEARCH-BP direct-search correction flag. CPU time,
+trial across all 12 logical labels. The current schemas supply only the saved
+logical-error boolean, complete wall latency and OSD-called flag. SEARCH-BP's
+six-field schema additionally saves its exact direct-search correction flag;
+LPM-DP's five-field schema does not. CPU time,
 failure components, correction vectors and internal decoder telemetry cannot be
 reconstructed.
 
@@ -18,7 +19,8 @@ Activate the required environment and execute the local notebook with:
 
 ```bash
 conda activate search_decimation
-jupyter nbconvert --to notebook --execute --inplace notebook/benchmark_analysis.ipynb
+jupyter execute --inplace --kernel_name=search_decimation \
+  notebook/benchmark_analysis.ipynb
 ```
 
 For interactive use, register the environment once and select it in Jupyter:
@@ -40,7 +42,8 @@ Figure cells create logical-error curves, mean wall-latency curves, and a
 selected-condition latency histogram. They save PNG/PDF under
 `assets/analysis/<run-name>/`. The event table reports OSD-call rates for each
 decoder over its nonnull saved flags. A separate table cell selects the
-`correction_by_search_rate` columns. Legacy results/1 runs show that metric as unavailable.
+`correction_by_search_rate` columns when stored. LPM-DP and legacy results/1 runs
+show that metric as unavailable rather than inferring it.
 
 The notebook keeps different run/execution contexts separate and does not bootstrap,
 pool runs, build a report manifest or infer unavailable metrics. Throughput wall

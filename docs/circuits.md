@@ -1,19 +1,22 @@
 # Circuit, noise and DEM conventions
 
 Rotated surface code uses Stim's noiseless rotated_memory_z generator; d=5,7,9
-and R=d by default. BB72 uses qLDPC BBCode({x:6,y:6},x^3+y+y^2,y^3+x+x^2).
-Independent binary elimination verifies rank(Hx)=rank(Hz)=30, Hx Hz^T=0,
-rank([Hx;Lx])=rank([Hz;Lz])=42 and Lx Lz^T=I12. Matrices agree exactly with
-the cyclic-shift convention in the original BB source, without transposing the
-polynomials or relabeling BB144. Published distance six is metadata, not a proof
-of circuit distance or schedule fault tolerance.
+and R=d by default. BB72 uses qLDPC
+`BBCode({x:6,y:6},x^3+y+y^2,y^3+x+x^2)`; BB144 uses the same polynomials with
+orders `{x:12,y:6}`, matching qLDPC's `[[144,12,12]]` example. Independent binary
+elimination verifies the expected 12 logical pairs, `Hx Hz^T=0`, logical/check
+commutation, full augmented ranks and `Lx Lz^T=I12` for both codes. Matrices agree
+exactly with qLDPC's cyclic-shift convention without transposing the polynomials.
+Published distances six and twelve are metadata, not proofs of circuit distance or
+schedule fault tolerance.
 
 qLDPC EdgeColoring(smallest_last) acts on X and then Z Tanner subgraphs. All check
 ancillas are reset/read in X; CX gates extract X checks and CZ gates extract Z
 checks. This general library schedule is not the original optimized seven-layer
 CNOT schedule. Both sectors are executed every round. There are exactly 72 check
-measurements per BB round, six rounds, then 72 destructive data measurements:
-504 total records and 252 Z detectors (36 at each of seven time boundaries).
+measurements per BB72 round, six rounds, then 72 destructive data measurements:
+504 total records and 252 Z detectors (36 at each of seven time boundaries). BB144
+has 72 checks in each sector and 144 data qubits; its default is twelve rounds.
 Preparation is product Z reset; readout is destructive data Z. There are no extra
 ideal cycles. qLDPC initialization/extraction can share a moment where qubits are
 disjoint, as allowed by its provider. Noise applies to the entire concatenated

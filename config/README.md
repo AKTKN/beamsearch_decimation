@@ -16,6 +16,17 @@ and HSBP-FB templates are in `legacy/hybrid/`. They preserve their source settin
 but are intentionally not accepted as current `search_bp` configurations.
 
 Simulation entry scripts are shared: choose a decoder workflow through YAML.
+The active simulator accepts the qLDPC `[[144,12,12]]` BB code explicitly as:
+
+```yaml
+experiment:
+  codes:
+  - family: bb144
+    distances:
+    - 12
+```
+
+`bb144` is opt-in and is not added to the smoke-template defaults.
 Current analysis accepts only its independent analysis YAML; simulation YAML does
 not contain analysis settings. Legacy analysis entry points remain under
 scripts/legacy/.

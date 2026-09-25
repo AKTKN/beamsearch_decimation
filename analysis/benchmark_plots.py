@@ -2,9 +2,9 @@
 
 The public plotting functions own the complete workflow: they select a saved run,
 read its resolved labels and only the result columns required for one plot, then
-return new Matplotlib ``Figure`` objects. They support current six-field files and
-historical wider layouts. They do not load telemetry, join runs, bootstrap samples,
-write files, or create summary reports.
+return new Matplotlib ``Figure`` objects. They support the current SEARCH-BP and
+LPM-DP minimal-result contracts and historical wider layouts. They do not load
+telemetry, join runs, bootstrap samples, write files, or create summary reports.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from scipy.stats import t as student_t
 
-from qec_bp_benchmark.storage.minimal import LEGACY_SCHEMA, SCHEMA
+from qec_bp_benchmark.storage.minimal import LEGACY_SCHEMA, LPM_DP_SCHEMA, SCHEMA
 from qec_bp_benchmark.storage.results import condition_prefix
 
 if TYPE_CHECKING:
@@ -121,9 +121,9 @@ def _current_points(
     decoders: tuple | None,
 ) -> list[_Point]:
     if clock != "wall":
-        raise ValueError("minimal search_bp results save wall latency only; clock must be 'wall'")
+        raise ValueError("minimal results save wall latency only; clock must be 'wall'")
     if not any(pq.read_schema(result_path).equals(schema, check_metadata=True)
-               for schema in (SCHEMA, LEGACY_SCHEMA)):
+               for schema in (SCHEMA, LEGACY_SCHEMA, LPM_DP_SCHEMA)):
         raise ValueError(f"unexpected result schema: {result_path}")
     conditions, profiles, _ = _current_context(result_path.parent.parent)
     prefix = result_path.name.removesuffix("_results.parquet")
@@ -627,7 +627,7 @@ def _current_rate_rows(
 ) -> list[dict]:
     schema = pq.read_schema(result_path)
     if not any(schema.equals(candidate, check_metadata=True)
-               for candidate in (SCHEMA, LEGACY_SCHEMA)):
+               for candidate in (SCHEMA, LEGACY_SCHEMA, LPM_DP_SCHEMA)):
         raise ValueError(f"unexpected result schema: {result_path}")
     conditions, profiles, config = _current_context(result_path.parent.parent)
     prefix = result_path.name.removesuffix("_results.parquet")
@@ -701,10 +701,10 @@ def decoder_event_rate_table(
     """Return condition-level decoder event rates available in the saved schema.
 
     Current ``search_bp_results/2`` rows report ``osd_call_rate`` and the exact
-    ``correction_by_search_rate`` for SEARCH-BP. Historical minimal v1 rows report
-    only OSD calls; historical wide SEARCH-BP rows report ``osd_reach_rate`` and
-    beam rows report ``decoding_failure_rate``. The returned pandas table uses
-    ``(code, distance, physical_rate)`` as its row
+    ``correction_by_search_rate`` for SEARCH-BP. ``lpm_dp_results/1`` and historical
+    minimal v1 rows report only OSD calls; historical wide SEARCH-BP rows report
+    ``osd_reach_rate`` and beam rows report ``decoding_failure_rate``. The returned
+    pandas table uses ``(code, distance, physical_rate)`` as its row
     MultiIndex and ``(decoder, metric)`` as its column MultiIndex. Cells contain
     rates in ``[0, 1]``. Storage IDs, profiles, timing metadata, counts, and other
     implementation metadata are not exposed in the displayed table.

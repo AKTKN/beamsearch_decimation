@@ -54,6 +54,19 @@ def test_round_override():
         assert max(x['round'] for x in view.detectors)==2
 
 
+def test_bb144_template_dimensions_and_provenance():
+    template = make_template('bb144', 12, rounds=1)
+    view = select_z_detectors(template.circuit, template)
+    assert template.metadata['n'] == 144
+    assert template.metadata['k_Z'] == 12
+    assert len(template.data_qubits) == 144
+    assert template.algebra['Hx'].shape == template.algebra['Hz'].shape == (72, 144)
+    assert template.algebra['Lx'].shape == template.algebra['Lz'].shape == (12, 144)
+    assert len(template.check_sectors) == 144
+    assert template.circuit.num_observables == view.circuit.num_observables == 12
+    assert view.circuit.num_detectors == 72 * 2
+
+
 def test_noise_inventory_and_no_duplicates():
     t=stim.Circuit('R 0 2 3\nTICK\nH 0\nTICK\nCX 0 2\nTICK\nMR 0\nM 2 3')
     mu=Multipliers(one_qubit=1,two_qubit=2,idle=3,reset=4,measurement=5)
