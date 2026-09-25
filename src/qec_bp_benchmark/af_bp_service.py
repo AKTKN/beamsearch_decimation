@@ -1,8 +1,8 @@
 """Thin truth-free Python boundary for the standalone native AF-BP-1.0 service.
 
 Construction copies binary H/A and physical probabilities. Each decode makes
-one native call; all BP, graph and iteration work remains in C++. This module
-does not register AF-BP with the active simulator.
+one native call; all BP, graph and iteration work remains in C++. The active
+decoder adapter registers this service without passing logical truth.
 """
 from __future__ import annotations
 

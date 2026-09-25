@@ -1,7 +1,7 @@
 # Active runner
 
 The runner preserves physical sampling, paired shots, worker scheduling and
-complete decoder-service timing. It now writes `baseline_results/1` through the
+complete decoder-service timing. It now writes `benchmark_results/2` through the
 active storage projection. Older search/hybrid sections below are historical.
 
 ---

@@ -1,6 +1,6 @@
 """Active, truth-free comparison decoder services.
 
-AF-BP remains outside the simulator until its integration stage. Historical
+Historical
 decimation services are archived under ``qec_bp_benchmark.legacy.decimation``.
 """
 from __future__ import annotations
@@ -15,17 +15,29 @@ from pathlib import Path
 
 import numpy as np
 
-from ..config import Bposd, Beam, RelayBP, Decoder, require_available_decoder
+from ..config import AFBP, Bposd, Beam, RelayBP, Decoder, require_available_decoder
 from ..dem.model import DetectorProblem
 from ..identity import decoder_identity
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-@lru_cache(maxsize=3)
+@lru_cache(maxsize=4)
 def implementation_identity(profile: str) -> dict:
     """Return pinned upstream and actual imported binary identity."""
     require_available_decoder(profile)
+    if profile == "af_bp":
+        from .. import _af_bp_service
+        from ..af_bp_service import source_digest
+        built = _af_bp_service.build_identity()
+        if built["source_sha256"] != source_digest():
+            raise RuntimeError("stale AF-BP service binary; rebuild the project extension")
+        return {
+            "algorithm_version": built["algorithm_version"],
+            "source_sha256": built["source_sha256"],
+            "native_sha256": hashlib.sha256(Path(_af_bp_service.__file__).read_bytes()).hexdigest(),
+            "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        }
     key, module_name = {
         "bposd": ("ldpc", "ldpc.bposd_decoder._bposd_decoder"),
         "beam8": ("BeamSearchDecoder", "beam_search_decoder._beam_search_decoder"),
@@ -106,6 +118,33 @@ class DecoderAdapter:
             self._native = RelayDecoderF64(
                 problem.H.copy(), np.asarray(problem.probabilities, dtype=np.float64).copy(),
                 **options, stopping_criterion="nconv", logging=False)
+        elif isinstance(config, AFBP):
+            from ..af_bp_service import AFBPConfig, AFBPDecoder, FailureOptions
+            failure = FailureOptions(
+                residual_radius=config.residual_radius,
+                distance_decay=config.distance_decay,
+                uncertainty_weight=config.uncertainty_weight,
+                oscillation_weight=config.oscillation_weight,
+                selection=config.U_selection,
+                top_k=config.U_top_k,
+                threshold=config.U_threshold,
+            )
+            self._native = AFBPDecoder(problem.H, problem.A, problem.probabilities,
+                AFBPConfig(initial_parallel=config.initial_parallel,
+                    initial_iteration_budget=config.initial_iteration_budget,
+                    transformed_iteration_budget=config.transformed_iteration_budget,
+                    bp_variant=config.bp_variant, serial_order=config.serial_order,
+                    scaling_factor=config.ms_scaling_factor,
+                    history_window=config.history_window, graph_rounds=config.graph_rounds,
+                    n_fact=config.n_fact, factorization_policy=config.factorization_policy,
+                    failure=failure, atanh_epsilon=config.atanh_epsilon,
+                    phase1_iterations=config.qdither_phase1_iterations,
+                    num_chains=config.qdither_chains,
+                    chain_iterations=config.qdither_iterations_per_chain,
+                    alpha=config.qdither_alpha, beta=config.qdither_beta,
+                    rho=config.qdither_rho, seed=config.seed,
+                    seed_policy=config.seed_policy,
+                    qdither_handoff=config.qdither_handoff))
         else:
             raise TypeError(f"unsupported decoder configuration: {type(config).__name__}")
 
@@ -128,6 +167,12 @@ class DecoderAdapter:
             declared = not bool(detailed.success)
             native_status = "CONVERGED" if detailed.success else "RELAY_EXHAUSTED"
             counters["total_iterations"] = int(detailed.iterations)
+        elif isinstance(self.config, AFBP):
+            detailed = self._native.decode(s.copy())
+            candidate = detailed.correction
+            declared = not detailed.valid
+            native_status = detailed.status
+            counters["total_iterations"] = detailed.total_iterations
         else:
             candidate = np.asarray(self._native.decode(s.copy()))
             converged = bool(self._native.converge)

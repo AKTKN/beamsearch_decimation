@@ -172,7 +172,60 @@ class RelayBP(StrictModel):
         return self
 
 
-Decoder = Annotated[Bposd | Beam | RelayBP, Field(discriminator="profile")]
+class AFBP(StrictModel):
+    """Strict AF-BP-1.0 experiment settings, mapped once to the native service."""
+    profile: Literal["af_bp"] = "af_bp"
+    kind: Literal["af_bp"] = "af_bp"
+    name: str = "af_bp"
+    enabled: bool = True
+    history_window: Positive = 8
+    residual_radius: Nonnegative = 2
+    distance_decay: Annotated[float, Field(ge=0, le=1)] = 0.5
+    uncertainty_weight: Annotated[float, Field(ge=0)] = 1.0
+    oscillation_weight: Annotated[float, Field(ge=0)] = 1.0
+    U_selection: Literal["top_k", "threshold"] = "top_k"
+    U_top_k: Nonnegative = 32
+    U_threshold: Annotated[float, Field(ge=0)] = 0.5
+    factorization_policy: Literal["adaptive_cycle", "shen_cycle_count"] = "adaptive_cycle"
+    n_fact: Nonnegative = 1
+    graph_rounds: Nonnegative = 4
+    bp_variant: Literal["parallel", "serial", "qdither"] = "parallel"
+    initial_parallel: bool = True
+    initial_iteration_budget: Nonnegative = 50
+    transformed_iteration_budget: Nonnegative = 50
+    ms_scaling_factor: Annotated[float, Field(gt=0, le=1)] = 1.0
+    serial_order: Literal["natural", "random_per_iteration"] = "random_per_iteration"
+    atanh_epsilon: Annotated[float, Field(gt=0, lt=1)] = 1e-12
+    qdither_phase1_iterations: Nonnegative = 30
+    qdither_chains: Nonnegative = 0
+    qdither_iterations_per_chain: Nonnegative = 20
+    qdither_alpha: Annotated[float, Field(ge=0, le=1)] = 0.0
+    qdither_beta: Annotated[float, Field(ge=0, le=1)] = 1.0
+    qdither_rho: Annotated[float, Field(ge=0, le=1)] = 0.0
+    qdither_handoff: Literal["paper", "graph_warm"] = "graph_warm"
+    seed: Annotated[int, Field(strict=True, ge=0, le=2**64-1)] = 0
+    seed_policy: Literal["fixed", "syndrome_derived"] = "syndrome_derived"
+
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        total_weight = self.uncertainty_weight + self.oscillation_weight
+        if not math.isfinite(total_weight) or total_weight <= 0:
+            raise ValueError("at least one failure weight must be positive")
+        native_counts = (self.history_window, self.residual_radius, self.U_top_k,
+                         self.n_fact, self.graph_rounds, self.initial_iteration_budget,
+                         self.transformed_iteration_budget, self.qdither_phase1_iterations,
+                         self.qdither_chains, self.qdither_iterations_per_chain)
+        if any(value > 2**31 - 1 for value in native_counts):
+            raise ValueError("AF-BP native integer settings must fit signed int32")
+        if self.qdither_alpha > self.qdither_beta:
+            raise ValueError("qdither_alpha must not exceed qdither_beta")
+        if (self.bp_variant == "qdither" and self.graph_rounds > 0 and
+                self.n_fact > 0 and self.qdither_handoff != "graph_warm"):
+            raise ValueError("AF-BP qDither graph relay requires graph_warm handoff")
+        return self
+
+
+Decoder = Annotated[Bposd | Beam | RelayBP | AFBP, Field(discriminator="profile")]
 
 
 class Sampling(StrictModel):
@@ -224,7 +277,7 @@ class Output(StrictModel):
 
 
 class Config(StrictModel):
-    config_schema_version: Literal["af_bp_baseline_config/1"] | None = Field(
+    config_schema_version: Literal["af_bp_config/2"] | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     experiment: Experiment = Experiment()
@@ -268,18 +321,24 @@ class Config(StrictModel):
                     "hard_decision": "upstream L<=0", "error_channel_type": "list",
                     "converge_flag": "BP stage only; validate correction after OSD",
                 }
-            else:
+            elif decoder["profile"] == "relay_bp":
                 decoder["implementation_properties"] = {
                     "backend": "upstream RelayDecoderF64.decode_detailed",
                     "stopping_criterion": "nconv", "logging": False,
                     "batch_parallelism": False,
+                }
+            else:
+                decoder["implementation_properties"] = {
+                    "algorithm_version": "AF-BP-1.0",
+                    "backend": "qec_bp_benchmark.af_bp_service.AFBPDecoder",
+                    "truth_input": False,
                 }
         return data
 
 
 def require_available_decoder(profile: str) -> None:
     """Reject decimation and unimplemented future decoders from active runs."""
-    if profile not in ("beam8", "bposd", "relay_bp"):
+    if profile not in ("beam8", "bposd", "relay_bp", "af_bp"):
         raise ValueError(f"unsupported active decoder profile: {profile}")
 
 

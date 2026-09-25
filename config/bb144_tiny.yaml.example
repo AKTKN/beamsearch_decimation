@@ -1,0 +1,37 @@
+# Non-production one-shot BB144 d12/R1 smoke for all four active decoders.
+experiment:
+  name: bb144_tiny
+  purpose: Bounded all-decoder BB144 integration check only
+  codes:
+  - family: bb144
+    distances: [12]
+    rounds: 1
+circuit:
+  cache: ../simulation_data
+noise:
+  rates: [0.001]
+sampling:
+  shots_per_point: 1
+  batch_size: 1
+  warmup_count: 0
+execution:
+  workers: 1
+output:
+  root: ../assets/runs
+decoders:
+- profile: af_bp
+  initial_iteration_budget: 1
+  transformed_iteration_budget: 0
+  graph_rounds: 0
+  n_fact: 0
+- profile: relay_bp
+  pre_iter: 1
+  num_sets: 1
+  set_max_iter: 1
+- profile: beam8
+  max_rounds: 1
+  initial_iters: 1
+  iters_per_round: 1
+- profile: bposd
+  max_iter: 1
+  osd_order: 0

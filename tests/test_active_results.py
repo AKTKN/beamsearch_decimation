@@ -8,7 +8,9 @@ from beam_search_decoder import BeamSearchDecoder
 from qec_bp_benchmark.storage.minimal import SCHEMA_VERSION, minimal_record, result_table
 from qec_bp_benchmark.storage.results import condition_prefix
 from qec_bp_benchmark.config import load_config
-from analysis import summarize_run, plot_decode_time_histogram, plot_logical_error_rate, plot_mean_decode_time
+from analysis import (summarize_run, plot_decode_time_histogram,
+                      plot_logical_error_rate, plot_mean_decode_time,
+                      plot_mean_total_iterations)
 
 
 def test_exact_active_schema_and_failure_rows():
@@ -18,10 +20,14 @@ def test_exact_active_schema_and_failure_rows():
     assert row == dict(shot_id='shot', decoder_name='beam8', logical_error=True,
                        latency_ns=47, total_iterations=9)
     assert result_table([row]).schema.metadata[b'qec_schema'] == SCHEMA_VERSION.encode()
+    assert SCHEMA_VERSION == 'benchmark_results/2'
     with pytest.raises(ValueError, match='duplicate'):
         result_table([row, row])
     with pytest.raises(ValueError, match='invalid'):
         result_table([{**row, 'total_iterations': -1}])
+    with pytest.raises(ValueError, match='fields'):
+        result_table([{key: value for key, value in row.items()
+                       if key != 'total_iterations'}])
 
 
 def test_beam_total_counts_all_paths_and_resets_on_zero():
@@ -78,7 +84,31 @@ def test_saved_baseline_reader_and_plots(tmp_path):
     import matplotlib.pyplot as plt
     figures = [plot_decode_time_histogram(tmp_path, code='surface', distance=3,
                                            physical_rate=.003),
-               *plot_logical_error_rate(tmp_path), *plot_mean_decode_time(tmp_path)]
-    assert len(figures) == 3
+               *plot_logical_error_rate(tmp_path), *plot_mean_decode_time(tmp_path),
+               *plot_mean_total_iterations(tmp_path)]
+    assert len(figures) == 4
+    assert figures[-1].axes[0].get_ylabel() == 'Mean total BP iterations'
     for figure in figures:
         plt.close(figure)
+
+
+def test_old_schema_is_legacy_only(tmp_path):
+    import pyarrow as pa
+    from analysis.legacy.benchmark_plots import SCHEMA as OLD_SCHEMA
+    from analysis.legacy.benchmark_plots import plot_mean_decode_time as legacy_plot
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / 'config/baselines.yaml.example').resolved()
+    (tmp_path / 'data').mkdir()
+    (tmp_path / 'config_resolved.json').write_text(json.dumps(config))
+    prefix = condition_prefix('surface', 3, 3, .003, 'Z')
+    old = pa.Table.from_pylist([dict(shot_id='s0', decoder_name='beam8',
+        logical_error=False, latency_ns=100, total_iterations=1)], schema=OLD_SCHEMA)
+    pq.write_table(old, tmp_path / 'data' / f'{prefix}_results.parquet')
+    with pytest.raises(ValueError, match='unsupported active'):
+        summarize_run(tmp_path)
+    with pytest.raises(ValueError, match='unexpected result schema'):
+        plot_mean_decode_time(tmp_path)
+    import matplotlib.pyplot as plt
+    figures = legacy_plot(tmp_path)
+    assert len(figures) == 1
+    plt.close(figures[0])

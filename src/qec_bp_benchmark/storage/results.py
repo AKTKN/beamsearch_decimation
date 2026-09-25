@@ -106,7 +106,7 @@ class ResultStore:
 
     def __init__(self, run_directory: Path, prefixes: dict[str, str], *,
                  benchmark_timings: MutableMapping[str, int] | None = None,
-                 schema_version: str = "baseline_results/1"):
+                 schema_version: str = "benchmark_results/2"):
         import pyarrow.parquet as pq
 
         self.run_directory = Path(run_directory)

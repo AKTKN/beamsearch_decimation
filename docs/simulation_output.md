@@ -5,7 +5,7 @@ Each new run has `YYYY_MM_DD_HH_MM_<config-hash-8>/config_resolved.json` and
 no run manifests, raw samples, copied circuits, file logs or replay facility.
 Historical schemas remain readable through legacy consumers.
 
-The active Arrow metadata is `qec_schema=baseline_results/1`. Every row has:
+The active Arrow metadata is `qec_schema=benchmark_results/2`. Every row has:
 
 | Column | Type | Meaning |
 |---|---|---|
@@ -21,6 +21,10 @@ only after each decoder returns. `latency_ns` brackets the complete
 `DecoderAdapter.decode` call: input conversion, upstream decode, original-H
 validation, A prediction and cost. Preparation, warmup, sampling, truth
 comparison, row construction and Parquet writes are outside it.
+For AF-BP the same boundary includes BP, failure scoring, factorization,
+graph transformations and marginal handoff; for Relay it includes all executed
+relay legs. Failed services retain spent latency and iterations and are saved
+with `logical_error=true`.
 
 For `bposd`, `total_iterations` is upstream BP `.iter` for a nonzero syndrome
 and zero for the upstream zero-syndrome shortcut; OSD contributes zero. For
@@ -30,6 +34,8 @@ shortcut contributes zero. Neither value is inferred from budgets or wall time.
 For `relay_bp`, `total_iterations` is exactly upstream
 `decode_detailed(...).iterations`, including the initial BP run and each
 executed relay leg. The adapter calls the single-shot API in each worker.
+For `af_bp`, `total_iterations` is the native service's exact sum of completed
+BP iterations across its initial and transformed graphs and any qDither chains.
 
 One logical-error trial is one physical shot, with no division by rounds or
 number of observables. Failed shots remain in latency and iteration summaries.

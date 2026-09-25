@@ -1,6 +1,6 @@
 # Active storage
 
-New baseline runs use five-field `baseline_results/1` with exact
+New active runs use five-field `benchmark_results/2` with exact
 `total_iterations`. Historical minimal and wide contracts below remain under
 `storage/legacy/` and are not rewritten.
 

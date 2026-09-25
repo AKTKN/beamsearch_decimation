@@ -14,8 +14,9 @@ engine state per shot. The result has `valid`, correction, A prediction,
 `total_iterations`, graph/factorization counts and status. Failure returns no
 accepted correction. There is no OSD fallback or logical-truth input. The
 Python `AFBPDecoder` in `qec_bp_benchmark.af_bp_service` only marshals arrays
-and calls this native service once per shot. It is not in the simulator
-registry and produces no Parquet or plots in Stage 4.
+and calls this native service once per shot. Stage 6 registers that boundary
+through the active `DecoderAdapter`; the native source remains independent
+of simulator sampling, Parquet, and plotting.
 
 The first BP call uses `initial_iteration_budget`; later graph instances use
 `transformed_iteration_budget`. `initial_parallel=true` forces ordinary

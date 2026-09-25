@@ -1,3 +1,28 @@
+# AF-BP Stage 6 active benchmark integration (2026-09-25)
+
+`af_bp`, `relay_bp`, `beam8`, and ordinary `bposd` are active comparison
+profiles on identical physical shots. Strict AF-BP config maps every Stage-4
+scientific setting, including graph/failure/U selection, factorization,
+parallel/serial/qDither, budgets, Min-Sum scaling, and seeds. New saved rows
+use the exact five-field `benchmark_results/2` schema. Active figures now
+include mean total BP iterations; historical multi-schema plotting remains
+under `analysis/legacy/`. Sampling, truth, seed derivation, worker scheduling,
+BB144 circuits, timing boundaries, and native scientific kernels were not
+changed.
+
+Final `search_decimation` evidence: 102/102 full Python tests passed, including
+paired four-decoder syndrome equality, serial/two-worker non-latency row
+equality with Relay stochastic legs disabled, all four BB144 adapters, exact
+failure accounting, active/legacy schema routing, and synthetic/smoke plots.
+All six bounded config examples validated. The two-shot AF-BP surface d3
+smoke, two-shot AF-BP parallel/serial/qDither example, and one-shot BB144
+d12/R1 all-decoder smoke completed; the BB144 run
+retained AF-BP and Relay failure iterations under intentionally tiny budgets.
+The dependency build check passed. No production sweep was run. See
+`docs/af_bp_stage6.md` for exact paths, limits, and the active surface.
+
+---
+
 # AF-BP Stage 5 comparison decoders (2026-09-25)
 
 The active truth-free comparison surface is now `beam8`, `bposd`, and

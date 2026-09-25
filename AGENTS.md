@@ -1,19 +1,19 @@
 # AF-BP benchmark workspace
 
 The active branch is `af-bp-v1`, based on the latest `origin/search-bp-lpmdp-v1`.
-The active package is being reset around AF-BP comparison. The AF-BP-1.0 native
-service is implemented but not registered with the simulator. Active comparison
-decoder profiles are `beam8`, `bposd`, and pinned `relay_bp`; the latter uses
+The active package benchmarks AF-BP on paired physical samples. Active decoder
+profiles are `af_bp`, `beam8`, `bposd`, and pinned `relay_bp`; the latter uses
 upstream Rust `RelayDecoderF64.decode_detailed` and exact total iterations.
-`bposd` accepts a nonnegative `osd_order` option. Never
-label historical `bposd_ms30_cs0` or `bposd_ms30_cs10` results as new `bposd`.
+`bposd` accepts a nonnegative `osd_order` option. Never label historical
+`bposd_ms30_cs0` or `bposd_ms30_cs10` results as new `bposd`.
 
 Use the `search_decimation` conda environment. Physical production rates are
 user-supplied; never launch a production sweep implicitly. The active smoke
 configuration is `config/baselines.yaml.example`. The current result contract is
 `docs/simulation_output.md`: one physical shot per row and fields `shot_id`,
-`decoder_name`, `logical_error`, `latency_ns`, `total_iterations`. The iteration
-count is the actual total across all BP calls; OSD adds zero. Beam8 has an
+`decoder_name`, `logical_error`, `latency_ns`, `total_iterations`. Schema
+metadata is `benchmark_results/2`. The iteration count is the actual total
+across all BP calls; OSD adds zero. Beam8 has an
 instrumentation-only upstream patch to count all masked paths. Preserve the
 complete `DecoderAdapter.decode` wall-time boundary.
 Relay source is pinned at `d185194ba0cb4101ced4340d82b2ee6d42f225f0`
@@ -39,7 +39,8 @@ Stage 2 added opt-in `ldpc.af_bp` C++ parallel/serial/qDither BP engines without
 changing upstream BP-OSD. Stage 3 added the standalone C++ graph factorization
 core under `src/af_bp_core/`. Stage 4 adds the native AF-BP-1.0 decoder state
 machine, one-call truth-free Python boundary and a separate CMake extension.
-It is not registered with the active simulator. Preserve the TeX-defined sparse
+Stage 6 registers that service and keeps all physical sampling and worker
+logic intact. Preserve the TeX-defined sparse
 support, exact graph equivalence, local net-cycle score, strict rediscovery,
 exact BP iteration counts, immutable physical priors and original-H validation.
 Keep typed public APIs, deterministic ordering, checked native boundaries and
@@ -51,6 +52,7 @@ Active checks:
 conda activate search_decimation
 scripts/build_dependencies.sh --check
 python python_scripts/validate_config.py config/baselines.yaml.example
+python python_scripts/validate_config.py config/af_bp_smoke.yaml.example
 python -m pytest -q
 scripts/run_benchmark.sh config/baselines.yaml.example
 ```
@@ -58,3 +60,4 @@ scripts/run_benchmark.sh config/baselines.yaml.example
 New runs use fresh output directories; no in-place resume. Do not rewrite old
 Parquet data or archived source bytes. Update active docs and STATUS.md with
 actual evidence and limits.
+Stage 6 integration and bounded BB144 evidence are in `docs/af_bp_stage6.md`.

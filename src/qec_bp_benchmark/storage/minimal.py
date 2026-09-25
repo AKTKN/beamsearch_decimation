@@ -1,15 +1,10 @@
-"""Active five-field baseline result contract; historical contracts live in legacy."""
+"""Active five-field AF-BP benchmark contract; historical contracts are legacy."""
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 import pyarrow as pa
 
-from .legacy.decimation.minimal import (
-    SCHEMA as SEARCH_BP_SCHEMA, LPM_DP_SCHEMA,
-    LEGACY_SCHEMA,
-)
-
-SCHEMA_VERSION = 'baseline_results/1'
+SCHEMA_VERSION = 'benchmark_results/2'
 SCHEMA = pa.schema([
     pa.field('shot_id', pa.string(), nullable=False),
     pa.field('decoder_name', pa.string(), nullable=False),
@@ -50,13 +45,13 @@ def result_table(rows: Sequence[Mapping[str, Any]] | Mapping[str, Sequence[Any]]
     seen = set()
     for row in values:
         if set(row) != set(schema.names):
-            raise ValueError('result fields differ from baseline schema')
+            raise ValueError('result fields differ from benchmark schema')
         if (not isinstance(row['shot_id'], str) or not row['shot_id'] or
             not isinstance(row['decoder_name'], str) or not row['decoder_name'] or
             type(row['logical_error']) is not bool or
             type(row['latency_ns']) is not int or not 0 <= row['latency_ns'] < 2**63 or
             type(row['total_iterations']) is not int or not 0 <= row['total_iterations'] < 2**63):
-            raise ValueError('invalid baseline result value')
+            raise ValueError('invalid benchmark result value')
         key = row['shot_id'], row['decoder_name']
         if key in seen:
             raise ValueError('duplicate shot/decoder result')

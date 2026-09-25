@@ -4,11 +4,19 @@
 serial/two-worker checks. `bposd_cs0_smoke.yaml.example` is an order-zero
 single-baseline check. `relay_bp_smoke.yaml.example` exercises the pinned
 F64 Relay adapter with two physical shots. The first is the bounded, runnable
-Stage-1 smoke template. The active registry accepts `beam8`, `bposd`, and
-`relay_bp`. `bposd.osd_order` is a
+Stage-1 smoke template. The active registry accepts `af_bp`, `relay_bp`,
+`beam8`, and `bposd`. `bposd.osd_order` is a
 nonnegative integer option; default 10, with 0 supported. Other BP-OSD
 parameters retain upstream minimum-sum/parallel/scale-1/OSD_CS behavior. Beam
-width is fixed at 8. `af_bp` remains reserved for simulator integration.
+width is fixed at 8.
+
+`af_bp_smoke.yaml.example`, `af_bp_variants.yaml.example`,
+`af_bp_factorization.yaml.example`, and `af_bp_n_fact.yaml.example` are
+bounded checks for the AF-BP service and its scientific options.
+`bb144_tiny.yaml.example` runs one BB144 d12/R1 shot through all four active
+decoders. Every example is non-production. AF-BP exposes the full graph,
+failure/U-selection, factorization, BP schedule, qDither, and seed settings in
+`config.AFBP`; unknown and legacy decimation fields are rejected.
 
 `relay_bp` exposes upstream `alpha`, `alpha_iteration_scaling_factor`,
 `gamma0`, `pre_iter`, `num_sets`, `set_max_iter`, `gamma_dist_interval`,

@@ -1,4 +1,4 @@
-"""Read one active baseline run without pooling conditions or execution contexts."""
+"""Read one active benchmark_results/2 run without pooling contexts."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -22,7 +22,7 @@ def summarize_run(run_path: str | Path, *, confidence: float = .95) -> list[dict
     decoders = {d['name']: d for d in config['decoders'] if d['enabled']}
     paths = sorted((run / 'data').glob('*_results.parquet'))
     if not paths:
-        raise ValueError('no baseline result files found')
+        raise ValueError('no active benchmark result files found')
     summaries = []
     seen = set()
     for path in paths:

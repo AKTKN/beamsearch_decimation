@@ -18,24 +18,27 @@ def test_active_example_and_paths():
     assert config.execution.max_pending == 2
 
 
-def test_every_top_level_config_is_an_active_baseline():
+def test_every_top_level_config_is_active_or_analysis():
     paths = sorted((ROOT / 'config').glob('*.yaml.example'))
     assert {path.name for path in paths} == {
         'baselines.yaml.example', 'baselines_workers2.yaml.example',
         'bposd_cs0_smoke.yaml.example', 'relay_bp_smoke.yaml.example',
+        'af_bp_smoke.yaml.example', 'af_bp_variants.yaml.example',
+        'af_bp_factorization.yaml.example', 'af_bp_n_fact.yaml.example',
+        'bb144_tiny.yaml.example',
         'analysis.yaml.example',
     }
     for path in paths:
         if path.name == 'analysis.yaml.example':
             continue
         config = load_config(path)
-        assert all(decoder.profile in ('beam8', 'bposd', 'relay_bp') for decoder in config.decoders)
+        assert all(decoder.profile in ('beam8', 'bposd', 'relay_bp', 'af_bp') for decoder in config.decoders)
 
 
 @pytest.mark.parametrize('profile', [
     'screened_reference', 'hybrid_search_soft_ms_osd0_v1', 'search_osd0_v1',
     'hybrid_search_soft_ms_osd0_cold_v1', 'search_bp', 'lpm_dp_bp_v1',
-    'beam32', 'bposd_ms30_cs0', 'bposd_ms30_cs10', 'af_bp',
+    'beam32', 'bposd_ms30_cs0', 'bposd_ms30_cs10', 'af_bp_v1',
 ])
 def test_legacy_and_future_profiles_are_not_active(profile):
     with pytest.raises(ValueError):
@@ -83,6 +86,39 @@ def test_relay_config_exposes_upstream_parameters_and_rejects_unpinned_gamma_arr
     assert resolved['kind'] == 'relay_bp'
     for bad in ({'explicit_gammas': [[0.1]]}, {'seed': -1},
                 {'gamma_dist_interval': [.2, .2]}, {'pre_iter': 0}):
+        with pytest.raises(ValidationError):
+            Config.model_validate({'noise': {'rates': [.001]},
+                                   'decoders': [{**settings, **bad}]})
+
+
+def test_af_bp_config_exposes_every_native_scientific_setting():
+    from qec_bp_benchmark.config import AFBP
+    expected = {
+        'history_window', 'residual_radius', 'distance_decay',
+        'uncertainty_weight', 'oscillation_weight', 'U_selection', 'U_top_k',
+        'U_threshold', 'factorization_policy', 'n_fact', 'graph_rounds',
+        'bp_variant', 'initial_parallel', 'initial_iteration_budget',
+        'transformed_iteration_budget', 'ms_scaling_factor', 'serial_order',
+        'atanh_epsilon', 'qdither_phase1_iterations', 'qdither_chains',
+        'qdither_iterations_per_chain', 'qdither_alpha', 'qdither_beta',
+        'qdither_rho', 'qdither_handoff', 'seed', 'seed_policy',
+    }
+    assert set(AFBP.model_fields) == expected | {'profile', 'kind', 'name', 'enabled'}
+    settings = {'profile': 'af_bp', 'U_selection': 'threshold', 'U_threshold': .2,
+                'factorization_policy': 'shen_cycle_count', 'n_fact': 2,
+                'bp_variant': 'serial', 'initial_parallel': False,
+                'serial_order': 'natural', 'ms_scaling_factor': .8,
+                'seed': 19, 'seed_policy': 'fixed'}
+    config = Config.model_validate({'noise': {'rates': [.001]}, 'decoders': [settings]})
+    assert config.decoders[0].kind == 'af_bp'
+    for key, value in settings.items():
+        assert config.resolved()['decoders'][0][key] == value
+    for bad in ({'q': 2}, {'U_selection': 'all'},
+                {'uncertainty_weight': 0, 'oscillation_weight': 0},
+                {'qdither_alpha': .8, 'qdither_beta': .2},
+                {'ms_scaling_factor': 1.1}, {'history_window': 0},
+                {'bp_variant': 'qdither', 'qdither_handoff': 'paper'},
+                {'initial_iteration_budget': 2**31}):
         with pytest.raises(ValidationError):
             Config.model_validate({'noise': {'rates': [.001]},
                                    'decoders': [{**settings, **bad}]})

@@ -1,10 +1,10 @@
 # AF-BP benchmark workspace
 
-This repository is being reset around adaptive graph refactorization BP
-(AF-BP). Its native decoder service is implemented and directly callable, but
-it is not yet connected to simulator configs, storage, or plots. The active
-comparison surface now includes published Beam Search width 8 (`beam8`),
-ordinary upstream BP-OSD (`bposd`), and pinned upstream Relay-BP (`relay_bp`).
+This repository benchmarks adaptive graph refactorization BP (AF-BP) against
+published Beam Search width 8 (`beam8`), ordinary upstream BP-OSD (`bposd`),
+and pinned upstream Relay-BP (`relay_bp`). All four are active, truth-free
+decoder services on the same physical shots. AF-BP supports parallel, serial,
+and qDither BP variants, graph factorization policies, and exact total BP work.
 Relay uses the F64 Rust-backed `decode_detailed` API, with exact total BP
 iterations and no decoder-side batch parallelism. The BP-OSD
 `osd_order` is a config option; its default is 10 and order 0 is also valid.
@@ -20,6 +20,7 @@ conda activate search_decimation
 scripts/build_dependencies.sh --check
 python python_scripts/validate_config.py config/baselines.yaml.example
 python python_scripts/validate_config.py config/relay_bp_smoke.yaml.example
+python python_scripts/validate_config.py config/af_bp_smoke.yaml.example
 python -m pytest -q
 scripts/run_benchmark.sh config/baselines.yaml.example
 ```
@@ -30,8 +31,9 @@ and one named Parquet result file per condition under `data/`. Rows hold
 `shot_id`, `decoder_name`, `logical_error`, complete-service `latency_ns`, and
 exact `total_iterations`. Read one run with
 `analysis.simple_results.summarize_run(path)`; plot through the public
-`analysis.plot_decode_time_histogram`, `plot_logical_error_rate` and
-`plot_mean_decode_time` functions.
+`analysis.plot_decode_time_histogram`, `plot_logical_error_rate`,
+`plot_mean_decode_time`, and `plot_mean_total_iterations` functions. Active
+results use `benchmark_results/2`; prior schemas require legacy readers.
 
 Screened decimation, Hybrid Search/BP, SEARCH-BP and LPM-DP are historical.
 Their source, configs, readers, tests and prior evidence are preserved; see
@@ -40,5 +42,7 @@ identities and schemas. The normative AF-BP design is
 [adaptive_graph_refactorization_bp_spec.tex](adaptive_graph_refactorization_bp_spec.tex).
 Current migration evidence and limitations are in [STATUS.md](STATUS.md).
 Relay source/build and Stage-5 evidence are in [Stage-5 report](docs/af_bp_stage5.md).
+The active integration and bounded BB144 evidence are in the
+[Stage-6 report](docs/af_bp_stage6.md).
 The standalone Stage-4 service API is documented in
 [src/af_bp_core/README.md](src/af_bp_core/README.md).

@@ -5,6 +5,7 @@ from .benchmark_plots import (
     plot_decode_time_histogram,
     plot_logical_error_rate,
     plot_mean_decode_time,
+    plot_mean_total_iterations,
 )
 from .config import AnalysisConfig, load_analysis_config
 from .simple_results import summarize_run
@@ -16,6 +17,7 @@ __all__ = [
     "plot_decode_time_histogram",
     "plot_logical_error_rate",
     "plot_mean_decode_time",
+    "plot_mean_total_iterations",
     "summarize_run",
     "AnalysisConfig",
     "load_analysis_config",

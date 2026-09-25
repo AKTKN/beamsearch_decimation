@@ -1,10 +1,11 @@
 # Current documentation
 
 Current architecture: see `architecture.md`, `simulation_output.md`,
-`../config/README.md` and `legacy/decimation/README.md`. AF-BP is a callable
-native service awaiting simulator integration; Relay-BP is an active pinned
-comparison decoder. `af_bp_stage5.md` records Relay integration and exact
-iteration evidence. The remaining index below describes historical work.
+`../config/README.md` and `legacy/decimation/README.md`. AF-BP, Relay-BP,
+Beam8 and BP-OSD are active. `af_bp_stage6.md` records simulator integration,
+BB144 smoke and the `benchmark_results/2` contract; `af_bp_stage5.md`
+records the Relay pin and comparison-decoder counters. The remaining index
+below describes historical work.
 
 ---
 

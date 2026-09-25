@@ -1,9 +1,12 @@
 # Active analysis
 
-Use `analysis.simple_results.summarize_run(path)` for `baseline_results/1`.
-The public `analysis` plotting functions draw saved baseline latency and logical-error
-figures. Search/hybrid result readers below describe historical contracts and
-are preserved under `analysis/legacy/decimation/`.
+Use `analysis.simple_results.summarize_run(path)` for `benchmark_results/2`.
+The public `analysis` plotting functions draw saved logical-error, complete
+latency, and mean total-iteration figures, with code/distance/rate/decoder
+filters. Failed shots contribute to time and iteration summaries. Active
+readers reject prior schemas; historical multi-schema plotting is available
+through `analysis.legacy.benchmark_plots` and other old consumers under
+`analysis/legacy/`. The sections below document historical contracts.
 
 ---
 

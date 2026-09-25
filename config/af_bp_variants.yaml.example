@@ -1,0 +1,45 @@
+# Non-production paired AF-BP schedule/variant check on identical two shots.
+experiment:
+  name: af_bp_variants
+  purpose: Bounded schedule and variant construction check only
+  codes:
+  - family: surface
+    distances: [3]
+circuit:
+  cache: ../simulation_data
+noise:
+  rates: [0.003]
+sampling:
+  shots_per_point: 2
+  batch_size: 2
+  warmup_count: 0
+execution:
+  workers: 1
+output:
+  root: ../assets/runs
+decoders:
+- profile: af_bp
+  name: af_parallel
+  bp_variant: parallel
+  initial_iteration_budget: 2
+  transformed_iteration_budget: 2
+  graph_rounds: 1
+- profile: af_bp
+  name: af_serial
+  bp_variant: serial
+  initial_parallel: false
+  serial_order: natural
+  initial_iteration_budget: 2
+  transformed_iteration_budget: 2
+  graph_rounds: 1
+- profile: af_bp
+  name: af_qdither
+  bp_variant: qdither
+  initial_parallel: false
+  initial_iteration_budget: 2
+  transformed_iteration_budget: 2
+  qdither_phase1_iterations: 1
+  qdither_chains: 1
+  qdither_iterations_per_chain: 1
+  qdither_handoff: graph_warm
+  graph_rounds: 1
