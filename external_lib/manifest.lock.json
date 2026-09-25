@@ -98,16 +98,22 @@
       "version_status": "upstream package version"
     },
     "ldpc": {
+      "af_bp_build_identity": {
+        "flags": "-O3 -std=c++17 -fno-fast-math -ffp-contract=off",
+        "source_sha256": "37152b9831e176458d7f642571d5cdc6bc05e40836193b184d120ccde3432814",
+        "upstream_commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40"
+      },
       "branch": "screened-decimation-bp",
       "build_commands": [
         "python -m pip wheel --no-build-isolation --no-deps external_lib/ldpc -w external_lib/wheels (before opt-in changes)",
         "python -m pip install --no-build-isolation --no-deps -e external_lib/ldpc",
         "(cd external_lib/ldpc && python setup_reference.py build_ext --inplace)",
-        "(cd external_lib/ldpc && python setup_hybrid.py build_ext --inplace)"
+        "(cd external_lib/ldpc && python setup_hybrid.py build_ext --inplace)",
+        "(cd external_lib/ldpc && python setup_af_bp.py build_ext --inplace)"
       ],
       "commit": "d3429964cd4ffe1abfc041c6ec8b8425cb174f40",
       "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
-      "flags": "-O3 -std=c++2a; reference/hybrid: -O3 -std=c++17 -fno-fast-math -ffp-contract=off",
+      "flags": "-O3 -std=c++2a; reference/hybrid/af_bp: -O3 -std=c++17 -fno-fast-math -ffp-contract=off",
       "hosted_fork": false,
       "hybrid_build_identity": {
         "compiler": "11.4.0",
@@ -118,8 +124,9 @@
       },
       "import_location": "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/__init__.py",
       "license": "MIT",
-      "local_changes": "?? setup_hybrid.py\n?? setup_reference.py\n?? src_cpp/README.reference_bp.md\n?? src_cpp/decimated_bp.hpp\n?? src_cpp/hybrid_graph.hpp\n?? src_cpp/osd0_bridge.hpp\n?? src_cpp/reference_bp.hpp\n?? src_cpp/stateful_min_sum.hpp\n?? src_python/ldpc/hybrid_bp/\n?? src_python/ldpc/reference_bp/",
+      "local_changes": "?? setup_af_bp.py\n?? setup_hybrid.py\n?? setup_reference.py\n?? src_cpp/README.reference_bp.md\n?? src_cpp/af_bp.hpp\n?? src_cpp/decimated_bp.hpp\n?? src_cpp/hybrid_graph.hpp\n?? src_cpp/osd0_bridge.hpp\n?? src_cpp/reference_bp.hpp\n?? src_cpp/stateful_min_sum.hpp\n?? src_python/ldpc/af_bp/\n?? src_python/ldpc/hybrid_bp/\n?? src_python/ldpc/reference_bp/",
       "native_files": {
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/af_bp/_af_bp.cpython-312-x86_64-linux-gnu.so": "f2a626400c0aa4d0745cd27d6ffdb5481f3f3711fdb8b99368978b2d37ddc63d",
         "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/belief_find_decoder/_belief_find_decoder.cpython-312-x86_64-linux-gnu.so": "f638d3f11e3b83063f5c8344b9b585627319e9f0e1e03767164ab12150bc8ac3",
         "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/bp_decoder/_bp_decoder.cpython-312-x86_64-linux-gnu.so": "b582a5997db1fe9089aaa0930cda64617ec67d51e472326db80511984ea80209",
         "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/bp_flip/_bp_flip.cpython-312-x86_64-linux-gnu.so": "46c0d33f88bd5c166bef6f2ca4c50e063a274522a8af71886d1ffca6091be71c",
@@ -132,7 +139,7 @@
         "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/ldpc/src_python/ldpc/union_find_decoder/_union_find_decoder.cpython-312-x86_64-linux-gnu.so": "12717c2c1f5ef63c01bdb115a975a4aafff48a0a93ef44eba4c485b1645dd2c0"
       },
       "patch_file": "external_lib/patches/ldpc.patch",
-      "patch_sha256": "653081e058b317980de6721769d7e398c60e29f9c611aaf1db49260cf88f6faa",
+      "patch_sha256": "e57493058fae814759928367d588b2909d378dee9f42a420249c8b7e7751cd97",
       "reference_build_identity": {
         "compiler": "11.4.0",
         "flags": "-O3 -std=c++17 -fno-fast-math -ffp-contract=off",
@@ -162,13 +169,22 @@
         "src_python/ldpc/hybrid_bp/__init__.py",
         "src_python/ldpc/hybrid_bp/__init__.pyi",
         "src_python/ldpc/hybrid_bp/source_files.py",
-        "setup_hybrid.py"
+        "setup_hybrid.py",
+        "src_cpp/af_bp.hpp",
+        "src_python/ldpc/af_bp/bindings.cpp",
+        "src_python/ldpc/af_bp/__init__.py",
+        "src_python/ldpc/af_bp/__init__.pyi",
+        "src_python/ldpc/af_bp/source_files.py",
+        "src_python/ldpc/af_bp/README.md",
+        "setup_af_bp.py"
       ],
-      "role": "BP and BP-OSD; opt-in flooding and stateful hybrid interfaces",
+      "role": "BP and BP-OSD; opt-in historical sessions and AF-BP BP engines",
       "source_hashes": {
         "setup.py": "8e18f32e3d6669b417346194cca173132e5e3516925a36296e63fb25c7a70973",
+        "setup_af_bp.py": "88595116f4fcd050a6271f76cb6bd1441f4bd968095bbefcb5744678b5c6c70a",
         "setup_hybrid.py": "e31d8d87b64c65e6919359b780ededcd7e24553d2544dcec5aa6bd4e9bb36b23",
         "setup_reference.py": "9b9c1248aea40f4f557eea6fccce45b12708a95031dfebdae0835e4a8cd18322",
+        "src_cpp/af_bp.hpp": "00d614254a04f7ededd5899d619c8765506b795c6ffd46fe33ee82672043ce54",
         "src_cpp/bp.hpp": "54f1a311a44dbf5f6836797062c1a86c74674347604e6e024ff6eaf11cc072f2",
         "src_cpp/decimated_bp.hpp": "2dfac2162c3be73bff0d2353adec0370a97a2da4bd42295c1ca156e8073eec95",
         "src_cpp/gf2sparse.hpp": "60acaa221a88e75a6dfe663e82dc5335be64f14d522431c719e2828ca35c1565",
@@ -183,6 +199,11 @@
         "src_cpp/sparse_matrix_util.hpp": "2676fe9af79b0f84c18620dc1e3042d03b85431524b82e6a3fced81b7f5bd0f0",
         "src_cpp/stateful_min_sum.hpp": "5c9753a0de3a96d27874e5ce78f332d0f42bb7cd8bdd098363ce2e9bb3b51b58",
         "src_cpp/util.hpp": "5c54a3edf3d72394bf6162cff575f1723df1043c6281c8573b98d3ef29d0b7fe",
+        "src_python/ldpc/af_bp/README.md": "e89c85e4b04fb8a877337b9fc5ac55597b9133f421afd54d2f435f1449e431ef",
+        "src_python/ldpc/af_bp/__init__.py": "28ba28f9235f8810b1ed5302967df5277bc463c6731ad9efcb7bf596591e1c2d",
+        "src_python/ldpc/af_bp/__init__.pyi": "853973fc4c3e424e7ad6d417a4d792578b792a8b06c736528370ca2bb00114e7",
+        "src_python/ldpc/af_bp/bindings.cpp": "5371c790e6bbae38a075c2618c6b75d06661adebe28143ad1e9bf54789f7ef98",
+        "src_python/ldpc/af_bp/source_files.py": "5e8d5f59018ecfe118de76be26d2c0e4937168deef024f5ef2dae3570e543f12",
         "src_python/ldpc/hybrid_bp/__init__.py": "ac2c421b9b334abd0f8f02a2c5cb8e0989b8933299ef98daa390fbc78c966ef2",
         "src_python/ldpc/hybrid_bp/__init__.pyi": "044fa66015a799c042031b68228f0a2bceb5086933e7e8a1ed136f0e2b952cd6",
         "src_python/ldpc/hybrid_bp/bindings.cpp": "358879d228195f8a1f6a447976379006c3799fe0e0d547f53a7ddf42b444c43f",

@@ -1,3 +1,26 @@
+diff --git a/setup_af_bp.py b/setup_af_bp.py
+new file mode 100644
+index 0000000..0a7d504
+--- /dev/null
++++ b/setup_af_bp.py
+@@ -0,0 +1,17 @@
++"""Build the opt-in AF-BP iteration engine without changing upstream BP-OSD."""
++from pathlib import Path
++import runpy
++import subprocess
++from setuptools import Extension, setup
++import pybind11
++
++ROOT = Path(__file__).resolve().parent
++source = runpy.run_path(str(ROOT / "src_python/ldpc/af_bp/source_files.py"))
++digest = source["source_digest"](ROOT)
++commit = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
++setup(package_dir={"": "src_python"}, ext_modules=[Extension(
++    "ldpc.af_bp._af_bp", sources=["src_python/ldpc/af_bp/bindings.cpp"],
++    depends=list(source["SOURCE_FILES"]), include_dirs=[pybind11.get_include(), "src_cpp"],
++    language="c++", define_macros=[("AF_BP_UPSTREAM_COMMIT", '"' + commit + '"'),
++                                      ("AF_BP_SOURCE_HASH", '"' + digest + '"')],
++    extra_compile_args=["-O3", "-std=c++17", "-fno-fast-math", "-ffp-contract=off", "-Wall", "-Wextra"])] )
 diff --git a/setup_hybrid.py b/setup_hybrid.py
 new file mode 100644
 index 0000000..8610a16
@@ -64,6 +87,268 @@ index 0000000..1ddd6e3
 +This addition does not modify bp.hpp or ordinary BP-OSD. The benchmark's
 +README under the Python reference_bp binding and docs/reference_bp.md describe
 +numerics, shapes, test evidence and the explicit build. No search code lives here.
+diff --git a/src_cpp/af_bp.hpp b/src_cpp/af_bp.hpp
+new file mode 100644
+index 0000000..5d2f520
+--- /dev/null
++++ b/src_cpp/af_bp.hpp
+@@ -0,0 +1,256 @@
++#pragma once
++
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++#include <limits>
++#include <numeric>
++#include <random>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace ldpc::af_bp {
++using Rows = std::vector<std::vector<int>>;
++using Reals = std::vector<double>;
++using Bits = std::vector<int>;
++
++struct Settings {
++    std::string variant = "parallel";
++    int max_iterations = 30;
++    double scaling_factor = 1.0;
++    int history_window = 8;
++    std::string serial_order = "natural";
++    std::uint64_t seed = 0;
++    int phase1_iterations = 30;
++    int num_chains = 0;
++    int chain_iterations = 30;
++    double alpha = 0.0;
++    double beta = 1.0;
++    double rho = 0.0;
++    std::string qdither_handoff = "paper";
++    int max_total_iterations = -1;
++};
++
++struct StepTrace {
++    Bits order;
++    Reals check_to_variable;
++    Reals variable_to_check;
++    Reals provisional_variable_to_check;
++    Reals marginals;
++};
++
++struct AttemptTrace {
++    Reals bias;
++    Reals initial_messages;
++    Reals chi;
++    Bits rsf_mask;
++    std::vector<StepTrace> steps;
++};
++
++struct Result {
++    bool success = false;
++    Bits correction;
++    Reals final_llrs;
++    int total_iterations = 0;
++    int phase1_iterations_executed = 0;
++    std::vector<int> chain_iterations_executed;
++    std::vector<Reals> trailing_history;
++    std::vector<AttemptTrace> attempts;
++    bool budget_truncated = false;
++};
++
++class Decoder {
++    Rows rows_;
++    Reals base_;
++    Settings cfg_;
++    int n_;
++    std::vector<std::vector<int>> row_edges_, var_edges_;
++    Bits edge_var_;
++
++    static int sign(double x) { return (x > 0) - (x < 0); }
++
++    bool valid(const Bits& hard, const Bits& syndrome) const {
++        for (std::size_t a = 0; a < rows_.size(); ++a) {
++            int parity = 0;
++            for (int v : rows_[a]) parity ^= hard[v];
++            if (parity != syndrome[a]) return false;
++        }
++        return true;
++    }
++
++    Reals marginals(const Reals& bias, const Reals& check) const {
++        Reals out = bias;
++        for (int v = 0; v < n_; ++v)
++            for (int e : var_edges_[v]) out[v] += check[e];
++        return out;
++    }
++
++    void check_row(int a, const Reals& variable, Reals& check, int syndrome_bit) const {
++        const auto& edges = row_edges_[a];
++        for (int e : edges) {
++            int parity_sign = syndrome_bit ? -1 : 1;
++            double minimum = std::numeric_limits<double>::infinity();
++            for (int other : edges) if (other != e) {
++                parity_sign *= sign(variable[other]);
++                minimum = std::min(minimum, std::abs(variable[other]));
++            }
++            // A unary check is an exact parity constraint. A finite sentinel
++            // avoids inf-inf cancellation in contradictory sparse graphs.
++            if (edges.size() == 1) minimum = 1e12;
++            check[e] = cfg_.scaling_factor * parity_sign * minimum;
++        }
++    }
++
++    bool attempt(const Bits& syndrome, const Reals& bias, const Reals& initial,
++                 int budget, std::mt19937_64& rng, const Bits& mask,
++                 int& used, Reals& final, Bits& hard,
++                 std::vector<Reals>& history, AttemptTrace* trace) const {
++        Reals variable(edge_var_.size()), check(edge_var_.size(), 0.0);
++        for (std::size_t e = 0; e < variable.size(); ++e) variable[e] = initial[edge_var_[e]];
++        if (trace) trace->initial_messages = variable;
++        final = bias;
++        hard.resize(n_);
++        for (int v = 0; v < n_; ++v) hard[v] = final[v] <= 0.0;
++        // The initial prior-only decision is observable but consumes no iteration.
++        if (valid(hard, syndrome)) return true;
++        for (int t = 0; t < budget; ++t) {
++            StepTrace step;
++            const Reals old_variable = mask.empty() ? Reals{} : variable;
++            if (cfg_.variant == "serial") {
++                step.order.resize(rows_.size());
++                std::iota(step.order.begin(), step.order.end(), 0);
++                if (cfg_.serial_order == "random_per_iteration")
++                    std::shuffle(step.order.begin(), step.order.end(), rng);
++                for (int a : step.order) {
++                    check_row(a, variable, check, syndrome[a]);
++                    // Recompute every affected variable immediately. Recomputing
++                    // avoids subtractive cancellation from previous messages.
++                    for (int e : row_edges_[a]) {
++                        const int v = edge_var_[e];
++                        double sum = bias[v];
++                        for (int other : var_edges_[v]) sum += check[other];
++                        for (int other : var_edges_[v]) variable[other] = sum - check[other];
++                    }
++                }
++            } else {
++                Reals next = check;
++                for (int a = 0; a < static_cast<int>(rows_.size()); ++a)
++                    check_row(a, variable, next, syndrome[a]);
++                check.swap(next);
++                for (int v = 0; v < n_; ++v) {
++                    double sum = bias[v];
++                    for (int e : var_edges_[v]) sum += check[e];
++                    for (int e : var_edges_[v]) variable[e] = sum - check[e];
++                }
++            }
++            step.provisional_variable_to_check = variable;
++            if (!mask.empty()) {
++                // The old edge state must precede this complete iteration.
++                for (std::size_t e = 0; e < variable.size(); ++e)
++                    if (mask[edge_var_[e]] && sign(variable[e]) != sign(old_variable[e]))
++                        variable[e] += old_variable[e];
++            }
++            final = marginals(bias, check);
++            for (int v = 0; v < n_; ++v) hard[v] = final[v] <= 0.0;
++            ++used;
++            history.push_back(final);
++            if (static_cast<int>(history.size()) > cfg_.history_window) history.erase(history.begin());
++            if (trace) {
++                step.check_to_variable = check;
++                step.variable_to_check = variable;
++                step.marginals = final;
++                trace->steps.push_back(std::move(step));
++            }
++            if (valid(hard, syndrome)) return true;
++        }
++        return false;
++    }
++
++public:
++    Decoder(Rows rows, Reals base, Settings cfg) : rows_(std::move(rows)),
++        base_(std::move(base)), cfg_(std::move(cfg)), n_(static_cast<int>(base_.size())) {
++        if (cfg_.variant != "parallel" && cfg_.variant != "serial" && cfg_.variant != "qdither")
++            throw std::invalid_argument("variant must be parallel, serial, or qdither");
++        if (cfg_.serial_order != "natural" && cfg_.serial_order != "random_per_iteration")
++            throw std::invalid_argument("invalid serial_order");
++        if (cfg_.qdither_handoff != "paper" && cfg_.qdither_handoff != "graph_warm")
++            throw std::invalid_argument("invalid qdither_handoff");
++        if (cfg_.max_iterations < 0 || cfg_.history_window < 1 ||
++            cfg_.phase1_iterations < 0 || cfg_.num_chains < 0 || cfg_.chain_iterations < 0 ||
++            cfg_.max_total_iterations < -1 ||
++            !(cfg_.scaling_factor > 0 && cfg_.scaling_factor <= 1) ||
++            !(cfg_.alpha >= 0 && cfg_.alpha <= cfg_.beta && cfg_.beta <= 1) ||
++            !(cfg_.rho >= 0 && cfg_.rho <= 1))
++            throw std::invalid_argument("invalid BP settings");
++        for (double x : base_) if (!std::isfinite(x)) throw std::invalid_argument("base LLRs must be finite");
++        row_edges_.resize(rows_.size()); var_edges_.resize(n_);
++        for (std::size_t a = 0; a < rows_.size(); ++a) {
++            int previous = -1;
++            for (int v : rows_[a]) {
++                if (v < 0 || v >= n_ || v <= previous)
++                    throw std::invalid_argument("row indices must be sorted unique and in range");
++                previous = v;
++                const int e = static_cast<int>(edge_var_.size());
++                edge_var_.push_back(v); row_edges_[a].push_back(e); var_edges_[v].push_back(e);
++            }
++        }
++    }
++
++    Result decode(const Bits& syndrome, const Reals& q_init = {}, bool diagnostics = false) const {
++        if (syndrome.size() != rows_.size() ||
++            std::any_of(syndrome.begin(), syndrome.end(), [](int b){ return b != 0 && b != 1; }))
++            throw std::invalid_argument("syndrome must be a binary vector with one entry per check");
++        if (!q_init.empty() && (q_init.size() != base_.size() ||
++            std::any_of(q_init.begin(), q_init.end(), [](double x){ return !std::isfinite(x); })))
++            throw std::invalid_argument("q_init must be a finite length-n vector");
++        if (cfg_.variant == "qdither" && cfg_.qdither_handoff == "paper" && !q_init.empty())
++            throw std::invalid_argument("paper qDither does not accept q_init");
++        Result result;
++        std::mt19937_64 rng(cfg_.seed);
++        const Reals& first = q_init.empty() ? base_ : q_init;
++        auto cap = [&](int nominal) {
++            return cfg_.max_total_iterations < 0 ? nominal :
++                std::min(nominal, std::max(0, cfg_.max_total_iterations - result.total_iterations));
++        };
++        auto run = [&](const Reals& bias, const Reals& initial, int nominal,
++                       const Bits& mask, const Reals& chi, bool phase1) {
++            const int budget = cap(nominal);
++            AttemptTrace trace; trace.bias = bias; trace.chi = chi; trace.rsf_mask = mask;
++            int used = 0;
++            result.trailing_history.clear();
++            bool success = attempt(syndrome, bias, initial, budget, rng, mask, used,
++                                   result.final_llrs, result.correction,
++                                   result.trailing_history, diagnostics ? &trace : nullptr);
++            if (!success && budget < nominal) result.budget_truncated = true;
++            result.total_iterations += used;
++            if (phase1) result.phase1_iterations_executed = used;
++            else result.chain_iterations_executed.push_back(used);
++            if (diagnostics) result.attempts.push_back(std::move(trace));
++            result.success = success;
++        };
++        run(base_, first, cfg_.variant == "qdither" ? cfg_.phase1_iterations : cfg_.max_iterations,
++            {}, {}, true);
++        if (result.success || cfg_.variant != "qdither") return result;
++        Reals inherited = base_;  // paper q^(0), independent of Phase-I failure marginals
++        std::uniform_real_distribution<double> uniform(cfg_.alpha, cfg_.beta);
++        std::bernoulli_distribution bernoulli(cfg_.rho);
++        for (int r = 0; r < cfg_.num_chains; ++r) {
++            if (cfg_.max_total_iterations >= 0 && result.total_iterations >= cfg_.max_total_iterations) {
++                result.budget_truncated = true;
++                break;
++            }
++            Reals bias(n_); Reals chi(n_); Bits mask(n_);
++            for (int v = 0; v < n_; ++v) {
++                chi[v] = uniform(rng);
++                bias[v] = (1.0 - chi[v]) * base_[v] + chi[v] * inherited[v];
++                mask[v] = bernoulli(rng);
++            }
++            run(bias, bias, cfg_.chain_iterations, mask, chi, false);
++            if (result.success) break;
++            inherited = result.final_llrs;
++        }
++        return result;
++    }
++};
++}  // namespace ldpc::af_bp
 diff --git a/src_cpp/decimated_bp.hpp b/src_cpp/decimated_bp.hpp
 new file mode 100644
 index 0000000..6ed6f58
@@ -820,6 +1105,373 @@ index 0000000..0d9425e
 +};
 +}
 +#endif
+diff --git a/src_python/ldpc/af_bp/README.md b/src_python/ldpc/af_bp/README.md
+new file mode 100644
+index 0000000..25df140
+--- /dev/null
++++ b/src_python/ldpc/af_bp/README.md
+@@ -0,0 +1,45 @@
++# Opt-in AF-BP BP engines
++
++Build with `python setup_af_bp.py build_ext --inplace` from the fork root. The
++module is independent of upstream `BpOsdDecoder`, `reference_bp`, and
++`hybrid_bp`. It does not register a simulator decoder or implement AF-BP graph
++factorization.
++
++```python
++from ldpc.af_bp import BPConfig, BPDecoder, QditherDecoder
++
++bp = BPDecoder(H, base_llrs, BPConfig(variant="serial", serial_order="natural"))
++result = bp.decode_detailed(syndrome, q_init=relay_marginals)
++
++dither = QditherDecoder(H, base_llrs, phase1_iterations=30,
++                        num_chains=4, chain_iterations=20,
++                        alpha=0.2, beta=0.8, rho=0.5, seed=7)
++result = dither.decode_detailed(syndrome)
++```
++
++`H` is a binary dense or SciPy sparse matrix of shape `(m,n)`; `base_llrs` is
++finite binary64 `(n,)`, and `syndrome` is binary `(m,)`. The wrapper copies
++inputs and outputs. `decode` returns the hard decision, while
++`decode_detailed` returns `success`, correction, final marginal LLRs,
++`total_iterations`, per-phase iteration counts, and the final attempt's
++trailing marginal history `(at most history_window,n)`. `diagnostics=True`
++also exposes per-attempt edge traces, sampled chi and RSF masks for audits.
++An object resets on every call, including its RNG. A fixed seed reproduces
++calls on the same standard-library implementation.
++
++Parallel Min-Sum uses synchronous check then variable updates. Horizontal
++serial Min-Sum updates affected variables immediately after each check; its
++`random_per_iteration` option shuffles all check IDs each sweep. qDither's
++Phase I uses parallel Min-Sum; each Phase-II chain uses its own mixed bias,
++once-per-variable Bernoulli RSF mask, and the preceding unsuccessful chain's
++final marginals. The paper mode starts Phase I from base priors and rejects
++`q_init`. `graph_warm` uses `q_init` only for first-attempt edge messages; base
++unary factors and qDither's `q^(0)=base` are unchanged.
++
++`max_total_iterations` caps all actually executed Min-Sum iterations across
++phases. A cap that cuts the nominal schedule is an AF-BP integration mode,
++reported by `budget_truncated=True`, not an unmodified paper configuration.
++An already valid prior-only hard decision returns success with zero iterations.
++For degree-one checks, the ideal infinite parity message is represented by
++signed `1e12` to avoid invalid arithmetic on contradictory sparse graphs.
++Zero-marginal ties decide bit one; zero edge messages have sign zero.
+diff --git a/src_python/ldpc/af_bp/__init__.py b/src_python/ldpc/af_bp/__init__.py
+new file mode 100644
+index 0000000..1e54013
+--- /dev/null
++++ b/src_python/ldpc/af_bp/__init__.py
+@@ -0,0 +1,162 @@
++"""Independent AF-BP-ready Min-Sum engine; all iteration work is native C++.
++
++Rows and all returned arrays are copied. One decoder may be reused for separate
++shots; each decode starts a new native state and seeded RNG. Concurrent calls on
++the same immutable decoder are safe, though the wrapper does not promise that
++third-party matrix objects can be mutated concurrently.
++"""
++from __future__ import annotations
++
++from dataclasses import dataclass
++from pathlib import Path
++from typing import Literal
++import math
++
++import numpy as np
++from numpy.typing import ArrayLike, NDArray
++from scipy import sparse
++
++from . import _af_bp
++from .source_files import source_digest
++
++Variant = Literal["parallel", "serial", "qdither"]
++
++
++@dataclass(frozen=True)
++class BPConfig:
++    variant: Variant = "parallel"
++    max_iterations: int = 30
++    scaling_factor: float = 1.0
++    history_window: int = 8
++    serial_order: Literal["natural", "random_per_iteration"] = "natural"
++    seed: int = 0
++    phase1_iterations: int = 30
++    num_chains: int = 0
++    chain_iterations: int = 30
++    alpha: float = 0.0
++    beta: float = 1.0
++    rho: float = 0.0
++    qdither_handoff: Literal["paper", "graph_warm"] = "paper"
++    max_total_iterations: int | None = None
++
++    def __post_init__(self) -> None:
++        if self.variant not in ("parallel", "serial", "qdither"):
++            raise ValueError("invalid BP variant")
++        if self.serial_order not in ("natural", "random_per_iteration"):
++            raise ValueError("invalid serial check order")
++        if self.qdither_handoff not in ("paper", "graph_warm"):
++            raise ValueError("invalid qDither handoff mode")
++        for name in ("max_iterations", "phase1_iterations", "num_chains", "chain_iterations", "seed"):
++            value = getattr(self, name)
++            if type(value) is not int or value < 0:
++                raise ValueError(f"{name} must be a nonnegative integer")
++        if type(self.history_window) is not int or self.history_window < 1:
++            raise ValueError("history_window must be a positive integer")
++        if self.max_total_iterations is not None and (
++            type(self.max_total_iterations) is not int or self.max_total_iterations < 0
++        ):
++            raise ValueError("max_total_iterations must be a nonnegative integer or None")
++        if self.seed >= 2**64:
++            raise ValueError("seed must fit uint64")
++        if not (math.isfinite(self.scaling_factor) and 0 < self.scaling_factor <= 1):
++            raise ValueError("scaling_factor must be in (0, 1]")
++        if not all(math.isfinite(v) for v in (self.alpha, self.beta, self.rho)) or not (
++            0 <= self.alpha <= self.beta <= 1 and 0 <= self.rho <= 1
++        ):
++            raise ValueError("qDither alpha, beta, rho must be probabilities")
++
++
++@dataclass(frozen=True)
++class BPResult:
++    success: bool
++    correction: NDArray[np.uint8]
++    final_llrs: NDArray[np.float64]
++    total_iterations: int
++    phase1_iterations_executed: int
++    chain_iterations_executed: tuple[int, ...]
++    trailing_history: NDArray[np.float64]
++    attempts: tuple[object, ...]
++    budget_truncated: bool
++
++
++class BPDecoder:
++    """Construct from binary CSR/dense H (m,n) and finite base LLRs (n,).
++
++    decode returns an owned hard decision. decode_detailed additionally returns
++    success, final marginals, exact iteration count and final-attempt history.
++    Input shape/value errors raise ValueError; stale compiled sources raise
++    RuntimeError. The physical base LLR vector is never modified by q_init.
++    """
++
++    def __init__(self, check_matrix: ArrayLike | sparse.spmatrix,
++                 base_llrs: ArrayLike, config: BPConfig = BPConfig()) -> None:
++        if not isinstance(config, BPConfig):
++            raise TypeError("config must be BPConfig")
++        matrix = sparse.csr_matrix(check_matrix)
++        if matrix.ndim != 2 or np.any(matrix.data != 1):
++            raise ValueError("check_matrix must be binary")
++        matrix.sum_duplicates()
++        if np.any(matrix.data != 1):
++            raise ValueError("check_matrix must be binary")
++        matrix.sort_indices()
++        base = np.asarray(base_llrs, dtype=np.float64)
++        if base.shape != (matrix.shape[1],) or not np.isfinite(base).all():
++            raise ValueError("base_llrs must be finite with shape (n,)")
++        root = Path(__file__).resolve().parents[3]
++        if _af_bp.build_identity()["source_sha256"] != source_digest(root):
++            raise RuntimeError("stale ldpc.af_bp native binary; rebuild setup_af_bp.py")
++        native = _af_bp.Settings()
++        for name in BPConfig.__dataclass_fields__:
++            value = getattr(config, name)
++            setattr(native, name, -1 if name == "max_total_iterations" and value is None else value)
++        rows = [matrix.indices[matrix.indptr[a]:matrix.indptr[a + 1]].tolist()
++                for a in range(matrix.shape[0])]
++        self._native = _af_bp.Decoder(rows, base.tolist(), native)
++        self.config = config
++        self.shape = matrix.shape
++
++    def decode_detailed(self, syndrome: ArrayLike, *, q_init: ArrayLike | None = None,
++                        diagnostics: bool = False) -> BPResult:
++        syndrome_array = np.asarray(syndrome)
++        if syndrome_array.shape != (self.shape[0],) or not np.isin(syndrome_array, (0, 1)).all():
++            raise ValueError("syndrome must be binary with shape (m,)")
++        handoff: list[float] = []
++        if q_init is not None:
++            q = np.asarray(q_init, dtype=np.float64)
++            if q.shape != (self.shape[1],) or not np.isfinite(q).all():
++                raise ValueError("q_init must be finite with shape (n,)")
++            handoff = q.tolist()
++        native = self._native.decode_detailed(syndrome_array.astype(np.int32).tolist(),
++                                               handoff, diagnostics)
++        history = np.asarray(native.trailing_history, dtype=np.float64).reshape(-1, self.shape[1])
++        return BPResult(bool(native.success), np.asarray(native.correction, dtype=np.uint8),
++                        np.asarray(native.final_llrs, dtype=np.float64),
++                        int(native.total_iterations), int(native.phase1_iterations_executed),
++                        tuple(native.chain_iterations_executed), history,
++                        tuple(native.attempts), bool(native.budget_truncated))
++
++    def decode(self, syndrome: ArrayLike, *, q_init: ArrayLike | None = None) -> NDArray[np.uint8]:
++        """Return the owned hard decision; inspect success via decode_detailed."""
++        return self.decode_detailed(syndrome, q_init=q_init).correction
++
++
++class QditherDecoder(BPDecoder):
++    """Standalone Python entrypoint for qDither with explicit validated options."""
++
++    def __init__(self, check_matrix: ArrayLike | sparse.spmatrix,
++                 base_llrs: ArrayLike, *, phase1_iterations: int = 30,
++                 num_chains: int = 0, chain_iterations: int = 30,
++                 alpha: float = 0.0, beta: float = 1.0, rho: float = 0.0,
++                 scaling_factor: float = 1.0, history_window: int = 8,
++                 seed: int = 0, handoff: Literal["paper", "graph_warm"] = "paper",
++                 max_total_iterations: int | None = None) -> None:
++        super().__init__(check_matrix, base_llrs, BPConfig(
++            variant="qdither", phase1_iterations=phase1_iterations,
++            num_chains=num_chains, chain_iterations=chain_iterations,
++            alpha=alpha, beta=beta, rho=rho, scaling_factor=scaling_factor,
++            history_window=history_window, seed=seed, qdither_handoff=handoff,
++            max_total_iterations=max_total_iterations))
++
++
++build_identity = _af_bp.build_identity
++__all__ = ["BPConfig", "BPResult", "BPDecoder", "QditherDecoder", "build_identity"]
+diff --git a/src_python/ldpc/af_bp/__init__.pyi b/src_python/ldpc/af_bp/__init__.pyi
+new file mode 100644
+index 0000000..21b37b5
+--- /dev/null
++++ b/src_python/ldpc/af_bp/__init__.pyi
+@@ -0,0 +1,54 @@
++from dataclasses import dataclass
++from typing import Literal
++import numpy as np
++from numpy.typing import ArrayLike, NDArray
++from scipy import sparse
++
++@dataclass(frozen=True)
++class BPConfig:
++    variant: Literal["parallel", "serial", "qdither"] = "parallel"
++    max_iterations: int = 30
++    scaling_factor: float = 1.0
++    history_window: int = 8
++    serial_order: Literal["natural", "random_per_iteration"] = "natural"
++    seed: int = 0
++    phase1_iterations: int = 30
++    num_chains: int = 0
++    chain_iterations: int = 30
++    alpha: float = 0.0
++    beta: float = 1.0
++    rho: float = 0.0
++    qdither_handoff: Literal["paper", "graph_warm"] = "paper"
++    max_total_iterations: int | None = None
++
++@dataclass(frozen=True)
++class BPResult:
++    success: bool
++    correction: NDArray[np.uint8]
++    final_llrs: NDArray[np.float64]
++    total_iterations: int
++    phase1_iterations_executed: int
++    chain_iterations_executed: tuple[int, ...]
++    trailing_history: NDArray[np.float64]
++    attempts: tuple[object, ...]
++    budget_truncated: bool
++
++class BPDecoder:
++    config: BPConfig
++    shape: tuple[int, int]
++    def __init__(self, check_matrix: ArrayLike | sparse.spmatrix, base_llrs: ArrayLike,
++                 config: BPConfig = BPConfig()) -> None: ...
++    def decode(self, syndrome: ArrayLike, *, q_init: ArrayLike | None = None) -> NDArray[np.uint8]: ...
++    def decode_detailed(self, syndrome: ArrayLike, *, q_init: ArrayLike | None = None,
++                        diagnostics: bool = False) -> BPResult: ...
++
++class QditherDecoder(BPDecoder):
++    def __init__(self, check_matrix: ArrayLike | sparse.spmatrix, base_llrs: ArrayLike, *,
++                 phase1_iterations: int = 30, num_chains: int = 0,
++                 chain_iterations: int = 30, alpha: float = 0.0, beta: float = 1.0,
++                 rho: float = 0.0, scaling_factor: float = 1.0,
++                 history_window: int = 8, seed: int = 0,
++                 handoff: Literal["paper", "graph_warm"] = "paper",
++                 max_total_iterations: int | None = None) -> None: ...
++
++def build_identity() -> dict[str, str]: ...
+diff --git a/src_python/ldpc/af_bp/bindings.cpp b/src_python/ldpc/af_bp/bindings.cpp
+new file mode 100644
+index 0000000..b495807
+--- /dev/null
++++ b/src_python/ldpc/af_bp/bindings.cpp
+@@ -0,0 +1,59 @@
++#include <pybind11/pybind11.h>
++#include <pybind11/stl.h>
++#include "af_bp.hpp"
++namespace py = pybind11;
++using namespace ldpc::af_bp;
++
++PYBIND11_MODULE(_af_bp, m) {
++    m.doc() = "Opt-in C++ parallel, horizontal serial, and qDither Min-Sum.";
++    m.def("build_identity", []() {
++        py::dict out;
++        out["upstream_commit"] = AF_BP_UPSTREAM_COMMIT;
++        out["source_sha256"] = AF_BP_SOURCE_HASH;
++        out["flags"] = "-O3 -std=c++17 -fno-fast-math -ffp-contract=off";
++        return out;
++    });
++    py::class_<Settings>(m, "Settings")
++        .def(py::init<>())
++        .def_readwrite("variant", &Settings::variant)
++        .def_readwrite("max_iterations", &Settings::max_iterations)
++        .def_readwrite("scaling_factor", &Settings::scaling_factor)
++        .def_readwrite("history_window", &Settings::history_window)
++        .def_readwrite("serial_order", &Settings::serial_order)
++        .def_readwrite("seed", &Settings::seed)
++        .def_readwrite("phase1_iterations", &Settings::phase1_iterations)
++        .def_readwrite("num_chains", &Settings::num_chains)
++        .def_readwrite("chain_iterations", &Settings::chain_iterations)
++        .def_readwrite("alpha", &Settings::alpha)
++        .def_readwrite("beta", &Settings::beta)
++        .def_readwrite("rho", &Settings::rho)
++        .def_readwrite("qdither_handoff", &Settings::qdither_handoff)
++        .def_readwrite("max_total_iterations", &Settings::max_total_iterations);
++    py::class_<StepTrace>(m, "StepTrace")
++        .def_readonly("order", &StepTrace::order)
++        .def_readonly("check_to_variable", &StepTrace::check_to_variable)
++        .def_readonly("variable_to_check", &StepTrace::variable_to_check)
++        .def_readonly("provisional_variable_to_check", &StepTrace::provisional_variable_to_check)
++        .def_readonly("marginals", &StepTrace::marginals);
++    py::class_<AttemptTrace>(m, "AttemptTrace")
++        .def_readonly("bias", &AttemptTrace::bias)
++        .def_readonly("initial_messages", &AttemptTrace::initial_messages)
++        .def_readonly("chi", &AttemptTrace::chi)
++        .def_readonly("rsf_mask", &AttemptTrace::rsf_mask)
++        .def_readonly("steps", &AttemptTrace::steps);
++    py::class_<Result>(m, "Result")
++        .def_readonly("success", &Result::success)
++        .def_readonly("correction", &Result::correction)
++        .def_readonly("final_llrs", &Result::final_llrs)
++        .def_readonly("total_iterations", &Result::total_iterations)
++        .def_readonly("phase1_iterations_executed", &Result::phase1_iterations_executed)
++        .def_readonly("chain_iterations_executed", &Result::chain_iterations_executed)
++        .def_readonly("trailing_history", &Result::trailing_history)
++        .def_readonly("attempts", &Result::attempts)
++        .def_readonly("budget_truncated", &Result::budget_truncated);
++    py::class_<Decoder>(m, "Decoder")
++        .def(py::init<Rows, Reals, Settings>(), py::arg("rows"), py::arg("base_llrs"), py::arg("settings"))
++        .def("decode_detailed", &Decoder::decode, py::arg("syndrome"),
++             py::arg("q_init")=Reals{}, py::arg("diagnostics")=false,
++             py::call_guard<py::gil_scoped_release>());
++}
+diff --git a/src_python/ldpc/af_bp/source_files.py b/src_python/ldpc/af_bp/source_files.py
+new file mode 100644
+index 0000000..5715d30
+--- /dev/null
++++ b/src_python/ldpc/af_bp/source_files.py
+@@ -0,0 +1,17 @@
++"""Exact source set for the independent AF-BP BP engine."""
++from pathlib import Path
++import hashlib
++
++SOURCE_FILES = (
++    "src_cpp/af_bp.hpp", "src_python/ldpc/af_bp/bindings.cpp",
++    "src_python/ldpc/af_bp/__init__.py", "src_python/ldpc/af_bp/__init__.pyi",
++    "src_python/ldpc/af_bp/source_files.py", "src_python/ldpc/af_bp/README.md",
++    "setup_af_bp.py",
++)
++
++
++def source_digest(root: Path) -> str:
++    digest = hashlib.sha256()
++    for name in SOURCE_FILES:
++        digest.update(name.encode() + b"\0" + (root / name).read_bytes())
++    return digest.hexdigest()
 diff --git a/src_python/ldpc/hybrid_bp/__init__.py b/src_python/ldpc/hybrid_bp/__init__.py
 new file mode 100644
 index 0000000..c9c8602
