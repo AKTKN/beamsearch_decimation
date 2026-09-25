@@ -1,3 +1,35 @@
+# AF-BP Stage 7 final validation (2026-09-25)
+
+The active package remains `af_bp`, `relay_bp`, `beam8`, and ordinary `bposd`.
+Stage 7 changed validation tests, the clean bootstrap and documentation, with
+no scientific kernel or simulator physics/sampling/truth/worker/timer edits.
+The final implementation report is `docs/af_bp_final_report.md`.
+
+Final evidence in `search_decimation`: **103/103** active Python tests,
+**53/53** focused baseline/Relay/config/storage tests, native Debug, ASan and
+UBSan each **7 graph + 6 decoder groups**, 12 selected upstream ldpc tests,
+7 selected Relay upstream tests, and 112 exact pristine-versus-patched Beam
+decisions. The isolated pinned-source build in
+`assets/acceptance/20260925T131529.418408Z_27f6592bd8` completed and
+audited source/patch/import/native identities with no copied binaries or
+circuit cache. Its first full suite found a missing pristine BP-OSD test
+wheel; an independent no-binary clone of the exact ldpc pin was built and
+installed into that clean workspace, then the full suite passed **103/103**,
+including all 288 pristine BP-OSD comparisons. The reusable clean builder now
+includes this test-wheel step. The same clean prefix passed 19 selected ldpc
+and Relay upstream tests and `pip check`.
+
+The bounded two-shot four-decoder serial/two-worker surface runs each wrote
+eight exact-schema rows with all non-latency values equal. A one-shot BB144
+d12/R1 run wrote four exact-schema rows. Live BB144 AF-BP graph work used
+H `(144,864)` with 2,952 edges and applied four factorizations; the
+whole-process high-water RSS was 273,416 KiB. Production candidate scoring
+uses no candidate-times-E/N storage. The requested negative net-cycle-gain
+fixture is impossible for valid bicliques and the specified nonnegative
+weights; the report gives a proof. No production sweep or performance claim.
+
+---
+
 # AF-BP Stage 6 active benchmark integration (2026-09-25)
 
 `af_bp`, `relay_bp`, `beam8`, and ordinary `bposd` are active comparison

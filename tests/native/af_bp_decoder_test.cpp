@@ -176,6 +176,18 @@ static void test_nested_handoff_and_multiple_graph_rounds() {
         for (std::size_t v = 0; v < many.calls[i - 1].final_llrs.size(); ++v)
             near(many.calls[i].q_init[v], many.calls[i - 1].final_llrs[v]);
     }
+
+    // Contradictory physical checks keep all four graph instances active.
+    // Each instance has a one-iteration budget and spends it exactly once.
+    cfg.initial_iteration_budget = 1;
+    cfg.transformed_iteration_budget = 1;
+    Decoder counted(h, {}, {0.1,0.2,0.15,0.2}, cfg);
+    const auto failure = counted.decode({1,1,1,1,0}, true);
+    assert(!failure.valid && failure.status == "GRAPH_ROUNDS_EXHAUSTED");
+    assert(failure.graph_instances == 4 && failure.factorizations == 3);
+    assert(failure.total_iterations == 4 && failure.calls.size() == 4);
+    for (const auto& call : failure.calls)
+        assert(call.budget == 1 && call.actual_iterations == 1);
 }
 
 static void test_reset_seeds_and_original_validation() {

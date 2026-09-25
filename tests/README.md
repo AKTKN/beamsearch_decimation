@@ -3,6 +3,12 @@
 `python -m pytest -q` runs baseline, simulator, BB144, config, storage and
 import tests. Historical decimation tests are preserved under `tests/legacy/`
 and target the pre-migration commit documented in `docs/legacy/decimation/README.md`.
+Final AF-BP validation adds exhaustive tiny graph lifts, randomized biclique
+and exact-score oracles, a full tiny qDither paper-equation oracle, and a
+four-round exact iteration failure. Run `bash scripts/check_af_bp_native.sh`
+with each of `debug`, `asan`, and `ubsan` for standalone native checks. The
+112-decision pristine Beam comparison is
+`python python_scripts/validate_beam_counter.py assets/acceptance/NEW_BEAM_DIRECTORY`.
 The previous coverage inventory below is historical.
 
 ---

@@ -44,5 +44,8 @@ Current migration evidence and limitations are in [STATUS.md](STATUS.md).
 Relay source/build and Stage-5 evidence are in [Stage-5 report](docs/af_bp_stage5.md).
 The active integration and bounded BB144 evidence are in the
 [Stage-6 report](docs/af_bp_stage6.md).
+The [final implementation report](docs/af_bp_final_report.md) records clean
+source restoration, mathematical and baseline validation, sanitizer results,
+bounded BB144 memory, and the future standalone-package file boundary.
 The standalone Stage-4 service API is documented in
 [src/af_bp_core/README.md](src/af_bp_core/README.md).

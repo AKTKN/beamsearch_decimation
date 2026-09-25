@@ -37,7 +37,7 @@ instructions archived there for historical reproduction.
 
 Stage 2 added opt-in `ldpc.af_bp` C++ parallel/serial/qDither BP engines without
 changing upstream BP-OSD. Stage 3 added the standalone C++ graph factorization
-core under `src/af_bp_core/`. Stage 4 adds the native AF-BP-1.0 decoder state
+core under `src/af_bp_core/`. Stage 4 added the native AF-BP-1.0 decoder state
 machine, one-call truth-free Python boundary and a separate CMake extension.
 Stage 6 registers that service and keeps all physical sampling and worker
 logic intact. Preserve the TeX-defined sparse
@@ -61,3 +61,8 @@ New runs use fresh output directories; no in-place resume. Do not rewrite old
 Parquet data or archived source bytes. Update active docs and STATUS.md with
 actual evidence and limits.
 Stage 6 integration and bounded BB144 evidence are in `docs/af_bp_stage6.md`.
+Stage 7 clean restoration, mathematical checks, sanitizer results, memory audit
+and extraction boundaries are in `docs/af_bp_final_report.md`. Run
+`bash scripts/check_af_bp_native.sh debug`, `asan` and `ubsan` for the two
+active native tests. The weighted net-cycle reduction is nonnegative for a
+valid biclique and nonnegative weights; the final report gives the proof.

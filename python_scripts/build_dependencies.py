@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import sysconfig
 
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVE = ('ldpc', 'BeamSearchDecoder', 'relay', 'qLDPC', 'Stim')
@@ -82,7 +83,13 @@ def main() -> None:
             run('git', 'apply', str(patch), cwd=beam_root)
         run(sys.executable, 'setup.py', 'build_ext', '--inplace',
             cwd=beam_root / 'decoder')
+        (Path(sysconfig.get_paths()['purelib']) / 'beam_search_baseline.pth').write_text(
+            str(beam_root / 'decoder') + '\n')
         run(*pip, 'install', '--no-build-isolation', '--no-deps', '-e', '.')
+        # Editable installs add their import roots via .pth files at interpreter
+        # startup. Verify in a fresh interpreter, including in a clean prefix.
+        run(sys.executable, __file__, '--check')
+        return
     print(json.dumps(verify(), indent=2))
 
 

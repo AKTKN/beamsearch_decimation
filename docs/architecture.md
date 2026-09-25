@@ -1,4 +1,4 @@
-# Active architecture after Stage 6
+# Active AF-BP benchmark architecture
 
 The simulation package is organized around a fixed physical experiment and a
 replaceable truth-free decoder service. AF-BP, Relay-BP, Beam8, and BP-OSD

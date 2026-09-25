@@ -199,6 +199,53 @@ def test_qdither_seeded_nonconstant_chi_and_once_per_chain_mask() -> None:
     assert not np.allclose(first.attempts[1].chi, first.attempts[2].chi)
 
 
+def test_qdither_complete_tiny_paper_equations_oracle() -> None:
+    """Recompute both chains from dense paper equations and fixed RNG draws."""
+    h = np.array([[1, 1], [1, 1]], dtype=np.uint8)
+    base = np.array([1.2, -0.7])
+    result = QditherDecoder(h, base, phase1_iterations=1, num_chains=2,
+                            chain_iterations=2, alpha=0.2, beta=0.8,
+                            rho=0.5, seed=1).decode_detailed([0, 1], diagnostics=True)
+    assert not result.success and result.total_iterations == 5
+    expected_draws = (
+        ([0.28032598640751966, 0.47072894230672296], [1, 1]),
+        ([0.4105388682697518, 0.4824512794941395], [0, 1]),
+    )
+    for attempt, (chi, mask) in zip(result.attempts[1:], expected_draws):
+        np.testing.assert_allclose(attempt.chi, chi, rtol=0, atol=1e-15)
+        assert attempt.rsf_mask == mask
+
+    # Edge order is (check 0, variable 0/1), then (check 1, variable 0/1).
+    edge_variables = (0, 1, 0, 1)
+    prior = base.copy()  # paper q^(0), independent of Phase-I marginals
+    for chain, (chi, mask) in zip(result.attempts[1:], expected_draws):
+        bias = (1 - np.asarray(chi)) * base + np.asarray(chi) * prior
+        np.testing.assert_allclose(chain.bias, bias)
+        variable = np.asarray([bias[v] for v in edge_variables])
+        checks = np.zeros(4)
+        for step in chain.steps:
+            # Synchronous Min-Sum check update with syndrome signs (+,-).
+            checks = np.asarray([variable[1], variable[0],
+                                 -variable[3], -variable[2]])
+            provisional = np.asarray([
+                bias[0] + checks[2], bias[1] + checks[3],
+                bias[0] + checks[0], bias[1] + checks[1],
+            ])
+            next_variable = provisional.copy()
+            for edge, v in enumerate(edge_variables):
+                if mask[v] and np.sign(provisional[edge]) != np.sign(variable[edge]):
+                    next_variable[edge] += variable[edge]
+            marginal = bias + np.asarray([checks[0] + checks[2],
+                                          checks[1] + checks[3]])
+            np.testing.assert_allclose(step.check_to_variable, checks)
+            np.testing.assert_allclose(step.provisional_variable_to_check, provisional)
+            np.testing.assert_allclose(step.variable_to_check, next_variable)
+            np.testing.assert_allclose(step.marginals, marginal)
+            variable = next_variable
+        prior = marginal
+    np.testing.assert_allclose(result.final_llrs, prior)
+
+
 def test_fork_identity_and_patch_restoration(tmp_path: Path) -> None:
     assert build_identity()["source_sha256"] == source_digest(FORK)
     manifest = __import__("json").loads((ROOT / "external_lib/manifest.lock.json").read_text())

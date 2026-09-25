@@ -1,17 +1,41 @@
+# AF-BP active build and validation
+
+Use `search_decimation`. The active package registers AF-BP, Relay-BP, Beam8
+and ordinary BP-OSD. Reinstall the editable project after changing the AF-BP
+graph, decoder, binding, CMake target, or fork BP header. The compiled service
+digest rejects stale binaries. Relay builds from the pinned upstream Rust
+source with locked maturin; Beam8 uses its tracked counter-only patch.
+
+```bash
+conda activate search_decimation
+scripts/build_dependencies.sh
+scripts/build_dependencies.sh --check
+python -m pytest -q
+bash scripts/check_af_bp_native.sh debug
+bash scripts/check_af_bp_native.sh asan
+bash scripts/check_af_bp_native.sh ubsan
+python python_scripts/validate_beam_counter.py assets/acceptance/NEW_BEAM_DIRECTORY
+python python_scripts/audit_af_bp_memory.py assets/acceptance/NEW_MEMORY.json
+python python_scripts/validate_af_bp_smoke.py assets/acceptance/NEW_SMOKE_DIRECTORY
+scripts/clean_build.sh assets/acceptance
+```
+
+The clean builder creates new pinned Git checkouts and a new conda prefix,
+restores and checks all locked patches and source hashes, builds the project,
+all three opt-in ldpc bindings, a separately imported pristine ldpc wheel for
+the 288-case BP-OSD regression, Beam8, Relay and Stim from source, then audits
+the resulting imports, native digests and package requirements. It copies no
+native binary or circuit cache. The native test script uses separate Debug,
+ASan and UBSan binaries with leak detection and halt-on-error. Acceptance
+commands and measured limits are recorded in `af_bp_final_report.md`.
+
+---
+
 # Historical build reference
 
-The native decimation build below is legacy. The current baseline package and
-separately callable AF-BP service build with `scripts/build_dependencies.sh`
-and `python -m pip install --no-build-isolation --no-deps -e .` in
-`search_decimation`. Reinstall the editable package after changing
-`src/af_bp_core/graph.hpp`, `decoder.hpp`, `bindings.cpp`, `CMakeLists.txt`, or
-the fork `external_lib/ldpc/src_cpp/af_bp.hpp`; the service source hash rejects
-a stale extension. The service is not yet registered with the simulator.
-Stage 5 also builds `external_lib/relay` at its pinned commit using
-`maturin==1.15.0` and the upstream Rust release profile. The build helper
-installs the editable Rust-backed `relay_bp` module; `--check` verifies its
-commit, source hashes, import location, and F64 detailed API. Keep Relay's
-Apache-2.0 license and IBM copyright notices. See `af_bp_stage5.md`.
+The native decimation build below is legacy. Its old targets and restoration
+commands are preserved as historical instructions; they are not part of the
+active AF-BP CMake target.
 
 ---
 

@@ -4,7 +4,8 @@ Current architecture: see `architecture.md`, `simulation_output.md`,
 `../config/README.md` and `legacy/decimation/README.md`. AF-BP, Relay-BP,
 Beam8 and BP-OSD are active. `af_bp_stage6.md` records simulator integration,
 BB144 smoke and the `benchmark_results/2` contract; `af_bp_stage5.md`
-records the Relay pin and comparison-decoder counters. The remaining index
+records the Relay pin and comparison-decoder counters. `af_bp_final_report.md`
+records final restoration, validation, memory and extraction evidence. The remaining index
 below describes historical work.
 
 ---

@@ -197,7 +197,8 @@ static void test_exact_phi_and_local_delta() {
     for (const auto& b : trial.discover({0,1,2})) exact_delta(trial, b, omega);
     // Randomized small graphs compare every discovered candidate to full-copy oracle.
     std::uint32_t state = 1761;
-    for (int sample = 0; sample < 60; ++sample) {
+    int positive = 0;
+    for (int sample = 0; sample < 160; ++sample) {
         Rows rows(5);
         for (int c = 0; c < 5; ++c)
             for (int v = 0; v < 6; ++v) {
@@ -206,8 +207,79 @@ static void test_exact_phi_and_local_delta() {
             }
         Graph random(rows, Reals(6, 0.1), Ids(5, 0));
         const Reals weights{0.1,0.5,0.2,0.8,0.3,0.6};
-        assert(random.discover({0,1,2,3,4,5}) == exhaustive_discovery(random, {0,1,2,3,4,5}));
-        for (const auto& b : random.discover({0,1,2,3,4,5})) exact_delta(random, b, weights);
+        for (const Ids& u : {Ids{0}, Ids{1,3}, Ids{0,1,2,3,4,5}}) {
+            const auto candidates = random.discover(u);
+            assert(candidates == exhaustive_discovery(random, u));
+            double oracle_best_delta = -1.0;
+            Biclique oracle_adaptive;
+            std::uint64_t oracle_best_cycles = 0;
+            Biclique oracle_shen;
+            for (const auto& b : candidates) {
+                exact_delta(random, b, weights);
+                const double delta = random.net_cycle_reduction(b, weights);
+                assert(delta >= -1e-12);
+                positive += delta > 1e-12;
+                if (delta > oracle_best_delta ||
+                    (delta == oracle_best_delta && b < oracle_adaptive)) {
+                    oracle_best_delta = delta;
+                    oracle_adaptive = b;
+                }
+                const std::uint64_t cycles =
+                    (b.variables.size() * (b.variables.size() - 1) / 2) *
+                    (b.checks.size() * (b.checks.size() - 1) / 2);
+                if (cycles > oracle_best_cycles ||
+                    (cycles == oracle_best_cycles && b < oracle_shen)) {
+                    oracle_best_cycles = cycles;
+                    oracle_shen = b;
+                }
+            }
+            Graph adaptive = random;
+            const auto selected_adaptive = adaptive.factorize_graph(weights, u, 1, "adaptive_cycle");
+            assert(selected_adaptive.applied == (oracle_best_delta > 0 ? 1 : 0));
+            if (selected_adaptive.applied)
+                assert(selected_adaptive.chosen.front().biclique == oracle_adaptive);
+            Graph shen = random;
+            const auto selected_shen = shen.factorize_graph(weights, u, 1, "shen_cycle_count");
+            assert(selected_shen.applied == (candidates.empty() ? 0 : 1));
+            if (selected_shen.applied)
+                assert(selected_shen.chosen.front().biclique == oracle_shen);
+        }
+    }
+    assert(positive > 0);
+    // Zero weights make every pairwise weighted cycle score zero, even when
+    // topology changes. The admissible nonnegative weights cannot yield a
+    // negative net score for a valid biclique (see final audit proof).
+    Graph zero_graph({{0,1},{0,1}}, {0,0}, {0,0});
+    const auto zero_candidate = zero_graph.discover({0}).front();
+    exact_delta(zero_graph, zero_candidate, {0,0});
+    assert(zero_graph.net_cycle_reduction(zero_candidate, {0,0}) == 0);
+}
+
+static void test_many_exhaustive_physical_lifts() {
+    std::uint32_t state = 271828;
+    for (int sample = 0; sample < 80; ++sample) {
+        const int n = 3 + sample % 3;
+        Rows rows(4);
+        for (int a = 0; a < 4; ++a)
+            for (int v = 0; v < n; ++v) {
+                state = state * 1664525u + 1013904223u;
+                if ((state >> 29) < 5) rows[a].push_back(v);
+            }
+        Ids syndrome(4);
+        for (int a = 0; a < 4; ++a) syndrome[a] = (state >> a) & 1;
+        Graph graph(rows, Reals(n, 0.2), syndrome);
+        assert_unique_physical_lift(graph);
+        for (int depth = 0; depth < 2; ++depth) {
+            Ids suspicious;
+            for (int v = 0; v < n; ++v) suspicious.push_back(v);
+            const auto candidates = graph.discover(suspicious);
+            assert(candidates == exhaustive_discovery(graph, suspicious));
+            if (candidates.empty()) break;
+            const auto [aux, defining_check] = graph.factorize(candidates.front());
+            assert(graph.variable(aux).base_llr == 0);
+            assert(graph.check(defining_check).syndrome == 0);
+            assert_unique_physical_lift(graph);
+        }
     }
 }
 
@@ -264,7 +336,8 @@ int main() {
     test_discovery_closure_dedup();
     test_transform_support_and_physical_solutions();
     test_exact_phi_and_local_delta();
+    test_many_exhaustive_physical_lifts();
     test_policies_and_rediscovery();
     test_sparse_support_and_diagnostics();
-    std::cout << "AF-BP graph core: 6 native test groups passed\n";
+    std::cout << "AF-BP graph core: 7 native test groups passed\n";
 }
