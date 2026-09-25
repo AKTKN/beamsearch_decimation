@@ -1,8 +1,9 @@
 # AF-BP benchmark workspace
 
-This repository is being reset around a future adaptive graph refactorization
-BP decoder (AF-BP). **AF-BP and Relay-BP are not implemented yet.** The active
-comparison surface currently has two established baselines: published Beam
+This repository is being reset around adaptive graph refactorization BP
+(AF-BP). Its native decoder service is implemented and directly callable, but
+it is not yet connected to simulator configs, storage, or plots. Relay-BP is
+not implemented. The active comparison surface has two established baselines: published Beam
 Search width 8 (`beam8`) and ordinary upstream BP-OSD (`bposd`). The BP-OSD
 `osd_order` is a config option; its default is 10 and order 0 is also valid.
 
@@ -35,3 +36,5 @@ Their source, configs, readers, tests and prior evidence are preserved; see
 identities and schemas. The normative AF-BP design is
 [adaptive_graph_refactorization_bp_spec.tex](adaptive_graph_refactorization_bp_spec.tex).
 Current migration evidence and limitations are in [STATUS.md](STATUS.md).
+The standalone Stage-4 service API is documented in
+[src/af_bp_core/README.md](src/af_bp_core/README.md).

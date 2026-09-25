@@ -3,9 +3,41 @@
 `graph.hpp` is a standalone C++17 module implementing the graph operations in
 `adaptive_graph_refactorization_bp_spec.tex`. It depends only on the standard
 library. It does not call BP, sample circuits, read truth, or use the simulator,
-Parquet, plotting, or experiment configuration. Stage 3 does not register an
-AF-BP decoder. The standalone test can be run with
+Parquet, plotting, or experiment configuration. The standalone test can be run with
 `python -m pytest -q tests/test_af_bp_graph_core.py`.
+
+`decoder.hpp` implements the AF-BP-1.0 state machine in C++ by composing this
+graph core with the opt-in fork header `external_lib/ldpc/src_cpp/af_bp.hpp`.
+It accepts only physical H/A rows, channel probabilities, syndrome and
+`DecoderSettings`. It owns H/A/probabilities and creates a fresh graph and BP
+engine state per shot. The result has `valid`, correction, A prediction,
+`total_iterations`, graph/factorization counts and status. Failure returns no
+accepted correction. There is no OSD fallback or logical-truth input. The
+Python `AFBPDecoder` in `qec_bp_benchmark.af_bp_service` only marshals arrays
+and calls this native service once per shot. It is not in the simulator
+registry and produces no Parquet or plots in Stage 4.
+
+The first BP call uses `initial_iteration_budget`; later graph instances use
+`transformed_iteration_budget`. `initial_parallel=true` forces ordinary
+parallel Min-Sum only on the first graph. Otherwise the configured parallel,
+serial or qDither variant applies from the start. Both budgets are hard caps
+on actual Min-Sum iterations, including all qDither chains. Physical failure
+weights and U stay fixed within each `n_fact` pass; each accepted transform
+immediately appends its parity-LLR handoff for any subsequent nested transform.
+`atanh_epsilon` clips the parity product before `atanh`. Existing variables
+receive previous final marginals only as edge-message initialization; base
+physical priors and zero auxiliary priors remain unchanged. qDither graph
+relay requires `graph_warm`; `paper` is allowed only without graph relay.
+
+The native `seed_policy` is `fixed` (same configured seed on each graph) or
+`syndrome_derived` (deterministically mixes the configured seed, binary
+syndrome and graph index). Repeating a shot on one decoder resets state and
+replays the same result. Diagnostics are optional; a normal Python call returns
+only compact result fields. The CMake target hashes its graph/service/binding,
+fork BP header and build inputs to reject stale binaries in the source checkout.
+Build with `python -m pip install --no-build-isolation --no-deps -e .` in
+`search_decimation`; the native service integration assertions are
+`tests/test_af_bp_decoder_native.py` and `tests/test_af_bp_service.py`.
 
 `Graph(rows, base_llrs, syndrome)` owns copies of the immutable physical rows,
 syndrome, base unary LLRs, and mutable current adjacency. IDs remain stable as

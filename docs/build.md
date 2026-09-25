@@ -1,7 +1,12 @@
 # Historical build reference
 
-The native decimation build below is legacy. The active baseline package builds
-with `scripts/build_dependencies.sh` and `python -m pip install --no-build-isolation --no-deps -e .`.
+The native decimation build below is legacy. The current baseline package and
+separately callable AF-BP service build with `scripts/build_dependencies.sh`
+and `python -m pip install --no-build-isolation --no-deps -e .` in
+`search_decimation`. Reinstall the editable package after changing
+`src/af_bp_core/graph.hpp`, `decoder.hpp`, `bindings.cpp`, `CMakeLists.txt`, or
+the fork `external_lib/ldpc/src_cpp/af_bp.hpp`; the service source hash rejects
+a stale extension. The service is not yet registered with the simulator.
 
 ---
 

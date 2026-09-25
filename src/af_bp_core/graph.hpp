@@ -485,7 +485,8 @@ public:
     }
 
     FactorizeResult factorize_graph(const Reals& omega, const Ids& suspicious,
-                                    int n_fact, const std::string& policy) {
+                                    int n_fact, const std::string& policy,
+                                    const std::function<void(const Biclique&, int)>& on_transform = {}) {
         if (n_fact < 0 || (policy != "adaptive_cycle" && policy != "shen_cycle_count"))
             throw std::invalid_argument("invalid factorization policy or budget");
         extended_weights(omega); // validate once even when n_fact=0
@@ -522,7 +523,8 @@ public:
             if (!have_best) break;
             if (policy == "adaptive_cycle" && best_delta <= 0.0) break;
             CandidateScore best = score_candidate(best_biclique, omega);
-            factorize(best.biclique);
+            const int new_variable = factorize(best.biclique).first;
+            if (on_transform) on_transform(best.biclique, new_variable);
             result.chosen.push_back(std::move(best));
             ++result.applied;
         }

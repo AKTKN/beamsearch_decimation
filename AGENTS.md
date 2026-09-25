@@ -1,8 +1,9 @@
 # AF-BP benchmark workspace
 
 The active branch is `af-bp-v1`, based on the latest `origin/search-bp-lpmdp-v1`.
-This stage reset the active package around a future AF-BP comparison. AF-BP and
-Relay-BP are not implemented or registered yet. Active decoder profiles are only
+The active package is being reset around AF-BP comparison. The AF-BP-1.0 native
+service is implemented but not registered with the simulator; Relay-BP is not
+implemented. Active decoder profiles are only
 `beam8` and `bposd`; the latter accepts a nonnegative `osd_order` option. Never
 label historical `bposd_ms30_cs0` or `bposd_ms30_cs10` results as new `bposd`.
 
@@ -30,11 +31,13 @@ instructions archived there for historical reproduction.
 
 Stage 2 added opt-in `ldpc.af_bp` C++ parallel/serial/qDither BP engines without
 changing upstream BP-OSD. Stage 3 added the standalone C++ graph factorization
-core under `src/af_bp_core/`. Neither component is registered with the active
-simulator, and the complete AF-BP decoder loop does not exist yet. Preserve
-the TeX-defined sparse support, exact graph equivalence, local net-cycle score,
-and strict rediscovery after every accepted transform. Keep typed public APIs,
-deterministic ordering, checked native boundaries and no fast-math.
+core under `src/af_bp_core/`. Stage 4 adds the native AF-BP-1.0 decoder state
+machine, one-call truth-free Python boundary and a separate CMake extension.
+It is not registered with the active simulator. Preserve the TeX-defined sparse
+support, exact graph equivalence, local net-cycle score, strict rediscovery,
+exact BP iteration counts, immutable physical priors and original-H validation.
+Keep typed public APIs, deterministic ordering, checked native boundaries and
+no fast-math.
 
 Active checks:
 

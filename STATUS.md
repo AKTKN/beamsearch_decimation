@@ -1,3 +1,23 @@
+# AF-BP Stage 4 native service (2026-09-25)
+
+The AF-BP-1.0 native service now composes the Stage-2 fork BP engines with the
+Stage-3 standalone graph core. It supports initial_parallel, independent hard
+initial/transformed iteration budgets, parallel/serial/qDither, deterministic
+seed policy, graph-warm marginal relay, sequential n_fact transforms, original-H
+validation, A prediction and exact total BP iterations. There is no OSD or
+truth input. `qec_bp_benchmark.af_bp_service` marshals one native call per shot.
+The service is built as a separate CMake target but is not registered in the
+simulator; config/storage/plots remain baseline-only.
+
+In `search_decimation`, the editable CMake build and source-hash audit passed;
+the full Python suite passed 84/84, including six native service integration
+groups and the existing graph/fork and baseline regressions. The six service
+groups also passed with ASan/UBSan, warnings as errors and no fast-math.
+`validate_config.py config/baselines.yaml.example` passed and `af_bp_v1`
+remained rejected by the active config registry. No production sweep ran.
+
+---
+
 # AF-BP Stage 3 graph core (2026-09-25)
 
 The standalone C++17 `src/af_bp_core/graph.hpp` now provides sparse mutable

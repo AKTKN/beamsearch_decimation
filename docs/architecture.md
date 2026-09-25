@@ -20,8 +20,9 @@ profiles and cannot be instantiated in an active config.
 Beam8's fork-local change adds an observation counter for all initial and masked
 BP iterations. Its branching, messages, correction decisions and existing `iter`
 field are unchanged. BP-OSD reports upstream BP iterations, with zero on its
-zero-syndrome shortcut; OSD adds no BP steps. The active CMake build has no
-project-native decoder target.
+zero-syndrome shortcut; OSD adds no BP steps. The active CMake build has one
+separately callable AF-BP service target, while simulator registration still
+contains only the two baselines.
 
 Historical project-native C++ files remain in `src/qec_bp_benchmark/native/` for
 source provenance but are excluded from CMake. Fork reference/hybrid sources
@@ -29,9 +30,12 @@ remain in `external_lib/ldpc` but are not built by the active dependency script.
 Historical maps and source contracts are indexed in
 [legacy decimation](legacy/decimation/README.md).
 
-Stage 2's opt-in `ldpc.af_bp` BP engines and Stage 3's standalone
-`src/af_bp_core/graph.hpp` graph factorization core are implemented and tested
-outside the active simulator. The graph core owns its physical and current
-graph state, uses sparse auxiliary support, and does not depend on runner or
-experiment types. The full AF-BP decoder loop and active registration are
-still pending; see [graph core](../src/af_bp_core/README.md).
+Stage 2's opt-in `ldpc.af_bp` BP engines, Stage 3's standalone
+`src/af_bp_core/graph.hpp` graph core, and Stage 4's
+`src/af_bp_core/decoder.hpp` state machine are implemented and tested outside
+the active simulator. The C++ service owns physical H/A/probabilities, creates
+shot-local graphs, calls BP directly, validates returned corrections against
+original H, and computes A predictions without truth input. The Python module
+`qec_bp_benchmark.af_bp_service` marshals one syndrome per native call. Simulator
+config/registry, output, and plots still have no AF-BP path; see
+[AF-BP core](../src/af_bp_core/README.md).

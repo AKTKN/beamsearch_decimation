@@ -1,6 +1,19 @@
-"""Import-light hybrid project source inventory shared by CMake and runtime checks."""
+"""Import-light active and historical project native source inventories."""
 from pathlib import Path
 import hashlib
+
+AF_BP_SERVICE_FILES = (
+    'src/af_bp_core/graph.hpp', 'src/af_bp_core/decoder.hpp',
+    'src/af_bp_core/bindings.cpp', 'external_lib/ldpc/src_cpp/af_bp.hpp',
+    'CMakeLists.txt',
+)
+
+
+def af_bp_service_digest(root: Path) -> str:
+    """Match CMake's SHA256 of ordered source-file SHA256 hex strings."""
+    hashes = ''.join(hashlib.sha256((root / path).read_bytes()).hexdigest()
+                     for path in AF_BP_SERVICE_FILES)
+    return hashlib.sha256(hashes.encode()).hexdigest()
 
 HYBRID_PROJECT_FILES = tuple('src/qec_bp_benchmark/native/' + name for name in (
     'hybrid_model.hpp', 'hybrid_search.hpp', 'hybrid_telemetry.hpp', 'hybrid.hpp',
