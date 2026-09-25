@@ -1,3 +1,28 @@
+# AF-BP Stage 1 active reset (2026-09-25)
+
+The active `af-bp-v1` branch now registers only `beam8` and configurable-order
+`bposd`. AF-BP, Relay-BP and qDither are not implemented. Decimation families
+are archived under named legacy paths and excluded from active config and CMake.
+The physical simulator, BB144, pairing and decoder-service timing boundary are
+preserved. New baseline rows use `baseline_results/1` with exact total BP
+iterations. Historical scientific results and the previous source reports below
+remain unchanged. See `docs/legacy/decimation/README.md`.
+
+Stage-1 verification in `search_decimation`: 72/72 active Python tests passed;
+48/48 focused baseline/config/import/regression tests passed; editable project
+build and `scripts/build_dependencies.sh --check` passed. Both the paired Beam8
+and BP-OSD order-10 smoke (two shots) and BP-OSD order-0 smoke (two shots)
+completed. A paired two-worker smoke had exact non-latency row equality with
+the serial run (four rows). Active summary and three plotting functions read
+the saved five-field output. A historical SEARCH-BP/LPM-DP reader returned 15
+summaries from an existing old run. Beam instrumentation patch restoration and
+rebuild passed in a clean temporary clone; patched and pristine Beam decisions
+and convergence agreed on all 16 four-bit syndromes in the focused comparison.
+No production sweep was run. These smoke counts make no performance claim.
+Prior evidence below belongs to the pre-migration implementations.
+
+---
+
 # LPM-DP-BP-1.0 final validation (2026-09-23)
 
 Final validation preserves the Stage-4 `LPM-DP-BP-1.0` scientific and simulator

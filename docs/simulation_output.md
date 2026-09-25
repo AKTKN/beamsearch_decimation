@@ -1,89 +1,35 @@
-# Minimal simulation output
+# Active minimal simulation output
 
-SEARCH-BP-2.1 uses this schema. Decoder-only
-microbenchmark/profile evidence lives under `docs/test_results/`, outside run
-directories; it adds no production telemetry or columns. See the
-[active implementation audit](search_bp_implementation.md).
-LPM-DP-BP-1.0 uses the same directory/naming/timing contract with the separate
-five-column `lpm_dp_results/1` schema documented below.
+Each new run has `YYYY_MM_DD_HH_MM_<config-hash-8>/config_resolved.json` and
+`data/<code>_d<distance>_r<rounds>_p<rate>_<basis>_results.parquet`. There are
+no run manifests, raw samples, copied circuits, file logs or replay facility.
+Historical schemas remain readable through legacy consumers.
 
-Every new run contains exactly:
+The active Arrow metadata is `qec_schema=baseline_results/1`. Every row has:
 
-```text
-YYYY_MM_DD_HH_MM_<config-hash-8>/
-  config_resolved.json
-  data/
-    <code>_d<distance>_r<rounds>_p<rate>_<basis>_results.parquet
-```
-
-The timestamp is local time. The suffix is the first eight hex digits of the
-resolved configuration content hash. A collision is rejected, never overwritten.
-Rate tags preserve decimal values without rounding: 0.003 is p003. The resolved
-configuration stores physical conditions, decoder parameters and algorithm version,
-noise, sampling plan, worker settings and timing mode once for the run. No schema
-file, manifest, inventory, source/model/circuit copy, summary or file log is emitted.
-
-There is one result file per physical condition, including a typed empty file if
-execution fails before any row is saved. All enabled decoders share each physical
-shot. The Arrow schema metadata is `qec_schema=search_bp_results/2`:
-
-| Field | Arrow type | Meaning |
+| Column | Type | Meaning |
 |---|---|---|
-| shot_id | nonnull string | Existing instance:sampling:index identity; unique within a condition for a physical shot |
-| decoder_name | nonnull string | Unique configured decoder name; parameters/version are in config_resolved.json |
-| logical_error | nonnull bool | Decoder failure (declared or invalid) OR any logical mismatch |
-| latency_ns | nonnull int64 | Nonnegative complete per-shot decoder service wall time |
-| osd_called | nullable bool | Whether this invocation called OSD; null only for a baseline API that cannot establish it |
-| correction_by_search | nullable bool | True only when SEARCH-BP local combinatorial search directly constructed a valid correction; false for initial/descendant BP, OSD and failure; null for other decoders |
+| `shot_id` | nonnull string | Stable physical shot identity |
+| `decoder_name` | nonnull string | Unique name from resolved config |
+| `logical_error` | nonnull bool | Declared/invalid decode or any logical mismatch |
+| `latency_ns` | nonnull int64 | Entire decoder service wall time, including failed shots |
+| `total_iterations` | nonnull int64 | Completed full BP/Min-Sum steps across the service |
 
-The primary key within a condition file is (shot_id, decoder_name). SEARCH-BP-2.1
-must provide exact boolean OSD and correction-by-search flags; null is rejected. Current baselines all
-expose exact information: screened/beam do not call OSD; hybrid supplies its
-native invocation flag; upstream BP-OSD calls OSD iff its nonzero-syndrome BP did
-not converge. Zero-syndrome and algebraic empty-model exits are false, independent
-of stale upstream flags. No convergence claim is inferred from OSD invocation.
+The primary key is `(shot_id, decoder_name)` per condition. A physical shot is
+sampled once and passed to all active decoders; its logical truth is compared
+only after each decoder returns. `latency_ns` brackets the complete
+`DecoderAdapter.decode` call: input conversion, upstream decode, original-H
+validation, A prediction and cost. Preparation, warmup, sampling, truth
+comparison, row construction and Parquet writes are outside it.
 
-`latency_ns` uses perf_counter_ns around the entire DecoderAdapter.decode call,
-including syndrome input conversion, native decode, original-H validation,
-A prediction, and physical cost computation. Construction, warmup, sampling,
-truth comparison, result conversion and file I/O are outside that boundary.
-Failed decodes remain in all latency and logical-error denominators. Logical
-error is a block trial per physical shot, with no division by rounds or the 12
-BB observables. No truth enters the decoder service.
+For `bposd`, `total_iterations` is upstream BP `.iter` for a nonzero syndrome
+and zero for the upstream zero-syndrome shortcut; OSD contributes zero. For
+`beam8`, the instrumentation counter sums every initial and masked BP path
+actually executed, including paths that did not converge. A zero-syndrome
+shortcut contributes zero. Neither value is inferred from budgets or wall time.
 
-No sample/syndrome/correction vectors, search nodes, BP iterations, candidate or
-beam tables, solution events, phase breakdowns or raw messages are persisted.
-The worker returns only the configured minimal scalar result rows and generic batch metadata;
-it does not construct or transport raw-sample or wide telemetry rows. The generic
-scheduler keeps bounded physical batch futures. Parent shot grouping
-uses output.parquet.shots_per_flush when minimal_results is configured, or the
-physical batch size for compatible baseline Output configs. It creates one row
-group per completed shot group plus the final partial group. Compression options
-remain explicit. A Parquet row group is not an atomic multi-file batch commit.
-
-Interrupted runs may contain closed partial files; readers report saved rows,
-not completion. Buffered unsaved rows can be lost. There is no in-place resume,
-manifest-based replay or final read-back validation. Use a new output directory.
-Parent stderr progress reports completed batches, which may include buffered rows.
-
-`analysis.simple_search_bp.summarize_run` reads named result files and config
-without inventories. It reports logical-error count/rate/Wilson bounds, wall
-latency including failures, OSD count/fraction, and direct-search correction
-count/fraction over known flags with unknown counts separate. Zero-event intervals are bounds, not zero-risk claims;
-small samples cannot establish tail precision. It processes one run at a time,
-keeps physical conditions and decoder/execution settings separate, and rejects a
-CPU-clock request because CPU latency is not saved in this contract. Earlier minimal `_logicalerror.parquet` files remain readable without being
-rewritten. Historical
-wide schemas dispatch to the legacy reader and are never relabeled as this schema.
-Historical `search_bp_results/1` runs remain read-only and report the new search
-indicator as unavailable; it cannot be reconstructed from their OSD flag.
-
-## LPM-DP-BP-1.0 result schema
-
-LPM-DP runs use Arrow metadata `qec_schema=lpm_dp_results/1`. Their exact fields
-are `shot_id`, `decoder_name`, `logical_error`, `latency_ns` and nonnull exact
-`osd_called`, with the meanings and timing boundary above. The schema deliberately
-omits SEARCH-BP's `correction_by_search` column and stores no LPM-DP candidate,
-cycle, retention, history or message telemetry. LPM-DP may share physical shots
-with ordinary baselines under this five-column contract, but cannot be configured
-in the same run as SEARCH-BP because their minimal schemas differ.
+One logical-error trial is one physical shot, with no division by rounds or
+number of observables. Failed shots remain in latency and iteration summaries.
+The resolved config records the selected OSD order, timing mode, workers,
+physical noise and code conditions. `analysis.simple_results.summarize_run`
+keeps each run, condition, decoder and execution context separate.

@@ -4,7 +4,7 @@ from datetime import datetime,timezone
 from pathlib import Path
 from typing import Sequence
 import uuid
-from qec_bp_benchmark.config import Analysis
+from qec_bp_benchmark.legacy.decimation.config import Analysis
 from qec_bp_benchmark.identity import content_hash
 from qec_bp_benchmark.storage import atomic_json,sha256
 from .io import load_run,select_records

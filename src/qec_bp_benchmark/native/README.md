@@ -1,3 +1,11 @@
+# Legacy native source
+
+These screened, hybrid, SEARCH-BP and LPM-DP project-native files are preserved
+in place for history. Active CMake excludes every one of them. AF-BP has not been
+implemented. The description below is historical.
+
+---
+
 # Native screened decoder
 
 For active SEARCH-BP-2.0, see `docs/search_bp_implementation.md`. The final pass

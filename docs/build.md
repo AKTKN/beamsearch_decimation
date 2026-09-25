@@ -1,3 +1,10 @@
+# Historical build reference
+
+The native decimation build below is legacy. The active baseline package builds
+with `scripts/build_dependencies.sh` and `python -m pip install --no-build-isolation --no-deps -e .`.
+
+---
+
 # Build and test
 
 The final SEARCH-BP-2.0 audit is in search_bp_implementation.md. After project

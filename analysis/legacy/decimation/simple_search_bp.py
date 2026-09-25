@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from qec_bp_benchmark.storage.minimal import (
+from qec_bp_benchmark.storage.legacy.decimation.minimal import (
     LEGACY_SCHEMA, LEGACY_SCHEMA_VERSION, LPM_DP_SCHEMA, LPM_DP_SCHEMA_VERSION,
     SCHEMA, SCHEMA_VERSION, result_table,
 )
 from qec_bp_benchmark.storage.results import condition_prefix
-from .statistics import timing_statistics, wilson_interval
+from ...statistics import timing_statistics, wilson_interval
 
 
 def _metric(count: int, denominator: int, confidence: float) -> dict:
@@ -44,7 +44,7 @@ def summarize_run(run_path: str | Path, *, clock: str = "wall",
         SCHEMA_VERSION.encode(), LEGACY_SCHEMA_VERSION.encode(), LPM_DP_SCHEMA_VERSION.encode()
     }
     if not versions <= minimal_versions:
-        from .legacy.search_bp_v1.simple_search_bp import summarize_run as legacy
+        from ..search_bp_v1.simple_search_bp import summarize_run as legacy
         return legacy(run, clock=clock, confidence=confidence)
     if len(versions) != 1 or clock != "wall":
         raise ValueError("minimal results require a uniform schema and wall clock")

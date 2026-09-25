@@ -1,3 +1,11 @@
+# Current documentation
+
+Stage-1 active architecture: see `architecture.md`, `simulation_output.md`,
+`../config/README.md` and `legacy/decimation/README.md`. AF-BP and Relay-BP are
+not implemented. The remaining index below describes historical work.
+
+---
+
 # docs
 
 The unchanged algorithm specification and benchmark_contract.md are normative.

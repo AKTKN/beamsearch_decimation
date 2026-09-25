@@ -1,3 +1,11 @@
+# Active storage
+
+New baseline runs use five-field `baseline_results/1` with exact
+`total_iterations`. Historical minimal and wide contracts below remain under
+`storage/legacy/` and are not rewritten.
+
+---
+
 # Result storage
 
 `minimal.py` defines the active six-field `search_bp_results/2` Arrow contract.

@@ -1,3 +1,12 @@
+# Active analysis
+
+Use `analysis.simple_results.summarize_run(path)` for `baseline_results/1`.
+The public `analysis` plotting functions draw saved baseline latency and logical-error
+figures. Search/hybrid result readers below describe historical contracts and
+are preserved under `analysis/legacy/decimation/`.
+
+---
+
 # Minimal current analysis
 
 For current minimal results, use `analysis.simple_search_bp.summarize_run(run)`

@@ -1,3 +1,11 @@
+# Active scripts
+
+Use `validate_config.py config/baselines.yaml.example`, `run_benchmark.py` and
+`build_dependencies.py --check` for the active baseline package. Earlier
+decimation commands below are historical; their build script is under `legacy/`.
+
+---
+
 # Thin entry points
 
 prepare_circuits.py CONFIG.yaml parses validated YAML, sets thread limits, calls

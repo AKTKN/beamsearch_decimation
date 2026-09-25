@@ -1,3 +1,12 @@
+# Active tests
+
+`python -m pytest -q` runs baseline, simulator, BB144, config, storage and
+import tests. Historical decimation tests are preserved under `tests/legacy/`
+and target the pre-migration commit documented in `docs/legacy/decimation/README.md`.
+The previous coverage inventory below is historical.
+
+---
+
 # Verification
 
 Run python -m pytest -q in search_decimation. Tests cover strict configuration and

@@ -12,22 +12,26 @@
       "hosted_fork": false,
       "import_location": "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/__init__.py",
       "license": "CC-BY-NC-SA-4.0; bundled ldpc components MIT",
-      "local_changes": "M decoder/beam_search_decoder/_beam_search_decoder.cpp",
+      "local_changes": "M decoder/beam_search_decoder/__init__.pyi\n M decoder/beam_search_decoder/_beam_search_decoder.cpp\n M decoder/beam_search_decoder/_beam_search_decoder.pxd\n M decoder/beam_search_decoder/_beam_search_decoder.pyx\n M decoder/src_cpp/beam_search.hpp",
       "native_files": {
-        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/_beam_search_decoder.cpython-312-x86_64-linux-gnu.so": "6d1e0bf68fb7f864e8dbde3e83c03606b81b310cc1609598e2d9688a0623143e"
+        "/home/quantum_teresheys/workspace/beamsearch_decimation/external_lib/BeamSearchDecoder/decoder/beam_search_decoder/_beam_search_decoder.cpython-312-x86_64-linux-gnu.so": "d451225ff2abc550225fa6bb2b071bfacc2d34f7ac4cf6f77f73dfd7f84d7617"
       },
       "patch_file": "external_lib/patches/BeamSearchDecoder.patch",
-      "patch_sha256": "d01ba4c051d384043a9b8c558ab8f3ebe4ead4092cd6e486eb2f5c21369e43cb",
+      "patch_sha256": "5e2a78ce14718e28f0d9f3a0b7c8d89e35025787bac1a51e0148cdce612bd942",
       "relevant_paths": [
         "decoder/src_cpp/beam_search.hpp",
+        "decoder/beam_search_decoder/_beam_search_decoder.pxd",
         "decoder/beam_search_decoder/_beam_search_decoder.pyx",
+        "decoder/beam_search_decoder/__init__.pyi",
         "decoder/setup.py"
       ],
       "role": "Published beam baseline",
       "source_hashes": {
-        "decoder/beam_search_decoder/_beam_search_decoder.pyx": "64ce3fe0185085d2da31299a668935a4e615fc9dd9344d6bf7e140136d2756c4",
+        "decoder/beam_search_decoder/__init__.pyi": "e8d8705f3d5d126a561b67a66c628a68215ee92fb17609230344eb801ca7135b",
+        "decoder/beam_search_decoder/_beam_search_decoder.pxd": "12508d018c13adc292d0bc2b08090ccd7c6b33578aaf5b9254cc1252fe74fdf2",
+        "decoder/beam_search_decoder/_beam_search_decoder.pyx": "dfd8890a1560c15e6dfb4e68aededbddec589aefa6c094374d9e66f404431b54",
         "decoder/setup.py": "1007e25c5b1615a573cf5d390506ae1224f6f76b584a4b6373304dcba35eab57",
-        "decoder/src_cpp/beam_search.hpp": "0412598c5baa4fca98139c085256be1eec405728a0b219ae2863228b95242a87"
+        "decoder/src_cpp/beam_search.hpp": "e33ba353e679b29c45ba9fe364286b7442405eb84842b34259cc252fed1884f6"
       },
       "url": "https://github.com/ionq-publications/BeamSearchDecoder",
       "version": null,

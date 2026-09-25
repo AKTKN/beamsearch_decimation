@@ -1,0 +1,30 @@
+# Baseline-only smoke; set physical rates explicitly for larger experiments.
+experiment:
+  name: af_bp_stage1_baselines
+  purpose: Baseline integration smoke only
+  codes:
+  - family: surface
+    distances: [3]
+  memory_basis: Z
+  sector: Z_checks
+  round_rule: distance
+circuit:
+  cache: ../simulation_data
+noise:
+  rates: [0.003]
+sampling:
+  shots_per_point: 2
+  batch_size: 2
+  warmup_count: 0
+execution:
+  workers: 1
+timing:
+  mode: throughput
+  profiling: none
+output:
+  root: ../assets/runs
+  compression: zstd
+decoders:
+- profile: beam8
+- profile: bposd
+  osd_order: 10

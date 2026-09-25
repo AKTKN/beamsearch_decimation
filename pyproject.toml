@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "qec-bp-benchmark"
 version = "0.1.0"
-description = "Reproducible circuit-level Z-memory BP benchmark and analysis"
+description = "AF-BP benchmark workspace with pinned Beam8 and BP-OSD baselines"
 requires-python = ">=3.12"
 dependencies = ["numpy", "scipy", "pandas", "stim", "qldpc", "pydantic>=2", "PyYAML", "pyarrow==25.0.1", "threadpoolctl==3.7.0", "matplotlib==3.11.2"]
 

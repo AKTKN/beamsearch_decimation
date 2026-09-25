@@ -1,3 +1,11 @@
+# Active package reset
+
+Active config and decoder services expose only `beam8` and configurable-order
+`bposd`; AF-BP and Relay-BP are pending. Decimation details below are historical
+and their source is preserved in legacy paths or excluded from CMake.
+
+---
+
 # Benchmark package
 
 config.load_config returns frozen validated settings and resolved grids;

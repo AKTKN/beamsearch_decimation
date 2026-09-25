@@ -10,7 +10,7 @@ import sys
 import time
 from typing import Callable, Iterable, Iterator, MutableMapping, TypeVar
 
-from ..config import LPMDPOutput, SearchBPOutput, load_config, require_available_decoder
+from ..config import load_config, require_available_decoder
 from ..identity import content_hash, decoder_identity, sampling_identity
 from ..storage import atomic_json
 from ..storage.results import ResultStore, ShotChunkBuffer, condition_prefix
@@ -180,7 +180,7 @@ def run_benchmark(config_path: str | Path, *, replay_source: str | Path | None =
                    f"workers={config.execution.workers}, timing={config.timing.mode}; "
                    f"oversubscribed={execution['oversubscribed']}")
 
-            configured_parquet = isinstance(config.output, (SearchBPOutput, LPMDPOutput))
+            configured_parquet = False
             compression = config.output.compression
             compression_level = (config.output.parquet.compression_level if configured_parquet else None)
             from ..storage.minimal import SCHEMA_VERSION, schema_for_version

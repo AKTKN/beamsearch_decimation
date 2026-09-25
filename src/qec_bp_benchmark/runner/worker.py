@@ -127,8 +127,7 @@ def process_batch(task: BatchTask) -> dict:
             record=minimal_record(dict(shot_id=shot_id,decoder_name=decoder.config.name,
                 decoder_profile=decoder.config.profile,status=result.status,
                 syndrome_valid=result.syndrome_valid,valid_logical_mismatch=labels['valid_logical_mismatch'],
-                wall_ns=wall_ns,osd_called=result.osd_called,
-                correction_by_search=result.correction_by_search),
+                wall_ns=wall_ns,total_iterations=result.counters['total_iterations']),
                 schema_version=result_schema_version)
             results.append(record)
             add_phase("result_normalization", phase_start)

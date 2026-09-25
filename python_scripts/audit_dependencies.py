@@ -21,7 +21,11 @@ SOURCES = {
 }
 PATHS = {
     'ldpc': ['src_cpp/bp.hpp','src_cpp/osd.hpp','src_cpp/reference_bp.hpp','src_python/ldpc/reference_bp','setup.py','setup_reference.py'],
-    'BeamSearchDecoder': ['decoder/src_cpp/beam_search.hpp','decoder/beam_search_decoder/_beam_search_decoder.pyx','decoder/setup.py'],
+    'BeamSearchDecoder': ['decoder/src_cpp/beam_search.hpp',
+                          'decoder/beam_search_decoder/_beam_search_decoder.pxd',
+                          'decoder/beam_search_decoder/_beam_search_decoder.pyx',
+                          'decoder/beam_search_decoder/__init__.pyi',
+                          'decoder/setup.py'],
     'qLDPC': ['src/qldpc/codes/quantum.py','src/qldpc/circuits/memory/memory.py','src/qldpc/circuits/memory/syndrome_measurement.py','src/qldpc/circuits/noise_model.py'],
     'Stim': ['setup.py','src/stim/dem/detector_error_model.cc','src/stim/simulators/error_analyzer.cc'],
     'BivariateBicycleCodes': ['decoder_setup.py'],
@@ -58,7 +62,12 @@ def main() -> None:
         def git(*args):
             return subprocess.check_output(["git", "-C", str(directory), *args], text=True).strip()
         imported = importlib.import_module(module) if module else None
-        patch = subprocess.check_output(['git','-C',str(directory),'diff','--binary','HEAD'],text=True)
+        diff_command = ['git','-C',str(directory),'diff','--binary','HEAD']
+        if name == 'BeamSearchDecoder':
+            # The tracked Cython-generated C++ contains machine-specific paths and
+            # can be regenerated from the authored pyx/pxd sources on each build.
+            diff_command += ['--', '.', ':(exclude)decoder/beam_search_decoder/_beam_search_decoder.cpp']
+        patch = subprocess.check_output(diff_command,text=True)
         # Upstream ignores *.cpp under src_python, including our authored pybind
         # source. Explicitly audited files must survive even when Git ignores them.
         source_paths=[]

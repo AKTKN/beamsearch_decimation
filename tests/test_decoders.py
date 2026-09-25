@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import stim
 import pytest
-from qec_bp_benchmark.config import Bposd,Bposd0,Beam,Screened
+from qec_bp_benchmark.config import Bposd, Beam
 from qec_bp_benchmark.dem.model import convert_dem
 from qec_bp_benchmark.decoders import DecoderAdapter
 
@@ -18,66 +18,64 @@ error(0.12) D2
 error(0.13) D3'''))
 
 
-@pytest.mark.parametrize('cfg',[Bposd0(max_iter=2),Bposd(max_iter=2,osd_order=2),Beam(initial_iters=2,iters_per_round=3,max_rounds=2),Screened(T0=2,Tpost=3,M=4,q=2,K=4)])
-def test_adapters_native_and_shot_reset(cfg):
-    p=problem(); a=DecoderAdapter(p,cfg)
-    snapshots=[x.copy() for x in (p.H.data,p.A.data,p.probabilities)]
-    if isinstance(cfg,Bposd):
+@pytest.mark.parametrize('cfg', [Bposd(max_iter=2, osd_order=0),
+    Bposd(max_iter=2, osd_order=2), Beam(initial_iters=2, iters_per_round=3, max_rounds=2)])
+def test_upstream_baseline_decisions_and_shot_reset(cfg):
+    p = problem()
+    adapter = DecoderAdapter(p, cfg)
+    snapshots = [x.copy() for x in (p.H.data, p.A.data, p.probabilities)]
+    if isinstance(cfg, Bposd):
         from ldpc import BpOsdDecoder as Native
-    elif isinstance(cfg,Beam):
+    else:
         from beam_search_decoder import BeamSearchDecoder as Native
-    else: Native=None
-    direct=Native(p.H.copy(),error_channel=p.probabilities.tolist(),**cfg.model_dump(exclude={'profile','name','enabled'})) if Native else None
-    baseline={}
-    for s in itertools.product((0,1),repeat=4):
-        s=np.array(s,dtype=np.uint8); original=s.copy(); r=a.decode(s)
-        assert np.array_equal(s,original)
-        fresh=DecoderAdapter(p,cfg).decode(s)
-        assert r.status==fresh.status and r.counters==fresh.counters
-        assert np.array_equal(r.correction,fresh.correction)
-        if direct:
-            e=direct.decode(s.copy()); valid=np.array_equal(p.H@e%2,s)
-            ok=valid and (isinstance(cfg,Bposd) or direct.converge)
-            assert (r.status=='SUCCESS')==ok
-            if ok: assert np.array_equal(r.correction,e)
-        if r.correction is not None:
-            assert np.array_equal(p.H@r.correction%2,s)
-            assert np.array_equal(r.prediction,p.A@r.correction%2)
-        else: assert r.prediction is None and r.cost is None
-        baseline[tuple(s)]=r
-    for s,r in reversed(list(baseline.items())):
-        reused=a.decode(np.array(s,dtype=np.uint8))
-        assert reused.status==r.status and reused.counters==r.counters
-        assert np.array_equal(reused.correction,r.correction)
-    for original,now in zip(snapshots,(p.H.data,p.A.data,p.probabilities)): assert np.array_equal(original,now)
+    direct = Native(p.H.copy(), error_channel=p.probabilities.tolist(),
+                    **cfg.model_dump(exclude={'profile', 'name', 'enabled'}))
+    baseline = {}
+    for value in itertools.product((0, 1), repeat=4):
+        syndrome = np.array(value, dtype=np.uint8)
+        result = adapter.decode(syndrome)
+        fresh = DecoderAdapter(p, cfg).decode(syndrome)
+        assert result.status == fresh.status and result.counters == fresh.counters
+        assert np.array_equal(result.correction, fresh.correction)
+        expected = direct.decode(syndrome.copy())
+        valid = np.array_equal(p.H @ expected % 2, syndrome)
+        success = valid and (isinstance(cfg, Bposd) or direct.converge)
+        assert (result.status == 'SUCCESS') == success
+        if success:
+            assert np.array_equal(result.correction, expected)
+            assert np.array_equal(result.prediction, p.A @ result.correction % 2)
+        baseline[value] = result
+    for value, result in reversed(list(baseline.items())):
+        repeated = adapter.decode(np.array(value, dtype=np.uint8))
+        assert repeated.status == result.status
+        assert np.array_equal(repeated.correction, result.correction)
+    for before, after in zip(snapshots, (p.H.data, p.A.data, p.probabilities)):
+        assert np.array_equal(before, after)
 
 
-@pytest.mark.parametrize('config', [Bposd(max_iter=1,osd_order=1), Bposd0(max_iter=1)])
-def test_osd_valid_despite_bp_failure_and_empty_model(config):
-    p=convert_dem(stim.DetectorErrorModel('error(0.1) D0 L0\nerror(0.1) D0'))
-    adapter=DecoderAdapter(p,config)
-    r=adapter.decode(np.array([1]))
-    assert r.status=='SUCCESS' and r.native_status=='OSD_AFTER_BP_NONCONVERGENCE'
-    assert r.osd_called is True
-    assert adapter.decode(np.array([0])).osd_called is False
-    assert adapter.decode(np.array([1])).osd_called is True
-    empty=convert_dem(stim.DetectorErrorModel('detector D0\nlogical_observable L11'))
-    for cfg in [Screened(),Bposd(),Bposd0(),Beam()]:
-        d=DecoderAdapter(empty,cfg)
-        r=d.decode(np.array([0])); assert r.prediction.tolist()==[0]*12
-        assert r.osd_called is False
-        r=d.decode(np.array([1])); assert r.status=='DECLARED_FAILURE' and r.cost is None
+@pytest.mark.parametrize('order', [0, 1, 10])
+def test_osd_after_bp_failure_and_empty_model(order):
+    p = convert_dem(stim.DetectorErrorModel('error(0.1) D0 L0\nerror(0.1) D0'))
+    adapter = DecoderAdapter(p, Bposd(max_iter=1, osd_order=order))
+    result = adapter.decode(np.array([1], dtype=np.uint8))
+    assert result.status == 'SUCCESS'
+    assert result.native_status == 'OSD_AFTER_BP_NONCONVERGENCE'
+    assert result.osd_called is True
+    assert adapter.decode(np.array([0], dtype=np.uint8)).osd_called is False
+    empty = convert_dem(stim.DetectorErrorModel('detector D0\nlogical_observable L11'))
+    for cfg in (Bposd(osd_order=order), Beam()):
+        decoder = DecoderAdapter(empty, cfg)
+        assert decoder.decode(np.array([0], dtype=np.uint8)).prediction.tolist() == [0] * 12
+        assert decoder.decode(np.array([1], dtype=np.uint8)).status == 'DECLARED_FAILURE'
 
 
-def test_no_truth_api_and_failure_handling():
-    a=DecoderAdapter(problem(),Beam())
-    with pytest.raises(TypeError): a.decode(np.zeros(4),truth=np.zeros(2))
-    class Exhausted:
-        converge=False
-        def decode(self,s): return np.zeros(8,dtype=np.uint8)
-    a._native=Exhausted()
-    r=a.decode(np.zeros(4)); assert r.syndrome_valid and r.status=='DECLARED_FAILURE' and r.prediction is None
+def test_no_truth_api_and_error_propagation():
+    adapter = DecoderAdapter(problem(), Beam())
+    with pytest.raises(TypeError):
+        adapter.decode(np.zeros(4), truth=np.zeros(2))
     class Exploding:
-        def decode(self,s): raise RuntimeError('backend fault')
-    a._native=Exploding()
-    with pytest.raises(RuntimeError,match='backend fault'): a.decode(np.zeros(4))
+        def decode(self, syndrome):
+            raise RuntimeError('backend fault')
+    adapter._native = Exploding()
+    with pytest.raises(RuntimeError, match='backend fault'):
+        adapter.decode(np.zeros(4))

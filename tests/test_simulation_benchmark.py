@@ -14,7 +14,7 @@ def test_simulation_benchmark_keeps_decode_opaque_and_removes_runs(tmp_path):
         "sampling": {"shots_per_point": 1, "batch_size": 1, "warmup_count": 0},
         "execution": {"workers": 1},
         "output": {"root": str(tmp_path / "ordinary-runs"), "compression": "none"},
-        "decoders": [{"profile": "bposd_ms30_cs0"}],
+        "decoders": [{"profile": "bposd"}],
     }
     path = tmp_path / "benchmark.yaml"
     path.write_text(yaml.safe_dump(config))

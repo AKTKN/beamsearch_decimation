@@ -23,7 +23,7 @@ circuit:
   bb_schedule: edge_coloring
   edge_coloring_strategy: smallest_last
   boundary: noisy_prepare_extract_readout
-  cache: ../simulation_data
+  cache: ../../../simulation_data
 dem:
   decompose_errors: false
   approximate_disjoint_errors: false
@@ -53,7 +53,7 @@ timing:
   mode: throughput
   profiling: none
 output:
-  root: ../assets/runs
+  root: ../../../assets/runs
   layout: minimal_results
   data_schema_version: search_bp_results/2
   parquet:

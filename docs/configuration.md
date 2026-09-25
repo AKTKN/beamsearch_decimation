@@ -1,3 +1,10 @@
+# Historical configuration reference
+
+This document describes pre-AF-BP decimation configs. Active options are in
+`../config/README.md`; historical templates are in `../config/legacy/`.
+
+---
+
 # Complete YAML interface
 
 ## SEARCH-BP-2.1

@@ -1,3 +1,10 @@
+# Historical analysis reference
+
+The active baseline reader is `analysis.simple_results.summarize_run`. Legacy
+search and hybrid analysis remains documented below.
+
+---
+
 # Current minimal results
 
 Use `analysis.simple_search_bp.summarize_run(run)` for new runs: logical error,

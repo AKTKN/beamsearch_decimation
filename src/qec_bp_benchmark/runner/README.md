@@ -1,5 +1,13 @@
 # Active runner
 
+The runner preserves physical sampling, paired shots, worker scheduling and
+complete decoder-service timing. It now writes `baseline_results/1` through the
+active storage projection. Older search/hybrid sections below are historical.
+
+---
+
+# Active runner
+
 The scheduler, physical sampling, warmup, cyclic decoder order and complete
 DecoderAdapter.decode timing boundary are unchanged. New results use only
 `storage/minimal.py` fields, one Parquet file per physical condition. Parent

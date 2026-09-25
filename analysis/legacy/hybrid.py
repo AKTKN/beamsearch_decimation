@@ -9,7 +9,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Iterable,Sequence
 import numpy as np
-from qec_bp_benchmark.config import Analysis
+from qec_bp_benchmark.legacy.decimation.config import Analysis
 from .statistics import GROUP_KEYS,_checked_groups,_metric
 
 PAIR_KEYS=tuple(k for k in GROUP_KEYS if k!='decoder_id')
