@@ -1,3 +1,20 @@
+# AF-BP Stage 3 graph core (2026-09-25)
+
+The standalone C++17 `src/af_bp_core/graph.hpp` now provides sparse mutable
+physical/auxiliary graph state, immutable physical H0/s0, sparse XOR support,
+physical residual/history weights, pair-seeded closed bicliques, exact
+factorization, and local weighted net-cycle scoring. Candidate A/B selection
+is sequential with rediscovery. No complete AF-BP decoder or simulator
+registration exists. See `src/af_bp_core/README.md` for ownership and bounds.
+The native oracle includes exhaustive physical lifts, randomized small graph
+delta comparisons, nested support, 20,000-variable sparse support, and policy
+cases. In `search_decimation`, the final full Python suite passed 81/81,
+including native C++ compilation/execution. The same six native groups passed
+with `-fsanitize=address,undefined`, `-fno-fast-math`, and warnings as errors.
+No production simulation was run.
+
+---
+
 # AF-BP Stage 1 active reset (2026-09-25)
 
 The active `af-bp-v1` branch now registers only `beam8` and configurable-order

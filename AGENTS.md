@@ -28,10 +28,13 @@ active decoder registry. Historical run evidence and scientific results are
 immutable. See `docs/legacy/decimation/README.md` and the prior full AGENTS
 instructions archived there for historical reproduction.
 
-Keep typed public APIs, deterministic ordering, checked native boundaries and
-no fast-math for future native work. Do not implement AF-BP or qDither as part
-of this migration. Any future qDither kernel belongs in the forked ldpc C++
-source with a Python wrapper; per-shot AF-BP graph work also belongs in C++.
+Stage 2 added opt-in `ldpc.af_bp` C++ parallel/serial/qDither BP engines without
+changing upstream BP-OSD. Stage 3 added the standalone C++ graph factorization
+core under `src/af_bp_core/`. Neither component is registered with the active
+simulator, and the complete AF-BP decoder loop does not exist yet. Preserve
+the TeX-defined sparse support, exact graph equivalence, local net-cycle score,
+and strict rediscovery after every accepted transform. Keep typed public APIs,
+deterministic ordering, checked native boundaries and no fast-math.
 
 Active checks:
 

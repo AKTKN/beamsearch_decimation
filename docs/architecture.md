@@ -28,3 +28,10 @@ source provenance but are excluded from CMake. Fork reference/hybrid sources
 remain in `external_lib/ldpc` but are not built by the active dependency script.
 Historical maps and source contracts are indexed in
 [legacy decimation](legacy/decimation/README.md).
+
+Stage 2's opt-in `ldpc.af_bp` BP engines and Stage 3's standalone
+`src/af_bp_core/graph.hpp` graph factorization core are implemented and tested
+outside the active simulator. The graph core owns its physical and current
+graph state, uses sparse auxiliary support, and does not depend on runner or
+experiment types. The full AF-BP decoder loop and active registration are
+still pending; see [graph core](../src/af_bp_core/README.md).
