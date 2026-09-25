@@ -1,8 +1,10 @@
 # Current documentation
 
-Stage-1 active architecture: see `architecture.md`, `simulation_output.md`,
-`../config/README.md` and `legacy/decimation/README.md`. AF-BP and Relay-BP are
-not implemented. The remaining index below describes historical work.
+Current architecture: see `architecture.md`, `simulation_output.md`,
+`../config/README.md` and `legacy/decimation/README.md`. AF-BP is a callable
+native service awaiting simulator integration; Relay-BP is an active pinned
+comparison decoder. `af_bp_stage5.md` records Relay integration and exact
+iteration evidence. The remaining index below describes historical work.
 
 ---
 

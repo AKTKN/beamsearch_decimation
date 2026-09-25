@@ -1,11 +1,11 @@
 # Active architecture after Stage 1
 
 The simulation package is organized around a fixed physical experiment and a
-replaceable truth-free decoder service. AF-BP and Relay-BP are reserved future
-profiles and cannot be instantiated in an active config.
+replaceable truth-free decoder service. AF-BP is a separately callable native
+service awaiting simulator integration; Relay-BP is an active comparison profile.
 
-1. `config.py` validates physical conditions and only `beam8` or `bposd` decoder
-   profiles. `bposd.osd_order` is a nonnegative option (default 10).
+1. `config.py` validates physical conditions and `beam8`, `bposd`, or `relay_bp`
+   comparison profiles. `bposd.osd_order` is a nonnegative option (default 10).
 2. `circuits/`, `dem/model.py` and `artifacts.py` create and cache the verified
    physical circuit, selected Z-check model, original H/A and mechanism priors.
 3. `runner/plan.py`, `runner/worker.py` and `runner/pipeline.py` keep physical
@@ -20,9 +20,11 @@ profiles and cannot be instantiated in an active config.
 Beam8's fork-local change adds an observation counter for all initial and masked
 BP iterations. Its branching, messages, correction decisions and existing `iter`
 field are unchanged. BP-OSD reports upstream BP iterations, with zero on its
-zero-syndrome shortcut; OSD adds no BP steps. The active CMake build has one
-separately callable AF-BP service target, while simulator registration still
-contains only the two baselines.
+zero-syndrome shortcut; OSD adds no BP steps. Relay uses upstream
+`RelayDecoderF64.decode_detailed` and returns exact initial-plus-relay-leg BP
+iterations. It never invokes upstream batch parallelism. The active CMake build
+has one separately callable AF-BP service target, while simulator registration
+contains the three comparison decoders.
 
 Historical project-native C++ files remain in `src/qec_bp_benchmark/native/` for
 source provenance but are excluded from CMake. Fork reference/hybrid sources

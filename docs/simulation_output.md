@@ -27,6 +27,9 @@ and zero for the upstream zero-syndrome shortcut; OSD contributes zero. For
 `beam8`, the instrumentation counter sums every initial and masked BP path
 actually executed, including paths that did not converge. A zero-syndrome
 shortcut contributes zero. Neither value is inferred from budgets or wall time.
+For `relay_bp`, `total_iterations` is exactly upstream
+`decode_detailed(...).iterations`, including the initial BP run and each
+executed relay leg. The adapter calls the single-shot API in each worker.
 
 One logical-error trial is one physical shot, with no division by rounds or
 number of observables. Failed shots remain in latency and iteration summaries.

@@ -2,6 +2,13 @@
 
 Pinned source checkouts retain original documentation/licenses. manifest.lock.json and docs/dependency_audit.md record integration. ldpc is a local development branch; beam remains a separate baseline. wheels/pristine_ldpc preserve the unmodified reference build.
 
+Stage 5 adds upstream `trmue/relay` at exact commit
+`d185194ba0cb4101ced4340d82b2ee6d42f225f0`. Its Rust and Python
+source/build inputs, Cargo locks, Apache-2.0 `LICENSE.txt`, imported native
+binary and empty local patch are recorded in `manifest.lock.json`. Preserve
+Copyright IBM 2025 notices. Build it with locked maturin through
+`scripts/build_dependencies.sh`; no Relay scientific source is patched.
+
 See ../docs/fork_maintenance.md for restoration, auditing and rebuild instructions.
 The exported ldpc patch explicitly includes the authored bindings.cpp ignored by
 upstream Git rules; the audit and provenance archive must preserve it. Fresh-build

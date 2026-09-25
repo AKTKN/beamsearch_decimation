@@ -1,5 +1,21 @@
 # Dependency audit
 
+## AF-BP Stage 5 Relay addition
+
+`https://github.com/trmue/relay.git` had `main` HEAD
+`d185194ba0cb4101ced4340d82b2ee6d42f225f0` when checked on
+2026-09-25. That exact commit is pinned in `external_lib/manifest.lock.json`.
+The local source is unchanged; `external_lib/patches/relay.patch` is empty.
+The audit hashes upstream Python/Rust sources, pyproject, both Cargo manifests
+and locks, and `LICENSE.txt`. The manifest records the imported extension
+binary, Rust compiler, build profile, and installed `relay-bp` version in the
+package inventory. The repository
+preserves upstream Apache-2.0 and Copyright IBM 2025 notices. Locked
+`maturin==1.15.0` builds upstream `RelayDecoderF64` without a scientific patch.
+Details and tests are in `af_bp_stage5.md`.
+
+## Earlier dependency audit
+
 All six URLs in the contract were obtained as actual Git checkouts. Exact HEAD
 commits, versions and imported paths are recorded in external_lib/manifest.lock.json.
 Build/package versions are locked in requirements.lock.txt. At initial acceptance, no source was published.

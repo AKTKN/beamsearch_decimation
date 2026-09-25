@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCES = {
     "ldpc": ("https://github.com/quantumgizmos/ldpc", "ldpc", "MIT", "BP and BP-OSD; opt-in historical sessions and AF-BP BP engines"),
     "BeamSearchDecoder": ("https://github.com/ionq-publications/BeamSearchDecoder", "beam_search_decoder", "CC-BY-NC-SA-4.0; bundled ldpc components MIT", "Published beam baseline"),
+    "relay": ("https://github.com/trmue/relay.git", "relay_bp", "Apache-2.0; Copyright IBM 2025", "Upstream Rust-backed Relay-BP comparison decoder"),
     "qLDPC": ("https://github.com/qLDPCOrg/qLDPC", "qldpc", "Apache-2.0", "BB72 construction, edge-coloring memory and noise"),
     "Stim": ("https://github.com/quantumlib/Stim", "stim", "Apache-2.0", "Physical circuit sampling and undecomposed DEM"),
     "BivariateBicycleCodes": ("https://github.com/sbravyi/BivariateBicycleCodes", None, "Apache-2.0", "Algebra and original schedule reference; not executed"),
@@ -26,6 +27,10 @@ PATHS = {
                           'decoder/beam_search_decoder/_beam_search_decoder.pyx',
                           'decoder/beam_search_decoder/__init__.pyi',
                           'decoder/setup.py'],
+    'relay': ['LICENSE.txt', 'pyproject.toml', 'Cargo.toml', 'Cargo.lock',
+              'crates/relay_bp/Cargo.toml', 'crates/relay_bp/Cargo.lock',
+              'crates/relay_bp/src', 'crates/relay_bp_py/Cargo.toml',
+              'crates/relay_bp_py/src', 'src/relay_bp'],
     'qLDPC': ['src/qldpc/codes/quantum.py','src/qldpc/circuits/memory/memory.py','src/qldpc/circuits/memory/syndrome_measurement.py','src/qldpc/circuits/noise_model.py'],
     'Stim': ['setup.py','src/stim/dem/detector_error_model.cc','src/stim/simulators/error_analyzer.cc'],
     'BivariateBicycleCodes': ['decoder_setup.py'],
@@ -42,6 +47,7 @@ COMMANDS = {
              '(cd external_lib/ldpc && python setup_hybrid.py build_ext --inplace)',
              '(cd external_lib/ldpc && python setup_af_bp.py build_ext --inplace)'],
     'BeamSearchDecoder': ['(cd external_lib/BeamSearchDecoder/decoder && python setup.py build_ext --inplace)'],
+    'relay': ['python -m pip install --no-build-isolation --no-deps -e external_lib/relay'],
     'qLDPC': ['python -m pip install --no-build-isolation --no-deps -e external_lib/qLDPC'],
     'Stim': ['(cd external_lib/Stim && python setup.py build_ext --inplace --force)',
              'python -m pip wheel --no-build-isolation --no-deps external_lib/Stim -w external_lib/wheels',
@@ -75,7 +81,7 @@ def main() -> None:
         source_paths=[]
         for rel in PATHS[name]:
             path=directory/rel
-            source_paths.extend([p for p in path.rglob('*') if p.is_file() and p.suffix in ('.py','.pyi','.pyx','.hpp','.cpp')]
+            source_paths.extend([p for p in path.rglob('*') if p.is_file() and p.suffix in ('.py','.pyi','.pyx','.hpp','.cpp','.rs')]
                                 if path.is_dir() else [path])
         untracked=set(git('ls-files','--others','--exclude-standard').splitlines())
         for source in source_paths:
@@ -94,6 +100,7 @@ def main() -> None:
         patch_path=patches/f'{name}.patch'
         patch_path.write_text(patch)
         native_files = [path for path in directory.rglob('*.so') if 'build' not in path.parts
+                        and 'target' not in path.parts
                         and not any(part.startswith(('build','python_build')) for part in path.parts)] if module else []
         if name=='Stim':
             native_files=list(Path(imported.__file__).parent.glob('*.so'))
@@ -108,10 +115,13 @@ def main() -> None:
                          "source_hashes":{str(p.relative_to(directory)):digest(p) for p in source_paths if p.is_file()},
                          "native_files":{str(p):digest(p) for p in native_files},
                          "patch_file":str(patch_path.relative_to(ROOT)),"patch_sha256":digest(patch_path),
-                         "compiler": subprocess.check_output(["g++", "--version"], text=True).splitlines()[0] if name in ('Stim','ldpc','BeamSearchDecoder') else None,
+                         "compiler": (subprocess.check_output(["rustc", "--version"], text=True).strip()
+                                      if name == 'relay' else subprocess.check_output(["g++", "--version"], text=True).splitlines()[0]
+                                      if name in ('Stim','ldpc','BeamSearchDecoder') else None),
                          "flags": ('-O3 -std=c++2a; reference/hybrid/af_bp: -O3 -std=c++17 -fno-fast-math -ffp-contract=off'
                                    if name=='ldpc' else '-O3 -std=c++2a' if name=='BeamSearchDecoder'
-                                   else '-O3 -std=c++20 -fno-strict-aliasing -g0; upstream polyfill/SSE2 selection' if name=='Stim' else None),
+                                   else '-O3 -std=c++20 -fno-strict-aliasing -g0; upstream polyfill/SSE2 selection' if name=='Stim'
+                                   else 'upstream Cargo release profile; pyo3/extension-module' if name=='relay' else None),
                          "hosted_fork": False}
     from ldpc.reference_bp import build_identity
     records['ldpc']['reference_build_identity']=build_identity()

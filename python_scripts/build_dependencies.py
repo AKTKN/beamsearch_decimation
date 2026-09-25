@@ -1,4 +1,4 @@
-"""Build or verify pinned active Beam8/BP-OSD dependencies."""
+"""Build or verify pinned active Beam8/BP-OSD/Relay dependencies."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTIVE = ('ldpc', 'BeamSearchDecoder', 'qLDPC', 'Stim')
+ACTIVE = ('ldpc', 'BeamSearchDecoder', 'relay', 'qLDPC', 'Stim')
 
 
 def run(*args: str, cwd: Path = ROOT) -> None:
@@ -26,7 +26,7 @@ def verify() -> dict:
         if commit != manifest['dependencies'][name]['commit']:
             raise RuntimeError(f'{name} checkout differs from pinned commit')
     modules = {'ldpc': 'ldpc', 'BeamSearchDecoder': 'beam_search_decoder',
-               'qLDPC': 'qldpc', 'Stim': 'stim'}
+               'relay': 'relay_bp', 'qLDPC': 'qldpc', 'Stim': 'stim'}
     locations = {}
     for name, module_name in modules.items():
         module = importlib.import_module(module_name)
@@ -42,6 +42,14 @@ def verify() -> dict:
         current = hashlib.sha256((beam / relative).read_bytes()).hexdigest()
         if current != expected:
             raise RuntimeError(f'Beam8 source hash mismatch: {relative}')
+    from relay_bp import RelayDecoderF64
+    if not hasattr(RelayDecoderF64, 'decode_detailed'):
+        raise RuntimeError('Relay F64 detailed binding is unavailable; rebuild it')
+    relay = ROOT / 'external_lib/relay'
+    for relative, expected in manifest['dependencies']['relay']['source_hashes'].items():
+        current = hashlib.sha256((relay / relative).read_bytes()).hexdigest()
+        if current != expected:
+            raise RuntimeError(f'Relay source hash mismatch: {relative}')
     return locations
 
 
@@ -54,6 +62,7 @@ def main() -> None:
         run(*pip, 'install', '-r', 'requirements.lock.txt')
         run(*pip, 'install', '--no-build-isolation', '--no-deps', '-e', 'external_lib/ldpc')
         run(*pip, 'install', '--no-build-isolation', '--no-deps', '-e', 'external_lib/qLDPC')
+        run(*pip, 'install', '--no-build-isolation', '--no-deps', '-e', 'external_lib/relay')
         beam_root = ROOT / 'external_lib/BeamSearchDecoder'
         beam_record = json.loads((ROOT / 'external_lib/manifest.lock.json').read_text())['dependencies']['BeamSearchDecoder']
         source_matches = all(

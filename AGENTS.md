@@ -2,9 +2,10 @@
 
 The active branch is `af-bp-v1`, based on the latest `origin/search-bp-lpmdp-v1`.
 The active package is being reset around AF-BP comparison. The AF-BP-1.0 native
-service is implemented but not registered with the simulator; Relay-BP is not
-implemented. Active decoder profiles are only
-`beam8` and `bposd`; the latter accepts a nonnegative `osd_order` option. Never
+service is implemented but not registered with the simulator. Active comparison
+decoder profiles are `beam8`, `bposd`, and pinned `relay_bp`; the latter uses
+upstream Rust `RelayDecoderF64.decode_detailed` and exact total iterations.
+`bposd` accepts a nonnegative `osd_order` option. Never
 label historical `bposd_ms30_cs0` or `bposd_ms30_cs10` results as new `bposd`.
 
 Use the `search_decimation` conda environment. Physical production rates are
@@ -15,6 +16,11 @@ configuration is `config/baselines.yaml.example`. The current result contract is
 count is the actual total across all BP calls; OSD adds zero. Beam8 has an
 instrumentation-only upstream patch to count all masked paths. Preserve the
 complete `DecoderAdapter.decode` wall-time boundary.
+Relay source is pinned at `d185194ba0cb4101ced4340d82b2ee6d42f225f0`
+under `external_lib/relay`, built with locked maturin. Preserve upstream
+Apache-2.0 and IBM attribution; do not modify its scientific implementation.
+Use single-shot `decode_detailed`, not Relay's parallel batch API. Explicit
+gamma arrays are rejected until a reproducible source contract exists.
 
 Do not change the simulator's circuit providers, noise, DEM, physical sampling,
 syndrome/truth projection, paired shots, worker scheduling, logical comparison,

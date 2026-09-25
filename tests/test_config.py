@@ -22,19 +22,20 @@ def test_every_top_level_config_is_an_active_baseline():
     paths = sorted((ROOT / 'config').glob('*.yaml.example'))
     assert {path.name for path in paths} == {
         'baselines.yaml.example', 'baselines_workers2.yaml.example',
-        'bposd_cs0_smoke.yaml.example', 'analysis.yaml.example',
+        'bposd_cs0_smoke.yaml.example', 'relay_bp_smoke.yaml.example',
+        'analysis.yaml.example',
     }
     for path in paths:
         if path.name == 'analysis.yaml.example':
             continue
         config = load_config(path)
-        assert all(decoder.profile in ('beam8', 'bposd') for decoder in config.decoders)
+        assert all(decoder.profile in ('beam8', 'bposd', 'relay_bp') for decoder in config.decoders)
 
 
 @pytest.mark.parametrize('profile', [
     'screened_reference', 'hybrid_search_soft_ms_osd0_v1', 'search_osd0_v1',
     'hybrid_search_soft_ms_osd0_cold_v1', 'search_bp', 'lpm_dp_bp_v1',
-    'beam32', 'bposd_ms30_cs0', 'bposd_ms30_cs10', 'af_bp', 'relay_bp',
+    'beam32', 'bposd_ms30_cs0', 'bposd_ms30_cs10', 'af_bp',
 ])
 def test_legacy_and_future_profiles_are_not_active(profile):
     with pytest.raises(ValueError):
@@ -68,6 +69,23 @@ def test_osd_order_is_configurable():
             'decoders': [{'profile': 'bposd', 'osd_order': order}]})
         assert config.decoders[0].osd_order == order
         assert config.resolved()['decoders'][0]['osd_order'] == order
+
+
+def test_relay_config_exposes_upstream_parameters_and_rejects_unpinned_gamma_arrays():
+    settings = {'profile': 'relay_bp', 'alpha': .8,
+                'alpha_iteration_scaling_factor': .95, 'gamma0': None,
+                'pre_iter': 3, 'num_sets': 4, 'set_max_iter': 5,
+                'gamma_dist_interval': [-.2, .4], 'stop_nconv': 2, 'seed': 17}
+    config = Config.model_validate({'noise': {'rates': [.001]}, 'decoders': [settings]})
+    resolved = config.resolved()['decoders'][0]
+    for key, value in settings.items():
+        assert resolved[key] == value
+    assert resolved['kind'] == 'relay_bp'
+    for bad in ({'explicit_gammas': [[0.1]]}, {'seed': -1},
+                {'gamma_dist_interval': [.2, .2]}, {'pre_iter': 0}):
+        with pytest.raises(ValidationError):
+            Config.model_validate({'noise': {'rates': [.001]},
+                                   'decoders': [{**settings, **bad}]})
 
 
 def test_yaml_duplicate_and_unsafe(tmp_path):

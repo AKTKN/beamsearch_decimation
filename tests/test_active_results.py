@@ -38,6 +38,23 @@ def test_beam_total_counts_all_paths_and_resets_on_zero():
     assert decoder.total_iterations == 4
 
 
+def test_beam_instrumentation_preserves_pristine_decisions():
+    # Captured from a clean build of upstream 084a475 (without the counter patch).
+    # Lexicographic 4-bit syndrome order; the patched build must agree on all 16.
+    pristine = ('00000000', '00101100', '00000100', '00101000',
+                '00001000', '00100100', '00001100', '00100000',
+                '10000100', '00010000', '10000000', '11110111',
+                '01101100', '01000000', '01101000', '11111111')
+    h = np.array([[1,1,0,1,0,0,0,0], [0,1,1,0,1,0,0,0],
+                  [1,0,1,0,0,1,0,0], [0,1,1,1,0,0,1,1]], dtype=np.uint8)
+    decoder = BeamSearchDecoder(h, error_channel=[.1] * 8, beam_width=8,
+        initial_iters=1, iters_per_round=2, max_rounds=2, num_results=1)
+    for value, expected in enumerate(pristine):
+        syndrome = np.array([int(bit) for bit in f'{value:04b}'], dtype=np.uint8)
+        assert ''.join(map(str, decoder.decode(syndrome))) == expected
+        assert decoder.converge is True
+
+
 def test_saved_baseline_reader_and_plots(tmp_path):
     root = Path(__file__).resolve().parents[1]
     config = load_config(root / 'config/baselines.yaml.example').resolved()

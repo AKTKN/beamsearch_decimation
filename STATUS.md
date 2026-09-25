@@ -1,3 +1,28 @@
+# AF-BP Stage 5 comparison decoders (2026-09-25)
+
+The active truth-free comparison surface is now `beam8`, `bposd`, and
+`relay_bp`. Relay uses unmodified upstream Apache-2.0 Rust/Python source at
+verified commit `d185194ba0cb4101ced4340d82b2ee6d42f225f0`, locked
+maturin, F64 single-shot `decode_detailed`, and its exact total
+`DecodeResult.iterations`. It exposes the requested algorithm settings;
+`explicit_gammas` is rejected until a reproducible array-source contract
+exists. Existing Beam8 instrumentation and BP-OSD actual iteration counts
+remain in place. AF-BP and qDither are not registered in the simulator.
+
+Final verification in `search_decimation`: 92/92 Python tests passed;
+the focused Relay/config/Beam8/BP-OSD suite passed 51/51, including strict
+config discovery.
+The pinned build/import/source audit and `pip check` passed. A pristine Beam
+build supplied 16 reference decisions and convergence results, all matched
+by the instrumented build. Relay's impossible-syndrome case counted 14
+iterations across initial and three relay legs; BB144 one-round construction
+and decode smoke passed. Two-shot Relay and paired Beam8/BP-OSD surface d3
+smokes completed with the existing five-field output. Circuit sampling,
+worker scheduling, timing and storage code were unchanged. No production
+sweep ran. See `docs/af_bp_stage5.md` for paths and limits.
+
+---
+
 # AF-BP Stage 4 native service (2026-09-25)
 
 The AF-BP-1.0 native service now composes the Stage-2 fork BP engines with the

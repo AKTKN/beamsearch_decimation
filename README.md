@@ -2,9 +2,11 @@
 
 This repository is being reset around adaptive graph refactorization BP
 (AF-BP). Its native decoder service is implemented and directly callable, but
-it is not yet connected to simulator configs, storage, or plots. Relay-BP is
-not implemented. The active comparison surface has two established baselines: published Beam
-Search width 8 (`beam8`) and ordinary upstream BP-OSD (`bposd`). The BP-OSD
+it is not yet connected to simulator configs, storage, or plots. The active
+comparison surface now includes published Beam Search width 8 (`beam8`),
+ordinary upstream BP-OSD (`bposd`), and pinned upstream Relay-BP (`relay_bp`).
+Relay uses the F64 Rust-backed `decode_detailed` API, with exact total BP
+iterations and no decoder-side batch parallelism. The BP-OSD
 `osd_order` is a config option; its default is 10 and order 0 is also valid.
 
 The physical simulation pipeline remains the one from
@@ -17,6 +19,7 @@ See [active architecture](docs/architecture.md) and
 conda activate search_decimation
 scripts/build_dependencies.sh --check
 python python_scripts/validate_config.py config/baselines.yaml.example
+python python_scripts/validate_config.py config/relay_bp_smoke.yaml.example
 python -m pytest -q
 scripts/run_benchmark.sh config/baselines.yaml.example
 ```
@@ -36,5 +39,6 @@ Their source, configs, readers, tests and prior evidence are preserved; see
 identities and schemas. The normative AF-BP design is
 [adaptive_graph_refactorization_bp_spec.tex](adaptive_graph_refactorization_bp_spec.tex).
 Current migration evidence and limitations are in [STATUS.md](STATUS.md).
+Relay source/build and Stage-5 evidence are in [Stage-5 report](docs/af_bp_stage5.md).
 The standalone Stage-4 service API is documented in
 [src/af_bp_core/README.md](src/af_bp_core/README.md).

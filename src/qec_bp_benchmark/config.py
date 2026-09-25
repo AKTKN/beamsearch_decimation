@@ -149,7 +149,30 @@ class Beam(StrictModel):
     iters_per_round: Positive = 20
 
 
-Decoder = Annotated[Bposd | Beam, Field(discriminator="profile")]
+class RelayBP(StrictModel):
+    """Pinned upstream F64 Relay settings; gamma draws come from its seeded RNG."""
+    profile: Literal["relay_bp"] = "relay_bp"
+    kind: Literal["relay_bp"] = "relay_bp"
+    name: str = "relay_bp"
+    enabled: bool = True
+    alpha: float | None = None
+    alpha_iteration_scaling_factor: Annotated[float, Field(gt=0)] = 1.0
+    gamma0: float | None = 0.1
+    pre_iter: Positive = 80
+    num_sets: Nonnegative = 300
+    set_max_iter: Positive = 60
+    gamma_dist_interval: tuple[float, float] = (-0.24, 0.66)
+    stop_nconv: Positive = 1
+    seed: Annotated[int, Field(strict=True, ge=0, le=2**64-1)] = 0
+
+    @model_validator(mode="after")
+    def check(self) -> Self:
+        if self.gamma_dist_interval[0] >= self.gamma_dist_interval[1]:
+            raise ValueError("gamma_dist_interval requires low < high")
+        return self
+
+
+Decoder = Annotated[Bposd | Beam | RelayBP, Field(discriminator="profile")]
 
 
 class Sampling(StrictModel):
@@ -240,17 +263,23 @@ class Config(StrictModel):
                     "tie_breaking": "upstream strict comparisons and (score,storage_index) priority queue",
                     "native_threads": 1,
                 }
-            else:
+            elif decoder["profile"] == "bposd":
                 decoder["implementation_properties"] = {
                     "hard_decision": "upstream L<=0", "error_channel_type": "list",
                     "converge_flag": "BP stage only; validate correction after OSD",
+                }
+            else:
+                decoder["implementation_properties"] = {
+                    "backend": "upstream RelayDecoderF64.decode_detailed",
+                    "stopping_criterion": "nconv", "logging": False,
+                    "batch_parallelism": False,
                 }
         return data
 
 
 def require_available_decoder(profile: str) -> None:
     """Reject decimation and unimplemented future decoders from active runs."""
-    if profile not in ("beam8", "bposd"):
+    if profile not in ("beam8", "bposd", "relay_bp"):
         raise ValueError(f"unsupported active decoder profile: {profile}")
 
 

@@ -1,9 +1,9 @@
 # Active package reset
 
-Active simulator config and decoder services expose only `beam8` and
-configurable-order `bposd`. `af_bp_service.py` offers a separate callable
-AF-BP-1.0 native service but is not registered with the simulator; Relay-BP is
-pending. Decimation details below are historical
+Active simulator config and decoder services expose `beam8`, configurable-order
+`bposd`, and pinned upstream `relay_bp`. `af_bp_service.py` offers a separate
+callable AF-BP-1.0 native service but is not registered with the simulator.
+Decimation details below are historical
 and their source is preserved in legacy paths or excluded from CMake.
 
 ---

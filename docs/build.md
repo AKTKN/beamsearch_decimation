@@ -7,6 +7,11 @@ and `python -m pip install --no-build-isolation --no-deps -e .` in
 `src/af_bp_core/graph.hpp`, `decoder.hpp`, `bindings.cpp`, `CMakeLists.txt`, or
 the fork `external_lib/ldpc/src_cpp/af_bp.hpp`; the service source hash rejects
 a stale extension. The service is not yet registered with the simulator.
+Stage 5 also builds `external_lib/relay` at its pinned commit using
+`maturin==1.15.0` and the upstream Rust release profile. The build helper
+installs the editable Rust-backed `relay_bp` module; `--check` verifies its
+commit, source hashes, import location, and F64 detailed API. Keep Relay's
+Apache-2.0 license and IBM copyright notices. See `af_bp_stage5.md`.
 
 ---
 

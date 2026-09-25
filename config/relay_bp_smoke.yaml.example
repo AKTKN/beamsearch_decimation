@@ -1,0 +1,26 @@
+# One-worker Relay construction and two-shot smoke; no production sweep.
+experiment:
+  name: relay_bp_smoke
+  purpose: Validate pinned upstream Relay-BP F64 and exact iteration accounting
+  codes:
+  - family: surface
+    distances: [3]
+circuit:
+  cache: ../simulation_data
+noise:
+  rates: [0.003]
+sampling:
+  shots_per_point: 2
+  batch_size: 2
+  warmup_count: 0
+execution:
+  workers: 1
+output:
+  root: ../assets/runs
+decoders:
+- profile: relay_bp
+  pre_iter: 2
+  num_sets: 2
+  set_max_iter: 2
+  stop_nconv: 1
+  seed: 7

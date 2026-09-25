@@ -61,6 +61,7 @@ def test_osd_after_bp_failure_and_empty_model(order):
     assert result.status == 'SUCCESS'
     assert result.native_status == 'OSD_AFTER_BP_NONCONVERGENCE'
     assert result.osd_called is True
+    assert result.total_iterations == adapter._native.iter == 1
     assert adapter.decode(np.array([0], dtype=np.uint8)).osd_called is False
     empty = convert_dem(stim.DetectorErrorModel('detector D0\nlogical_observable L11'))
     for cfg in (Bposd(osd_order=order), Beam()):
@@ -69,8 +70,9 @@ def test_osd_after_bp_failure_and_empty_model(order):
         assert decoder.decode(np.array([1], dtype=np.uint8)).status == 'DECLARED_FAILURE'
 
 
-def test_no_truth_api_and_error_propagation():
-    adapter = DecoderAdapter(problem(), Beam())
+@pytest.mark.parametrize('cfg', [Beam(), Bposd(),])
+def test_no_truth_api_and_error_propagation(cfg):
+    adapter = DecoderAdapter(problem(), cfg)
     with pytest.raises(TypeError):
         adapter.decode(np.zeros(4), truth=np.zeros(2))
     class Exploding:

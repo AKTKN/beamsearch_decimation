@@ -1,6 +1,6 @@
-"""Active, truth-free baseline decoder services.
+"""Active, truth-free comparison decoder services.
 
-AF-BP and Relay-BP names are reserved until their services exist. Historical
+AF-BP remains outside the simulator until its integration stage. Historical
 decimation services are archived under ``qec_bp_benchmark.legacy.decimation``.
 """
 from __future__ import annotations
@@ -15,21 +15,22 @@ from pathlib import Path
 
 import numpy as np
 
-from ..config import Bposd, Beam, Decoder, require_available_decoder
+from ..config import Bposd, Beam, RelayBP, Decoder, require_available_decoder
 from ..dem.model import DetectorProblem
 from ..identity import decoder_identity
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=3)
 def implementation_identity(profile: str) -> dict:
     """Return pinned upstream and actual imported binary identity."""
     require_available_decoder(profile)
-    key, module_name = (
-        ("ldpc", "ldpc.bposd_decoder._bposd_decoder") if profile == "bposd" else
-        ("BeamSearchDecoder", "beam_search_decoder._beam_search_decoder")
-    )
+    key, module_name = {
+        "bposd": ("ldpc", "ldpc.bposd_decoder._bposd_decoder"),
+        "beam8": ("BeamSearchDecoder", "beam_search_decoder._beam_search_decoder"),
+        "relay_bp": ("relay", "relay_bp._relay_bp"),
+    }[profile]
     module = importlib.import_module(module_name)
     expected = ROOT / "external_lib" / key
     if expected.resolve() not in Path(module.__file__).resolve().parents:
@@ -44,7 +45,7 @@ def implementation_identity(profile: str) -> dict:
 
 @dataclass(frozen=True)
 class DecodeResult:
-    """Owned correction (n,) and prediction (k,), both null on failure."""
+    """Truth-free result with owned (n,) correction and (k,) prediction on success."""
     correction: np.ndarray | None
     prediction: np.ndarray | None
     syndrome_valid: bool
@@ -57,6 +58,15 @@ class DecodeResult:
     hybrid_summary: dict | None = None
     osd_called: bool | None = None
     correction_by_search: bool | None = None
+
+    @property
+    def total_iterations(self) -> int:
+        """Actual BP iterations over the complete decoder service."""
+        return self.counters["total_iterations"]
+
+    @property
+    def declared_failure(self) -> bool:
+        return self.status == "DECLARED_FAILURE"
 
 
 class DecoderAdapter:
@@ -82,7 +92,7 @@ class DecoderAdapter:
         self._native = None
         if problem.H.shape[1] == 0:
             return
-        options = config.model_dump(exclude={"profile", "name", "enabled"})
+        options = config.model_dump(exclude={"profile", "kind", "name", "enabled"})
         if isinstance(config, Bposd):
             from ldpc import BpOsdDecoder
             self._native = BpOsdDecoder(problem.H.copy(),
@@ -91,6 +101,11 @@ class DecoderAdapter:
             from beam_search_decoder import BeamSearchDecoder
             self._native = BeamSearchDecoder(problem.H.copy(),
                                              error_channel=problem.probabilities.tolist(), **options)
+        elif isinstance(config, RelayBP):
+            from relay_bp import RelayDecoderF64
+            self._native = RelayDecoderF64(
+                problem.H.copy(), np.asarray(problem.probabilities, dtype=np.float64).copy(),
+                **options, stopping_criterion="nconv", logging=False)
         else:
             raise TypeError(f"unsupported decoder configuration: {type(config).__name__}")
 
@@ -107,6 +122,12 @@ class DecoderAdapter:
             declared = bool(s.any())
             native_status = "EMPTY_MODEL_CONTRADICTION" if declared else "EMPTY_MODEL_VALID"
             counters["total_iterations"] = 0
+        elif isinstance(self.config, RelayBP):
+            detailed = self._native.decode_detailed(s.copy())
+            candidate = np.asarray(detailed.decoding)
+            declared = not bool(detailed.success)
+            native_status = "CONVERGED" if detailed.success else "RELAY_EXHAUSTED"
+            counters["total_iterations"] = int(detailed.iterations)
         else:
             candidate = np.asarray(self._native.decode(s.copy()))
             converged = bool(self._native.converge)
