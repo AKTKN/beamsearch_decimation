@@ -5,6 +5,7 @@
 #include "graph.hpp"
 #include "af_bp.hpp"
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -64,6 +65,8 @@ struct TransformRecord {
 
 struct DecodeResult {
     bool valid = false;
+    std::optional<bool> initial_bp_converged;
+    std::optional<bool> first_transform_converged;
     Ids correction;       // empty unless valid; owned physical length n0 on success
     Ids prediction;       // A*correction mod 2; empty on failure
     Ids last_physical_hard;
@@ -223,6 +226,8 @@ public:
                 throw std::logic_error("BP engine returned inconsistent graph-sized arrays");
             result.last_physical_hard.assign(bp.correction.begin(), bp.correction.begin() + n0_);
             const bool physical_valid = original_valid(h0_, syndrome, result.last_physical_hard);
+            if (graph_index == 0) result.initial_bp_converged = physical_valid;
+            if (graph_index == 1) result.first_transform_converged = physical_valid;
             if (diagnostics) result.calls.push_back(BpCallRecord{
                 graph_index, used.variant, used.max_total_iterations, bp.total_iterations,
                 graph.variable_count(), graph.check_count(), bp.success, physical_valid,

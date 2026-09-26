@@ -1,56 +1,35 @@
 # Current saved-data notebook
 
-`benchmark_analysis.ipynb.example` is the maintained current-layout consumer, and
-`benchmark_analysis.ipynb` is its editable local copy. They read both
-`search_bp_results/2` and `lpm_dp_results/1` through the public `analysis` summary
-and plotting APIs. The configured default is the BB72 d6 LPM-DP run
-`assets/runs/2026_09_23_16_16_7411703b`; set `QEC_ANALYSIS_RUN` or edit `RUN_PATH`
-to analyze another supported current run.
-
-The notebook performs no simulation or decoding. One BB physical shot is one block
-trial across all 12 logical labels. The current schemas supply only the saved
-logical-error boolean, complete wall latency and OSD-called flag. SEARCH-BP's
-six-field schema additionally saves its exact direct-search correction flag;
-LPM-DP's five-field schema does not. CPU time,
-failure components, correction vectors and internal decoder telemetry cannot be
-reconstructed.
-
-Activate the required environment and execute the local notebook with:
+`benchmark_analysis.ipynb.example` is the tracked template;
+`benchmark_analysis.ipynb` is the editable local copy. Both use the active
+`benchmark_results/3` result schema and read earlier `/2` files without
+guessing convergence. The default run is
+`assets/runs/2026_09_25_22_46_d822b5bc`. Set `QEC_ANALYSIS_RUN` or edit
+`RUN_PATH` in the setup cell to select another active run.
 
 ```bash
 conda activate search_decimation
-jupyter execute --inplace --kernel_name=search_decimation \
-  notebook/benchmark_analysis.ipynb
+jupyter execute --inplace --kernel_name=search_decimation notebook/benchmark_analysis.ipynb
 ```
 
-For interactive use, register the environment once and select it in Jupyter:
+The notebook discovers each saved `*_results.parquet` condition from
+`config_resolved.json` and validates its schema. `CODES`, `PHYSICAL_RATES`,
+`DISTANCES`, and `DECODERS` are optional selectors; `None` includes all saved
+values. It displays a condition/decoder summary and saves PNG/PDF figures for
+logical error rate, convergence rate when saved, mean complete-service wall
+latency, mean total BP iterations,
+and a wall-latency histogram for every selected condition under
+`assets/analysis/<run-name>/`. The module plotting functions only return figures;
+the notebook writes the files.
 
-```bash
-conda activate search_decimation
-python -m ipykernel install --user --name search_decimation \
-  --display-name 'Python (search_decimation)'
-```
-
-The setup cell checks that `analysis` comes from this checkout and that the selected
-run contains resolved config. `CODES`, `PHYSICAL_RATES`, `DISTANCES` and `DECODERS`
-are optional exact selectors. `None` includes every saved value. The histogram has
-its own single-condition code/rate/distance selectors.
-
-The summary table reports shots, logical-error counts and Wilson intervals,
-mean/median/p95/p99 wall latency, and OSD counts with known and unknown denominators.
-Figure cells create logical-error curves, mean wall-latency curves, and a
-selected-condition latency histogram. They save PNG/PDF under
-`assets/analysis/<run-name>/`. The event table reports OSD-call rates for each
-decoder over its nonnull saved flags. A separate table cell selects the
-`correction_by_search_rate` columns when stored. LPM-DP and legacy results/1 runs
-show that metric as unavailable rather than inferring it.
-
-The notebook keeps different run/execution contexts separate and does not bootstrap,
-pool runs, build a report manifest or infer unavailable metrics. Throughput wall
-times include failed decoder calls and worker contention. The bounded run does not
-establish production accuracy, tail latency or decoder superiority.
+One physical BB shot is one block trial. Failed decoder calls remain in latency
+and iteration statistics. Wilson intervals describe logical-error uncertainty;
+Student-t intervals describe uncertainty in mean latency and iteration count.
+With only one saved physical rate, the rate figures show points rather than a
+trend. The result schema has no CPU time, correction vectors, per-observable
+outcomes, or internal decoder events. The notebook performs no simulation or
+decoding and does not change source run data.
 
 The editable notebook may contain saved outputs after execution and is ignored by
-Git. The maintained `.ipynb.example` has no saved outputs. Historical verified
-v1/v2 notebook consumers and execution scripts remain under `notebook/legacy/`,
-`analysis/legacy/` and `scripts/legacy/`.
+Git. The tracked template has no saved outputs. Historical notebook consumers are
+under `notebook/legacy/`.

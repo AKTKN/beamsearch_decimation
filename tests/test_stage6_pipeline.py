@@ -5,7 +5,8 @@ import numpy as np
 import pyarrow.parquet as pq
 import pytest
 import yaml
-from analysis import plot_logical_error_rate, plot_mean_decode_time, plot_mean_total_iterations
+from analysis import (plot_logical_error_rate, plot_convergence_rate,
+                      plot_mean_decode_time, plot_mean_total_iterations)
 
 from qec_bp_benchmark.circuits import apply_noise, make_template, select_z_detectors
 from qec_bp_benchmark.config import AFBP, Beam, Bposd, Multipliers, RelayBP
@@ -39,6 +40,9 @@ def test_bb144_all_active_decoders(settings, bb144_problem):
     syndrome = np.asarray(problem.H[:, 0].toarray().ravel(), dtype=np.uint8)
     result = decoder.decode(syndrome)
     assert result.status in ('SUCCESS', 'DECLARED_FAILURE')
+    assert type(result.converged) is bool
+    if settings.profile == 'af_bp':
+        assert type(result.initial_bp_converged) is bool
     assert isinstance(result.total_iterations, int) and result.total_iterations >= 0
     if result.correction is not None:
         np.testing.assert_array_equal(problem.H @ result.correction % 2, syndrome)
@@ -100,14 +104,18 @@ def test_paired_inputs_and_worker_non_latency_equality(tmp_path, monkeypatch):
     one, two = _rows(serial), _rows(parallel)
     assert len(one) == len(two) == 8
     strip_time = lambda rows: sorted((row['shot_id'], row['decoder_name'],
-        row['logical_error'], row['total_iterations']) for row in rows)
+        row['logical_error'], row['total_iterations'], row['converged'],
+        row['initial_bp_converged'], row['first_transform_converged']) for row in rows)
     assert strip_time(one) == strip_time(two)
     assert len({row['shot_id'] for row in one}) == 2
     assert {row['decoder_name'] for row in one} == {'af_bp', 'relay_bp', 'beam8', 'bposd'}
     assert all(row['latency_ns'] >= 0 and row['total_iterations'] >= 0 for row in one)
+    assert all(type(row['converged']) is bool for row in one)
+    assert all((row['initial_bp_converged'] is None) == (row['decoder_name'] != 'af_bp')
+               for row in one)
     import matplotlib.pyplot as plt
     figures = [*plot_logical_error_rate(serial), *plot_mean_decode_time(serial),
-               *plot_mean_total_iterations(serial)]
-    assert len(figures) == 3
+               *plot_mean_total_iterations(serial), *plot_convergence_rate(serial)]
+    assert len(figures) == 4
     for figure in figures:
         plt.close(figure)

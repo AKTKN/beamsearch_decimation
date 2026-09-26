@@ -1,0 +1,140 @@
+# Complete active decoder settings. Bounded BB72 example; no sweep is launched.
+# Edit noise.rates and sampling.shots_per_point for the intended experiment.
+config_schema_version: af_bp_config/2
+
+experiment:
+  name: all_decoders_full
+  purpose: Explicit four-decoder parameter template; bounded example only
+  codes:
+  - family: bb72
+    distances: [6]
+    rounds: 6
+  memory_basis: Z
+  sector: Z_checks
+  round_rule: distance
+
+circuit:
+  surface_provider: stim
+  bb_provider: qldpc
+  surface_schedule: rotated_memory_z
+  bb_schedule: edge_coloring
+  edge_coloring_strategy: smallest_last
+  boundary: noisy_prepare_extract_readout
+  cache: ../simulation_data
+
+dem:
+  decompose_errors: false
+  approximate_disjoint_errors: false
+  allow_gauge_detectors: false
+  sector_mapping: measurement_provenance
+  merge: none
+  normalization: remove_zero_reject_above_half
+
+noise:
+  profile: circuit_depolarizing
+  rates: [0.001]
+  multipliers:
+    one_qubit: 1.0
+    two_qubit: 1.0
+    idle: 1.0
+    reset: 1.0
+    measurement: 1.0
+
+sampling:
+  shots_per_point: 2
+  batch_size: 2
+  master_seed: 20260920
+  warmup_seed: 20260921
+  warmup_count: 0
+  store_raw_samples: false
+
+execution:
+  workers: 1
+  start_method: spawn
+  max_pending: 2
+  worker_cache_size: 2
+  native_threads: 1
+  blas_threads: 1
+  affinity: null
+
+timing:
+  mode: throughput
+  timers: [process_time_ns, perf_counter_ns]
+  decoder_order: cyclic
+  profiling: none
+
+output:
+  root: ../assets/runs
+  compression: zstd
+  shard_policy: paired_atomic_batch
+  retain_traces: false
+  retain_corrections: false
+
+decoders:
+- profile: af_bp
+  kind: af_bp
+  name: af_bp
+  enabled: true
+  history_window: 8
+  residual_radius: 2
+  distance_decay: 0.5
+  uncertainty_weight: 1.0
+  oscillation_weight: 1.0
+  U_selection: top_k
+  U_top_k: 32
+  U_threshold: 0.5
+  factorization_policy: adaptive_cycle
+  n_fact: 1
+  graph_rounds: 5
+  bp_variant: parallel
+  initial_parallel: true
+  initial_iteration_budget: 30
+  transformed_iteration_budget: 20
+  ms_scaling_factor: 1.0
+  serial_order: random_per_iteration
+  atanh_epsilon: 1.0e-12
+  # qDither fields are available if bp_variant is changed to qdither.
+  qdither_phase1_iterations: 30
+  qdither_chains: 0
+  qdither_iterations_per_chain: 20
+  qdither_alpha: 0.0
+  qdither_beta: 1.0
+  qdither_rho: 0.0
+  qdither_handoff: graph_warm
+  seed: 0
+  seed_policy: syndrome_derived
+
+- profile: relay_bp
+  kind: relay_bp
+  name: relay_bp
+  enabled: true
+  alpha: null
+  alpha_iteration_scaling_factor: 1.0
+  gamma0: 0.1
+  pre_iter: 30
+  num_sets: 50
+  set_max_iter: 1
+  gamma_dist_interval: [-0.24, 0.66]
+  stop_nconv: 1
+  seed: 0
+  # explicit_gammas is unsupported until a reproducible array source exists.
+
+- profile: beam8
+  name: beam8
+  enabled: true
+  max_rounds: 8
+  beam_width: 8
+  num_results: 1
+  initial_iters: 30
+  iters_per_round: 20
+
+- profile: bposd
+  name: bposd
+  enabled: true
+  max_iter: 30
+  bp_method: minimum_sum
+  schedule: parallel
+  ms_scaling_factor: 1.0
+  osd_method: OSD_CS
+  osd_order: 5
+  omp_thread_count: 1

@@ -72,6 +72,8 @@ PYBIND11_MODULE(_af_bp_service, m) {
         .def_readonly("inherited_llr", &TransformRecord::inherited_llr);
     py::class_<DecodeResult>(m, "DecodeResult")
         .def_readonly("valid", &DecodeResult::valid)
+        .def_readonly("initial_bp_converged", &DecodeResult::initial_bp_converged)
+        .def_readonly("first_transform_converged", &DecodeResult::first_transform_converged)
         .def_readonly("correction", &DecodeResult::correction)
         .def_readonly("prediction", &DecodeResult::prediction)
         .def_readonly("last_physical_hard", &DecodeResult::last_physical_hard)

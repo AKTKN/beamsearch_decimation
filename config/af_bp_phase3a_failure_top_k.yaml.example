@@ -1,0 +1,150 @@
+# Comparison template copied from local config/main.yaml physical setup.
+# 10,000 shots per rate; validate before running. No sweep is launched here.
+experiment:
+  name: af_bp_phase3a_failure_top_k
+  purpose: AF-BP phase3a_failure_top_k paired comparison
+  codes:
+  - family: bb72
+    distances:
+    - 6
+    rounds: 6
+circuit:
+  cache: ../simulation_data
+noise:
+  rates:
+  - 0.001
+  - 0.0015
+  - 0.002
+sampling:
+  shots_per_point: 10000
+  batch_size: 100
+  warmup_count: 10
+execution:
+  workers: 8
+output:
+  root: ../assets/runs
+decoders:
+- profile: af_bp
+  kind: af_bp
+  name: u_top_k_8
+  enabled: true
+  history_window: 8
+  residual_radius: 2
+  distance_decay: 0.5
+  uncertainty_weight: 1.0
+  oscillation_weight: 1.0
+  U_selection: top_k
+  U_top_k: 8
+  U_threshold: 0.5
+  factorization_policy: adaptive_cycle
+  n_fact: 1
+  graph_rounds: 5
+  bp_variant: serial
+  initial_parallel: true
+  initial_iteration_budget: 30
+  transformed_iteration_budget: 20
+  ms_scaling_factor: 1.0
+  serial_order: random_per_iteration
+  atanh_epsilon: 1.0e-12
+  qdither_phase1_iterations: 30
+  qdither_chains: 0
+  qdither_iterations_per_chain: 20
+  qdither_alpha: 0.0
+  qdither_beta: 1.0
+  qdither_rho: 0.0
+  qdither_handoff: graph_warm
+  seed: 0
+  seed_policy: syndrome_derived
+- profile: af_bp
+  kind: af_bp
+  name: u_top_k_16
+  enabled: true
+  history_window: 8
+  residual_radius: 2
+  distance_decay: 0.5
+  uncertainty_weight: 1.0
+  oscillation_weight: 1.0
+  U_selection: top_k
+  U_top_k: 16
+  U_threshold: 0.5
+  factorization_policy: adaptive_cycle
+  n_fact: 1
+  graph_rounds: 5
+  bp_variant: serial
+  initial_parallel: true
+  initial_iteration_budget: 30
+  transformed_iteration_budget: 20
+  ms_scaling_factor: 1.0
+  serial_order: random_per_iteration
+  atanh_epsilon: 1.0e-12
+  qdither_phase1_iterations: 30
+  qdither_chains: 0
+  qdither_iterations_per_chain: 20
+  qdither_alpha: 0.0
+  qdither_beta: 1.0
+  qdither_rho: 0.0
+  qdither_handoff: graph_warm
+  seed: 0
+  seed_policy: syndrome_derived
+- profile: af_bp
+  kind: af_bp
+  name: u_top_k_32
+  enabled: true
+  history_window: 8
+  residual_radius: 2
+  distance_decay: 0.5
+  uncertainty_weight: 1.0
+  oscillation_weight: 1.0
+  U_selection: top_k
+  U_top_k: 32
+  U_threshold: 0.5
+  factorization_policy: adaptive_cycle
+  n_fact: 1
+  graph_rounds: 5
+  bp_variant: serial
+  initial_parallel: true
+  initial_iteration_budget: 30
+  transformed_iteration_budget: 20
+  ms_scaling_factor: 1.0
+  serial_order: random_per_iteration
+  atanh_epsilon: 1.0e-12
+  qdither_phase1_iterations: 30
+  qdither_chains: 0
+  qdither_iterations_per_chain: 20
+  qdither_alpha: 0.0
+  qdither_beta: 1.0
+  qdither_rho: 0.0
+  qdither_handoff: graph_warm
+  seed: 0
+  seed_policy: syndrome_derived
+- profile: af_bp
+  kind: af_bp
+  name: u_top_k_64
+  enabled: true
+  history_window: 8
+  residual_radius: 2
+  distance_decay: 0.5
+  uncertainty_weight: 1.0
+  oscillation_weight: 1.0
+  U_selection: top_k
+  U_top_k: 64
+  U_threshold: 0.5
+  factorization_policy: adaptive_cycle
+  n_fact: 1
+  graph_rounds: 5
+  bp_variant: serial
+  initial_parallel: true
+  initial_iteration_budget: 30
+  transformed_iteration_budget: 20
+  ms_scaling_factor: 1.0
+  serial_order: random_per_iteration
+  atanh_epsilon: 1.0e-12
+  qdither_phase1_iterations: 30
+  qdither_chains: 0
+  qdither_iterations_per_chain: 20
+  qdither_alpha: 0.0
+  qdither_beta: 1.0
+  qdither_rho: 0.0
+  qdither_handoff: graph_warm
+  seed: 0
+  seed_policy: syndrome_derived

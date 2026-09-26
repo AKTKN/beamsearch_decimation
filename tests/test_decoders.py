@@ -61,6 +61,7 @@ def test_osd_after_bp_failure_and_empty_model(order):
     assert result.status == 'SUCCESS'
     assert result.native_status == 'OSD_AFTER_BP_NONCONVERGENCE'
     assert result.osd_called is True
+    assert result.converged is False  # OSD success does not imply BP convergence.
     assert result.total_iterations == adapter._native.iter == 1
     assert adapter.decode(np.array([0], dtype=np.uint8)).osd_called is False
     empty = convert_dem(stim.DetectorErrorModel('detector D0\nlogical_observable L11'))

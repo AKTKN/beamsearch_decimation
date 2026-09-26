@@ -2,7 +2,8 @@
 
 The public plotting functions own the complete workflow: they select a saved run,
 read its resolved labels and only the result columns required for one plot, then
-return new Matplotlib ``Figure`` objects. They support only active benchmark_results/2 files. Historical readers live
+return new Matplotlib ``Figure`` objects. They support active benchmark_results/2
+and benchmark_results/3 files. Historical readers live
 under analysis.legacy. They do not load
 telemetry, join runs, bootstrap samples, write files, or create summary reports.
 """
@@ -21,7 +22,9 @@ import numpy as np
 import pyarrow.parquet as pq
 from scipy.stats import t as student_t
 
-from qec_bp_benchmark.storage.minimal import SCHEMA, result_table
+from qec_bp_benchmark.storage.minimal import (
+    SCHEMA, SCHEMA_VERSION, LEGACY_SCHEMA, LEGACY_SCHEMA_VERSION, result_table,
+)
 from qec_bp_benchmark.storage.results import condition_prefix
 
 if TYPE_CHECKING:
@@ -46,9 +49,58 @@ class _Point:
     decoder_name: str
     decoder_profile: str
     logical_errors: int
+    converged: int | None
     shots: int
     decode_times_ns: np.ndarray
     total_iterations: np.ndarray
+
+
+@dataclass(frozen=True)
+class RunCondition:
+    """One saved condition and its result file within an active run."""
+
+    result_path: Path
+    family: str
+    distance: int
+    rounds: int
+    physical_rate: float
+    memory_basis: str | None
+    schema_version: str
+
+
+def _result_version(path: Path) -> str:
+    saved = pq.read_schema(path)
+    if saved.equals(SCHEMA, check_metadata=True):
+        return SCHEMA_VERSION
+    if saved.equals(LEGACY_SCHEMA, check_metadata=True):
+        return LEGACY_SCHEMA_VERSION
+    raise ValueError(f"unexpected result schema: {path}")
+
+
+def list_run_conditions(run_path: str | Path) -> list[RunCondition]:
+    """Discover saved active result files using the resolved run configuration.
+
+    Only files that match a configured condition and the exact current schema are
+    returned. This lets notebook consumers enumerate every saved condition without
+    guessing rates or distances from a filename or configuration sweep.
+    """
+    run = Path(run_path).expanduser().resolve()
+    data = run / "data"
+    if not (run / "config_resolved.json").is_file() or not data.is_dir():
+        raise ValueError(f"not a minimal simulation result directory: {run}")
+    conditions, _, _ = _current_context(run)
+    paths = sorted(data.glob("*_results.parquet"))
+    if not paths:
+        raise ValueError(f"no active result Parquet files found in {data}")
+    saved = []
+    for path in paths:
+        prefix = path.name.removesuffix("_results.parquet")
+        if prefix not in conditions:
+            raise ValueError(f"unknown result condition: {prefix}")
+        saved.append(RunCondition(result_path=path,
+                                  schema_version=_result_version(path),
+                                  **conditions[prefix]))
+    return saved
 
 
 def _values(value, *, name: str) -> tuple | None:
@@ -69,10 +121,13 @@ def _selected_condition(
     codes: tuple | None,
     physical_rates: tuple | None,
     distances: tuple | None,
+    rounds: tuple | None,
 ) -> bool:
     if codes is not None and condition["family"] not in codes:
         return False
     if distances is not None and int(condition["distance"]) not in distances:
+        return False
+    if rounds is not None and int(condition["rounds"]) not in rounds:
         return False
     return physical_rates is None or any(
         math.isclose(float(condition["physical_rate"]), float(rate), rel_tol=0.0, abs_tol=1e-15)
@@ -119,19 +174,20 @@ def _current_points(
     codes: tuple | None,
     physical_rates: tuple | None,
     distances: tuple | None,
+    rounds: tuple | None,
     decoders: tuple | None,
 ) -> list[_Point]:
     if clock != "wall":
         raise ValueError("minimal results save wall latency only; clock must be 'wall'")
-    if not pq.read_schema(result_path).equals(SCHEMA, check_metadata=True):
-        raise ValueError(f"unexpected result schema: {result_path}")
+    version = _result_version(result_path)
     conditions, profiles, _ = _current_context(result_path.parent.parent)
     prefix = result_path.name.removesuffix("_results.parquet")
     if prefix not in conditions:
         raise ValueError(f"unknown result condition: {prefix}")
     condition = conditions[prefix]
     if not _selected_condition(
-        condition, codes=codes, physical_rates=physical_rates, distances=distances
+        condition, codes=codes, physical_rates=physical_rates,
+        distances=distances, rounds=rounds,
     ):
         return []
     selected_profiles = {
@@ -140,7 +196,8 @@ def _current_points(
     }
     if not selected_profiles:
         return []
-    rows = result_table(pq.read_table(result_path).to_pylist()).to_pylist()
+    rows = result_table(pq.read_table(result_path).to_pylist(),
+                        schema_version=version).to_pylist()
     unknown = sorted({row["decoder_name"] for row in rows} - profiles.keys())
     if unknown:
         raise ValueError(f"unknown decoder names in {result_path}: {unknown}")
@@ -156,6 +213,8 @@ def _current_points(
             **condition, decoder_id=profile["decoder_id"], decoder_name=name,
             decoder_profile=profile["profile"],
             logical_errors=sum(bool(row["logical_error"]) for row in selected),
+            converged=(sum(row["converged"] for row in selected)
+                       if version == SCHEMA_VERSION else None),
             shots=len(selected), decode_times_ns=times,
             total_iterations=np.asarray([row["total_iterations"] for row in selected], dtype=np.int64),
         ))
@@ -170,25 +229,21 @@ def _read_points(
     physical_rates: float | Sequence[float] | None,
     distances: int | Sequence[int] | None,
     decoders: str | Sequence[str] | None,
+    rounds: int | Sequence[int] | None = None,
 ) -> list[_Point]:
     if clock != "wall":
         raise ValueError("minimal results save wall latency only; clock must be 'wall'")
-    run = Path(run_path).expanduser().resolve()
-    data = run / "data"
-    if not (run / "config_resolved.json").is_file() or not data.is_dir():
-        raise ValueError(f"not a minimal simulation result directory: {run}")
+    conditions = list_run_conditions(run_path)
     selections = {
         "codes": _values(codes, name="codes"),
         "physical_rates": _values(physical_rates, name="physical_rates"),
         "distances": _values(distances, name="distances"),
+        "rounds": _values(rounds, name="rounds"),
         "decoders": _values(decoders, name="decoders"),
     }
-    paths = sorted(data.glob("*_results.parquet"))
-    if not paths:
-        raise ValueError(f"no active result Parquet files found in {data}")
     points = []
-    for result_path in paths:
-        points.extend(_current_points(result_path, clock=clock, **selections))
+    for condition in conditions:
+        points.extend(_current_points(condition.result_path, clock=clock, **selections))
     if not points:
         raise ValueError("the requested filters select no logical-error rows")
     seen = set()
@@ -247,11 +302,14 @@ def _series(points: list[_Point]) -> list[list[_Point]]:
     return output
 
 
-def _label(series: list[_Point], *, multiple_distances: bool, multiple_bases: bool) -> str:
+def _label(series: list[_Point], *, multiple_distances: bool, multiple_rounds: bool,
+           multiple_bases: bool) -> str:
     first = series[0]
     parts = [first.decoder_name]
     if multiple_distances:
         parts.append(f"d={first.distance}")
+    if multiple_rounds:
+        parts.append(f"R={first.rounds}")
     if multiple_bases and first.memory_basis is not None:
         parts.append(first.memory_basis)
     return ", ".join(parts)
@@ -272,6 +330,7 @@ def plot_decode_time_histogram(
     code: str,
     physical_rate: float,
     distance: int | None = None,
+    rounds: int | None = None,
     decoders: str | Sequence[str] | None = None,
     clock: Clock = "wall",
     bins: int | str | Sequence[float] = 50,
@@ -281,7 +340,8 @@ def plot_decode_time_histogram(
 
     ``code`` and ``physical_rate`` are required. ``distance`` is also required for
     the topological ``surface`` family and whenever the other selectors would leave
-    more than one saved condition. Times include failed decodes and are converted
+    more than one saved condition. Use ``rounds`` to distinguish conditions with
+    the same code, rate, and distance. Times include failed decodes and are converted
     from saved nanoseconds to microseconds. Every decoder owns one subplot with
     vertical lines at the arithmetic mean, 95th percentile, and 99th percentile.
     The caller owns the returned figure and may edit its axes or save it.
@@ -290,7 +350,7 @@ def plot_decode_time_histogram(
         raise ValueError("distance is required for the topological surface code")
     points = _read_points(
         run_path, clock=clock, codes=code, physical_rates=physical_rate,
-        distances=distance, decoders=decoders,
+        distances=distance, rounds=rounds, decoders=decoders,
     )
     conditions = {
         (point.family, point.distance, point.rounds, point.physical_rate, point.memory_basis)
@@ -372,6 +432,7 @@ def plot_logical_error_rate(
         selected = [point for point in points if point.family == family]
         series = _series(selected)
         multiple_distances = len({point.distance for point in selected}) > 1
+        multiple_rounds = len({point.rounds for point in selected}) > 1
         multiple_bases = len({point.memory_basis for point in selected}) > 1
         figure, ax = _new_figure(figsize, dpi)
         for index, values in enumerate(series):
@@ -388,6 +449,7 @@ def plot_logical_error_rate(
                 x, y, marker=marker, linestyle=linestyle, color=color, markersize=3.5,
                 linewidth=1.0,
                 label=_label(values, multiple_distances=multiple_distances,
+                             multiple_rounds=multiple_rounds,
                              multiple_bases=multiple_bases),
             )
             ax.fill_between(x, low, high, color=color, alpha=0.18, linewidth=0)
@@ -403,6 +465,65 @@ def plot_logical_error_rate(
             if all(point.physical_rate > 0 for point in selected):
                 ax.set_xscale("log")
             ax.set_yscale("log")
+        ax.grid(True, which="both", alpha=0.2, linewidth=0.5)
+        ax.legend(fontsize=6.5, frameon=False)
+        figures.append(figure)
+    return figures
+
+
+def plot_convergence_rate(
+    run_path: str | Path,
+    *,
+    codes: str | Sequence[str] | None = None,
+    physical_rates: float | Sequence[float] | None = None,
+    distances: int | Sequence[int] | None = None,
+    decoders: str | Sequence[str] | None = None,
+    confidence: float = 0.95,
+    figsize: tuple[float, float] = REVTEX_COLUMN_SIZE,
+    dpi: int = 300,
+) -> list[Figure]:
+    """Plot syndrome-valid convergence from new result files, one family per figure.
+
+    BP-OSD's value is BP-stage convergence before OSD. The point denominator is
+    every physical shot; Wilson intervals are shown on a linear probability axis.
+    """
+    _validate_confidence(confidence)
+    points = _read_points(run_path, clock="wall", codes=codes,
+                          physical_rates=physical_rates, distances=distances,
+                          decoders=decoders)
+    if any(point.converged is None for point in points):
+        raise ValueError("convergence was not saved by benchmark_results/2")
+    figures = []
+    decoder_ids = sorted({point.decoder_id for point in points})
+    colors = {name: f"C{index % 10}" for index, name in enumerate(decoder_ids)}
+    for family in sorted({point.family for point in points}):
+        selected = [point for point in points if point.family == family]
+        multiple_distances = len({point.distance for point in selected}) > 1
+        multiple_rounds = len({point.rounds for point in selected}) > 1
+        multiple_bases = len({point.memory_basis for point in selected}) > 1
+        figure, ax = _new_figure(figsize, dpi)
+        for index, values in enumerate(_series(selected)):
+            x = np.asarray([point.physical_rate for point in values], dtype=float)
+            y = np.asarray([point.converged / point.shots for point in values])
+            intervals = [_wilson(point.converged, point.shots, confidence)
+                         for point in values]
+            low = np.asarray([interval[0] for interval in intervals])
+            high = np.asarray([interval[1] for interval in intervals])
+            first = values[0]
+            ax.plot(x, y, marker=_MARKERS[index % len(_MARKERS)],
+                    linestyle=_LINESTYLES[(index // len(_MARKERS)) % len(_LINESTYLES)],
+                    color=colors[first.decoder_id], markersize=3.5, linewidth=1.0,
+                    label=_label(values, multiple_distances=multiple_distances,
+                                 multiple_rounds=multiple_rounds,
+                                 multiple_bases=multiple_bases))
+            ax.fill_between(x, low, high, color=colors[first.decoder_id],
+                            alpha=0.18, linewidth=0)
+        ax.set_xlabel("Physical error rate")
+        ax.set_ylabel("Convergence rate")
+        ax.set_ylim(0.0, 1.0)
+        ax.set_title(family)
+        if all(point.physical_rate > 0 for point in selected):
+            ax.set_xscale("log")
         ax.grid(True, which="both", alpha=0.2, linewidth=0.5)
         ax.legend(fontsize=6.5, frameon=False)
         figures.append(figure)
@@ -441,6 +562,7 @@ def plot_mean_decode_time(
         selected = [point for point in points if point.family == family]
         series = _series(selected)
         multiple_distances = len({point.distance for point in selected}) > 1
+        multiple_rounds = len({point.rounds for point in selected}) > 1
         multiple_bases = len({point.memory_basis for point in selected}) > 1
         figure, ax = _new_figure(figsize, dpi)
         for index, values in enumerate(series):
@@ -460,6 +582,7 @@ def plot_mean_decode_time(
                 x, mean, marker=marker, linestyle=linestyle, color=color,
                 markersize=3.5, linewidth=1.0,
                 label=_label(values, multiple_distances=multiple_distances,
+                             multiple_rounds=multiple_rounds,
                              multiple_bases=multiple_bases),
             )
             ax.fill_between(x, low, high, color=color, alpha=0.18, linewidth=0)
@@ -501,6 +624,7 @@ def plot_mean_total_iterations(
         selected = [point for point in points if point.family == family]
         series = _series(selected)
         multiple_distances = len({point.distance for point in selected}) > 1
+        multiple_rounds = len({point.rounds for point in selected}) > 1
         multiple_bases = len({point.memory_basis for point in selected}) > 1
         figure, ax = _new_figure(figsize, dpi)
         for index, values in enumerate(series):
@@ -517,6 +641,7 @@ def plot_mean_total_iterations(
             ax.plot(x, mean, marker=marker, linestyle=linestyle, color=color,
                     markersize=3.5, linewidth=1.0,
                     label=_label(values, multiple_distances=multiple_distances,
+                                 multiple_rounds=multiple_rounds,
                                  multiple_bases=multiple_bases))
             ax.fill_between(x, low, high, color=color, alpha=0.18, linewidth=0)
         ax.set_xlabel("Physical error rate")
@@ -534,7 +659,7 @@ def plot_mean_total_iterations(
 
 
 __all__ = [
-    "Clock", "REVTEX_COLUMN_SIZE", "REVTEX_DOUBLE_COLUMN_WIDTH",
-    "plot_logical_error_rate", "plot_mean_decode_time", "plot_mean_total_iterations",
+    "Clock", "RunCondition", "list_run_conditions", "REVTEX_COLUMN_SIZE", "REVTEX_DOUBLE_COLUMN_WIDTH",
+    "plot_logical_error_rate", "plot_convergence_rate", "plot_mean_decode_time", "plot_mean_total_iterations",
     "plot_decode_time_histogram",
 ]

@@ -33,12 +33,18 @@ def test_standalone_service_identity_truth_boundary_and_reset() -> None:
     replay = decoder.decode([1, 1])
     assert first.valid and first.status == "SUCCESS"
     assert first.total_iterations == 2 and first.factorizations == 1
+    assert first.initial_bp_converged is False
+    assert first.first_transform_converged is True
     assert first.graph_instances == 2 and len(first.calls) == 2
     assert first.correction is not None and first.prediction is not None
     np.testing.assert_array_equal((h @ first.correction) % 2, [1, 1])
     np.testing.assert_array_equal(first.prediction, (a @ first.correction) % 2)
     assert middle.valid and middle.total_iterations == 0
+    assert middle.initial_bp_converged is True
+    assert middle.first_transform_converged is None
     assert replay.valid and replay.total_iterations == first.total_iterations
+    assert replay.initial_bp_converged is False
+    assert replay.first_transform_converged is True
     np.testing.assert_array_equal(replay.correction, first.correction)
     assert replay.calls == () and replay.transforms == ()  # compact normal call
     with pytest.raises(TypeError):

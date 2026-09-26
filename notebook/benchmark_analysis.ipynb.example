@@ -2,20 +2,18 @@
  "cells": [
   {
    "cell_type": "markdown",
-   "id": "efb98280",
+   "id": "19eec4bc",
    "metadata": {},
    "source": [
-    "# Current minimal-result decoder analysis\n",
+    "# AF-BP benchmark analysis\n",
     "\n",
-    "This notebook reads either current `search_bp_results/2` or `lpm_dp_results/1` data directly: one resolved config and one minimal Parquet file per condition. It does not load circuits, samples, corrections, search paths, or truth. Every logical-error denominator is a physical shot; BB's 12 observables are one block trial.\n",
-    "\n",
-    "Figures compare the three configured decoders within this one run and execution context. Wall latency includes failed decoder calls. Wilson bands describe binomial logical-error uncertainty; Student-t bands describe uncertainty in the arithmetic mean wall latency. They do not establish decoder superiority or production tail behavior."
+    "This notebook reads one `benchmark_results/3` run, or a previous `/2` run without convergence data. Each saved Parquet file is one physical code/noise condition. Rows contain `shot_id`, `decoder_name`, `logical_error`, `latency_ns`, and `total_iterations`; new rows also contain convergence and AF-BP stage flags. Figures use saved paired shots. The notebook performs no decoding or resampling."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "d8805760",
+   "id": "d733a5ca",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -23,6 +21,8 @@
     "import json\n",
     "import os\n",
     "import sys\n",
+    "ROOT = next(p for p in (Path.cwd(), *Path.cwd().parents) if (p / \"pyproject.toml\").is_file())\n",
+    "sys.path.insert(0, str(ROOT))\n",
     "get_ipython().run_line_magic(\"matplotlib\", \"inline\")\n",
     "from matplotlib_inline.backend_inline import set_matplotlib_formats\n",
     "set_matplotlib_formats(\"png\")\n",
@@ -30,96 +30,107 @@
     "import pandas as pd\n",
     "from IPython.display import display\n",
     "import analysis\n",
-    "from analysis import (\n",
-    "    decoder_event_rate_table,\n",
-    "    plot_decode_time_histogram,\n",
-    "    plot_logical_error_rate,\n",
-    "    plot_mean_decode_time,\n",
-    ")\n",
-    "from analysis import summarize_run\n",
+    "from analysis import (list_run_conditions, summarize_run, plot_logical_error_rate, plot_convergence_rate,\n",
+    "                      plot_mean_decode_time, plot_mean_total_iterations,\n",
+    "                      plot_decode_time_histogram)\n",
+    "from qec_bp_benchmark.storage.minimal import SCHEMA_VERSION\n",
     "\n",
-    "ROOT = next(p for p in (Path.cwd(), *Path.cwd().parents) if (p / \"pyproject.toml\").is_file())\n",
-    "RUN_PATH = Path(os.environ.get(\"QEC_ANALYSIS_RUN\", '/home/quantum_teresheys/workspace/beamsearch_decimation/assets/runs/2026_09_23_16_16_7411703b')).expanduser().resolve()\n",
+    "RUN_PATH = Path(os.environ.get(\"QEC_ANALYSIS_RUN\",\n",
+    "    ROOT / \"assets/runs/2026_09_25_22_46_d822b5bc\")).expanduser().resolve()\n",
     "if Path(analysis.__file__).resolve().parent != (ROOT / \"analysis\").resolve():\n",
-    "    raise RuntimeError(f\"Analysis loaded from another checkout: {analysis.__file__}; Python: {sys.executable}\")\n",
-    "if not (RUN_PATH / \"config_resolved.json\").is_file():\n",
-    "    raise ValueError(f\"Not a current simulation run: {RUN_PATH}\")\n",
+    "    raise RuntimeError(f\"Analysis loaded from another checkout: {analysis.__file__}\")\n",
     "resolved_config = json.loads((RUN_PATH / \"config_resolved.json\").read_text())\n",
-    "RESULT_SCHEMA = resolved_config[\"output\"][\"data_schema_version\"]\n",
-    "if RESULT_SCHEMA not in {\"search_bp_results/2\", \"lpm_dp_results/1\"}:\n",
-    "    raise ValueError(f\"Unsupported current result schema: {RESULT_SCHEMA}\")\n",
-    "\n",
+    "conditions = list_run_conditions(RUN_PATH)\n",
     "CODES = None\n",
     "PHYSICAL_RATES = None\n",
     "DISTANCES = None\n",
     "DECODERS = None\n",
     "CONFIDENCE = 0.95\n",
-    "HISTOGRAM_CODE = \"bb72\"\n",
-    "HISTOGRAM_PHYSICAL_RATE = 0.002\n",
-    "HISTOGRAM_DISTANCE = 6\n",
     "HISTOGRAM_BINS = 60\n",
-    "FIGURE_OUTPUT = ROOT / \"assets\" / \"analysis\" / RUN_PATH.name\n",
+    "FIGURE_OUTPUT = ROOT / \"assets/analysis\" / RUN_PATH.name\n",
     "FIGURE_OUTPUT.mkdir(parents=True, exist_ok=True)\n",
+    "saved_figures = []\n",
+    "\n",
+    "def matches(value, selector):\n",
+    "    if selector is None:\n",
+    "        return True\n",
+    "    selected = selector if isinstance(selector, (list, tuple, set)) else (selector,)\n",
+    "    return value in selected\n",
+    "\n",
+    "selected_conditions = [c for c in conditions if matches(c.family, CODES)\n",
+    "                       and matches(c.distance, DISTANCES)\n",
+    "                       and matches(c.physical_rate, PHYSICAL_RATES)]\n",
+    "if not selected_conditions:\n",
+    "    raise ValueError(\"The filters match no saved condition\")\n",
     "print(f\"Run: {RUN_PATH}\")\n",
-    "print(f\"Schema: {RESULT_SCHEMA}\")\n",
+    "print(f\"Saved schemas: {sorted({c.schema_version for c in selected_conditions})}\")\n",
+    "print(f\"Saved condition files: {len(selected_conditions)}\")\n",
     "print(f\"Figures: {FIGURE_OUTPUT}\")"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "e747313e",
+   "id": "8e7fee3b",
    "metadata": {},
    "source": [
-    "## Condition-level statistics\n",
+    "## Saved condition statistics\n",
     "\n",
-    "This is the complete descriptive information supported by the saved schema: block logical errors, all-shot wall latency, and OSD calls over known flags. Failed shots remain in logical-error and latency denominators."
+    "Each logical error denominator is a physical shot; all BB observables form one block trial. Wilson intervals summarize logical errors. Latency and iteration statistics include failed decodes."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "403cbd71",
+   "id": "4aafe6c6",
    "metadata": {},
    "outputs": [],
    "source": [
     "summaries = summarize_run(RUN_PATH, confidence=CONFIDENCE)\n",
+    "selected_ids = {c.result_path.name.removesuffix(\"_results.parquet\") for c in selected_conditions}\n",
     "summary_table = pd.DataFrame([{\n",
+    "    \"condition\": row[\"condition_id\"],\n",
     "    \"code\": row[\"family\"],\n",
     "    \"distance\": row[\"distance\"],\n",
     "    \"rounds\": row[\"rounds\"],\n",
     "    \"physical_rate\": row[\"physical_rate\"],\n",
     "    \"decoder\": row[\"decoder_name\"],\n",
     "    \"shots\": row[\"shots\"],\n",
-    "    \"logical_errors\": row[\"block_failures\"],\n",
+    "    \"logical_errors\": row[\"logical_errors\"],\n",
     "    \"logical_error_rate\": row[\"logical_error_rate\"][\"rate\"],\n",
+    "    \"convergence_rate\": (row[\"convergence_rate\"] or {}).get(\"rate\"),\n",
+    "    \"logical_error_given_converged\": (row[\"logical_error_given_converged\"] or {}).get(\"rate\"),\n",
+    "    \"initial_bp_convergence_rate\": (row[\"initial_bp_convergence_rate\"] or {}).get(\"rate\"),\n",
+    "    \"first_transform_rescue_rate\": (row[\"first_transform_rescue_rate\"] or {}).get(\"rate\"),\n",
     "    \"logical_ci_low\": row[\"logical_error_rate\"][\"low\"],\n",
     "    \"logical_ci_high\": row[\"logical_error_rate\"][\"high\"],\n",
-    "    \"mean_wall_ms\": row[\"decode_time\"][\"mean_ns\"] / 1e6,\n",
-    "    \"median_wall_ms\": row[\"decode_time\"][\"median_ns\"] / 1e6,\n",
-    "    \"p95_wall_ms\": row[\"decode_time\"][\"p95_ns\"] / 1e6,\n",
-    "    \"p99_wall_ms\": row[\"decode_time\"][\"p99_ns\"] / 1e6,\n",
-    "    \"osd_calls\": row[\"osd_call_fraction\"][\"count\"],\n",
-    "    \"osd_known\": row[\"osd_call_fraction\"][\"denominator\"],\n",
-    "    \"osd_unknown\": row[\"osd_unknown\"],\n",
-    "    \"osd_call_rate\": row[\"osd_call_fraction\"][\"rate\"],\n",
-    "} for row in summaries]).sort_values([\"physical_rate\", \"decoder\"]).reset_index(drop=True)\n",
+    "    \"mean_wall_ms\": row[\"latency_ns\"][\"mean_ns\"] / 1e6,\n",
+    "    \"median_wall_ms\": row[\"latency_ns\"][\"median_ns\"] / 1e6,\n",
+    "    \"p95_wall_ms\": row[\"latency_ns\"][\"p95_ns\"] / 1e6,\n",
+    "    \"p99_wall_ms\": row[\"latency_ns\"][\"p99_ns\"] / 1e6,\n",
+    "    \"mean_total_iterations\": row[\"total_iterations\"][\"mean\"],\n",
+    "    \"median_total_iterations\": row[\"total_iterations\"][\"median\"],\n",
+    "} for row in summaries if row[\"condition_id\"] in selected_ids\n",
+    "    and matches(row[\"decoder_name\"], DECODERS)\n",
+    "]).sort_values([\"code\", \"distance\", \"physical_rate\", \"decoder\"]).reset_index(drop=True)\n",
+    "if summary_table.empty:\n",
+    "    raise ValueError(\"The decoder filter matches no saved results\")\n",
     "display(summary_table)"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "76034e3d",
+   "id": "6eee29d4",
    "metadata": {},
    "source": [
     "## Logical error rate\n",
     "\n",
-    "Shading is the two-sided 95% Wilson interval. Each point uses the saved physical-shot denominator shown in `summary_table`."
+    "Shading is a two-sided Wilson interval. One saved physical rate yields one point per decoder and cannot show a rate trend."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "a42f36a7",
+   "id": "64caf519",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -130,24 +141,61 @@
     "for figure in logical_error_figures:\n",
     "    family = figure.axes[0].get_title()\n",
     "    for suffix in (\"png\", \"pdf\"):\n",
-    "        figure.savefig(FIGURE_OUTPUT / f\"logical_error_rate_{family}.{suffix}\", dpi=300)\n",
-    "    display(figure)"
+    "        path = FIGURE_OUTPUT / f\"logical_error_rate_{family}.{suffix}\"\n",
+    "        figure.savefig(path, dpi=300)\n",
+    "        saved_figures.append(path)\n",
+    "    display(figure)\n",
+    "    plt.close(figure)"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "700f585f",
+   "id": "a825ad29",
    "metadata": {},
    "source": [
-    "## Mean complete-service wall latency\n",
+    "## Syndrome-valid convergence\n",
     "\n",
-    "Each mean includes every saved shot, including failures. Shading is a 95% Student-t interval for the arithmetic mean. Throughput-mode worker contention is part of these measurements."
+    "New `benchmark_results/3` files record convergence separately from logical error. For BP-OSD, this is BP-stage convergence before OSD. The table above also gives `P(logical_error | converged)`. AF-BP first-transform rescue is conditional on initial BP failure; skipped transforms count as no rescue."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "0c41cbb2",
+   "id": "01ecddde",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if all(c.schema_version == SCHEMA_VERSION for c in selected_conditions):\n",
+    "    convergence_figures = plot_convergence_rate(\n",
+    "        RUN_PATH, codes=CODES, physical_rates=PHYSICAL_RATES,\n",
+    "        distances=DISTANCES, decoders=DECODERS, confidence=CONFIDENCE,\n",
+    "    )\n",
+    "    for figure in convergence_figures:\n",
+    "        family = figure.axes[0].get_title()\n",
+    "        for suffix in (\"png\", \"pdf\"):\n",
+    "            path = FIGURE_OUTPUT / f\"convergence_rate_{family}.{suffix}\"\n",
+    "            figure.savefig(path, dpi=300)\n",
+    "            saved_figures.append(path)\n",
+    "        display(figure)\n",
+    "        plt.close(figure)\n",
+    "else:\n",
+    "    print(\"Convergence was not saved in benchmark_results/2; no value is inferred.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0867d280",
+   "metadata": {},
+   "source": [
+    "## Mean complete-service wall latency\n",
+    "\n",
+    "Every saved shot contributes, including failures. Shading is a two-sided Student-t interval for the arithmetic mean. Throughput-mode wall time includes worker contention."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fd1634da",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -158,100 +206,101 @@
     "for figure in decode_time_figures:\n",
     "    family = figure.axes[0].get_title()\n",
     "    for suffix in (\"png\", \"pdf\"):\n",
-    "        figure.savefig(FIGURE_OUTPUT / f\"mean_wall_latency_{family}.{suffix}\", dpi=300)\n",
-    "    display(figure)"
+    "        path = FIGURE_OUTPUT / f\"mean_wall_latency_{family}.{suffix}\"\n",
+    "        figure.savefig(path, dpi=300)\n",
+    "        saved_figures.append(path)\n",
+    "    display(figure)\n",
+    "    plt.close(figure)"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "01f2fac0",
+   "id": "764b6621",
    "metadata": {},
    "source": [
-    "## Wall-latency distribution at p = 0.002\n",
+    "## Mean total BP iterations\n",
     "\n",
-    "Each decoder has its own panel. Vertical lines show the arithmetic mean, p95, and p99. This plot is descriptive; the run does not save CPU time or isolated-latency measurements."
+    "These are exact saved totals across BP calls; OSD adds zero BP iterations. Shading is a two-sided Student-t interval for the mean."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "5d3e8f39",
+   "id": "66008d21",
    "metadata": {},
    "outputs": [],
    "source": [
-    "histogram_figure = plot_decode_time_histogram(\n",
-    "    RUN_PATH, code=HISTOGRAM_CODE, physical_rate=HISTOGRAM_PHYSICAL_RATE,\n",
-    "    distance=HISTOGRAM_DISTANCE, decoders=DECODERS, clock=\"wall\",\n",
-    "    bins=HISTOGRAM_BINS,\n",
+    "iteration_figures = plot_mean_total_iterations(\n",
+    "    RUN_PATH, codes=CODES, physical_rates=PHYSICAL_RATES, distances=DISTANCES,\n",
+    "    decoders=DECODERS, confidence=CONFIDENCE,\n",
     ")\n",
-    "for suffix in (\"png\", \"pdf\"):\n",
-    "    histogram_figure.savefig(\n",
-    "        FIGURE_OUTPUT / f\"wall_latency_histogram_{HISTOGRAM_CODE}_d{HISTOGRAM_DISTANCE}_p002.{suffix}\",\n",
-    "        dpi=300,\n",
+    "for figure in iteration_figures:\n",
+    "    family = figure.axes[0].get_title()\n",
+    "    for suffix in (\"png\", \"pdf\"):\n",
+    "        path = FIGURE_OUTPUT / f\"mean_total_iterations_{family}.{suffix}\"\n",
+    "        figure.savefig(path, dpi=300)\n",
+    "        saved_figures.append(path)\n",
+    "    display(figure)\n",
+    "    plt.close(figure)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c1eab734",
+   "metadata": {},
+   "source": [
+    "## Wall-latency distribution for every saved condition\n",
+    "\n",
+    "Each decoder has its own panel. Vertical lines mark mean, p95 and p99. The tails are descriptive for the saved shot count."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "eb1a3fda",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "histogram_figures = {}\n",
+    "for condition in selected_conditions:\n",
+    "    figure = plot_decode_time_histogram(\n",
+    "        RUN_PATH, code=condition.family, physical_rate=condition.physical_rate,\n",
+    "        distance=condition.distance, rounds=condition.rounds,\n",
+    "        decoders=DECODERS, clock=\"wall\",\n",
+    "        bins=HISTOGRAM_BINS,\n",
     "    )\n",
-    "display(histogram_figure)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "955d27eb",
-   "metadata": {},
-   "source": [
-    "## OSD call fraction\n",
-    "\n",
-    "Both current schemas save `osd_called`; LPM-DP requires an exact non-null flag. The known and unknown denominators are shown explicitly in `summary_table`."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "283d7690",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "decoder_rates = decoder_event_rate_table(\n",
-    "    RUN_PATH, codes=CODES, physical_rates=PHYSICAL_RATES,\n",
-    "    distances=DISTANCES, decoders=DECODERS,\n",
-    ")\n",
-    "display(decoder_rates)\n",
+    "    condition_id = condition.result_path.name.removesuffix(\"_results.parquet\")\n",
+    "    histogram_figures[condition_id] = figure\n",
+    "    for suffix in (\"png\", \"pdf\"):\n",
+    "        path = FIGURE_OUTPUT / f\"wall_latency_histogram_{condition_id}.{suffix}\"\n",
+    "        figure.savefig(path, dpi=300)\n",
+    "        saved_figures.append(path)\n",
+    "    display(figure)\n",
+    "    plt.close(figure)\n",
     "print(\"Saved figures:\")\n",
-    "for path in sorted(FIGURE_OUTPUT.iterdir()):\n",
+    "for path in saved_figures:\n",
     "    print(path)"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "search-correction-rate",
+   "id": "14fcd49a",
    "metadata": {},
    "source": [
-    "## Schema-specific direct-search event\n",
+    "## Decoder settings and limits\n",
     "\n",
-    "Only `search_bp_results/2` stores `correction_by_search`. For SEARCH-BP-2.1, the rate is the fraction of shots whose local combinatorial search directly constructed a correction satisfying the original H/s. `lpm_dp_results/1` intentionally has no corresponding field, so no value is inferred."
+    "The saved result schema cannot recover correction vectors, per-observable outcomes, CPU time, decoder phases, or legacy search events. A bounded run cannot establish production accuracy, tail latency, or decoder superiority."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "search-correction-table",
+   "id": "d997d447",
    "metadata": {},
    "outputs": [],
    "source": [
-    "search_columns = [column for column in decoder_rates.columns\n",
-    "                  if column[1] == \"correction_by_search_rate\"]\n",
-    "if search_columns:\n",
-    "    display(decoder_rates.loc[:, search_columns])\n",
-    "else:\n",
-    "    print(f\"correction_by_search is not stored by {RESULT_SCHEMA}.\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "9e863e4a",
-   "metadata": {},
-   "source": [
-    "## Interpretation limits\n",
-    "\n",
-    "This notebook analyzes one BB72 d6 throughput run with three physical rates. It makes no production, asymptotic, causal, or decoder-advantage claim. The minimal schema cannot recover failure components, logical-observable-specific outcomes, BP iteration counts, search paths, correction weights, CPU time, or internal phase timing."
+    "decoder_parameters = pd.json_normalize(resolved_config[\"decoders\"], sep=\".\")\n",
+    "display(decoder_parameters)"
    ]
   }
  ],

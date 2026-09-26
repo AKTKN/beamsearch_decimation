@@ -65,6 +65,9 @@ class DecodeResult:
     native_status: str
     cost: float | None
     counters: dict = field(default_factory=dict)
+    converged: bool = False
+    initial_bp_converged: bool | None = None
+    first_transform_converged: bool | None = None
     diagnostics: dict | None = None
     phases: dict | None = None
     hybrid_summary: dict | None = None
@@ -156,26 +159,33 @@ class DecoderAdapter:
         s = s.astype(np.uint8, copy=True)
         counters = {}
         osd_called = False
+        initial_bp_converged = first_transform_converged = None
         if self._native is None:
             candidate = np.zeros(0, dtype=np.uint8)
             declared = bool(s.any())
+            native_converged = not declared
             native_status = "EMPTY_MODEL_CONTRADICTION" if declared else "EMPTY_MODEL_VALID"
             counters["total_iterations"] = 0
         elif isinstance(self.config, RelayBP):
             detailed = self._native.decode_detailed(s.copy())
             candidate = np.asarray(detailed.decoding)
             declared = not bool(detailed.success)
+            native_converged = bool(detailed.success)
             native_status = "CONVERGED" if detailed.success else "RELAY_EXHAUSTED"
             counters["total_iterations"] = int(detailed.iterations)
         elif isinstance(self.config, AFBP):
             detailed = self._native.decode(s.copy())
             candidate = detailed.correction
             declared = not detailed.valid
+            native_converged = bool(detailed.valid)
+            initial_bp_converged = detailed.initial_bp_converged
+            first_transform_converged = detailed.first_transform_converged
             native_status = detailed.status
             counters["total_iterations"] = detailed.total_iterations
         else:
             candidate = np.asarray(self._native.decode(s.copy()))
             converged = bool(self._native.converge)
+            native_converged = converged
             if isinstance(self.config, Bposd):
                 declared = False  # Upstream OSD may succeed after BP nonconvergence.
                 osd_called = bool(s.any()) and not converged
@@ -196,4 +206,7 @@ class DecoderAdapter:
             prediction = np.asarray((self.problem.A @ correction) % 2, dtype=np.uint8)
             cost = sum(w for i, w in enumerate(self._weights) if correction[i])
         return DecodeResult(correction, prediction, valid, status, native_status, cost,
-                            counters, osd_called=osd_called)
+                            counters, converged=bool(native_converged and valid and not declared),
+                            initial_bp_converged=initial_bp_converged,
+                            first_transform_converged=first_transform_converged,
+                            osd_called=osd_called)

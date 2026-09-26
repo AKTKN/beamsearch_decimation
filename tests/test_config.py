@@ -26,6 +26,19 @@ def test_every_top_level_config_is_active_or_analysis():
         'af_bp_smoke.yaml.example', 'af_bp_variants.yaml.example',
         'af_bp_factorization.yaml.example', 'af_bp_n_fact.yaml.example',
         'bb144_tiny.yaml.example',
+        'all_decoders_full.yaml.example',
+        'af_bp_phase1_schedule_budget.yaml.example',
+        'af_bp_phase2_factorization_policy.yaml.example',
+        'af_bp_phase3a_failure_top_k.yaml.example',
+        'af_bp_phase3b_residual_radius.yaml.example',
+        'af_bp_phase3c_distance_decay.yaml.example',
+        'af_bp_phase4_failure_weights.yaml.example',
+        'af_bp_phase5_feedback_frequency.yaml.example',
+        'af_bp_phase6a_qdither_control.yaml.example',
+        'af_bp_phase6b_qdither_interval.yaml.example',
+        'af_bp_phase6c_qdither_rho.yaml.example',
+        'af_bp_phase6d_qdither_chains.yaml.example',
+        'af_bp_phase6e_qdither_chain_iterations.yaml.example',
         'analysis.yaml.example',
     }
     for path in paths:
@@ -33,6 +46,82 @@ def test_every_top_level_config_is_active_or_analysis():
             continue
         config = load_config(path)
         assert all(decoder.profile in ('beam8', 'bposd', 'relay_bp', 'af_bp') for decoder in config.decoders)
+
+
+def test_full_decoder_template_lists_every_supported_field():
+    import yaml
+    from qec_bp_benchmark.config import AFBP, RelayBP, Beam, Bposd
+
+    path = ROOT / 'config/all_decoders_full.yaml.example'
+    raw = yaml.safe_load(path.read_text())
+    expected_models = {'af_bp': AFBP, 'relay_bp': RelayBP,
+                       'beam8': Beam, 'bposd': Bposd}
+    assert {entry['profile'] for entry in raw['decoders']} == set(expected_models)
+    for entry in raw['decoders']:
+        assert set(entry) == set(expected_models[entry['profile']].model_fields)
+    config = load_config(path)
+    assert config.sampling.shots_per_point == 2
+    assert [(d.profile, d.name) for d in config.decoders] == [
+        ('af_bp', 'af_bp'), ('relay_bp', 'relay_bp'),
+        ('beam8', 'beam8'), ('bposd', 'bposd')]
+    af, relay, beam, bposd = config.decoders
+    assert (af.initial_iteration_budget, af.transformed_iteration_budget,
+            af.graph_rounds, af.n_fact) == (30, 20, 5, 1)
+    assert (relay.pre_iter, relay.num_sets, relay.set_max_iter) == (30, 50, 1)
+    assert (beam.max_rounds, beam.initial_iters, beam.iters_per_round) == (8, 30, 20)
+    assert (bposd.max_iter, bposd.osd_order) == (30, 5)
+
+
+def test_phase_templates_preserve_main_physical_setup():
+    import yaml
+    paths = sorted((ROOT / 'config').glob('af_bp_phase*.yaml.example'))
+    assert len(paths) == 12
+    phase1 = yaml.safe_load(paths[0].read_text())
+    main_path = ROOT / 'config/main.yaml'
+    reference = yaml.safe_load(main_path.read_text()) if main_path.is_file() else phase1
+    def physical(config):
+        return {key: value for key, value in config.items() if key != 'decoders'} | {
+            'experiment': {key: value for key, value in config['experiment'].items()
+                           if key not in ('name', 'purpose')}}
+    for path in paths:
+        raw = yaml.safe_load(path.read_text())
+        assert physical(raw) == physical(reference), path.name
+        assert load_config(path).sampling.shots_per_point == 10000
+        assert len({d['name'] for d in raw['decoders']}) == len(raw['decoders'])
+
+
+def test_phase1_plain_bp_controls_have_no_graph_rewrite():
+    config = load_config(ROOT / 'config/af_bp_phase1_schedule_budget.yaml.example')
+    by_name = {decoder.name: decoder for decoder in config.decoders}
+    for schedule in ('parallel', 'serial'):
+        for budget in (30, 130):
+            decoder = by_name[f'bp_{schedule}_{budget}']
+            assert decoder.profile == 'af_bp'
+            assert decoder.initial_iteration_budget == budget
+            assert decoder.initial_parallel == (schedule == 'parallel')
+            assert decoder.graph_rounds == decoder.n_fact == 0
+    assert (by_name['bposd'].max_iter, by_name['bposd'].osd_order) == (30, 5)
+
+
+@pytest.mark.parametrize(('suffix', 'varying'), [
+    ('phase2_factorization_policy', {'factorization_policy'}),
+    ('phase3a_failure_top_k', {'U_top_k'}),
+    ('phase3b_residual_radius', {'residual_radius'}),
+    ('phase3c_distance_decay', {'distance_decay'}),
+    ('phase4_failure_weights', {'uncertainty_weight', 'oscillation_weight'}),
+    ('phase5_feedback_frequency', {'n_fact', 'graph_rounds'}),
+    ('phase6b_qdither_interval', {'qdither_alpha', 'qdither_beta'}),
+    ('phase6c_qdither_rho', {'qdither_rho'}),
+    ('phase6d_qdither_chains', {'qdither_chains'}),
+    ('phase6e_qdither_chain_iterations', {'qdither_iterations_per_chain'}),
+])
+def test_phase_templates_change_only_the_named_parameters(suffix, varying):
+    config = load_config(ROOT / f'config/af_bp_{suffix}.yaml.example')
+    settings = [decoder.model_dump(exclude={'name'}) for decoder in config.decoders]
+    reference = settings[0]
+    differences = {key for candidate in settings[1:] for key in reference
+                   if candidate[key] != reference[key]}
+    assert differences == varying
 
 
 @pytest.mark.parametrize('profile', [

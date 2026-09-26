@@ -3,9 +3,18 @@
 The active baseline reader is `analysis.simple_results.summarize_run`. Legacy
 search and hybrid analysis remains documented below.
 
+For active `benchmark_results/3` data (or prior `/2` without convergence), use
+`analysis.list_run_conditions(run)` to discover each saved Parquet condition and
+the four active plotting functions: `plot_logical_error_rate`,
+`plot_mean_decode_time`, `plot_mean_total_iterations`, `plot_convergence_rate`, and
+`plot_decode_time_histogram`. The current
+`notebook/benchmark_analysis.ipynb` loads the selected run, summarizes all saved
+condition/decoder rows, and exports PNG/PDF figures. Its default is
+`assets/runs/2026_09_25_22_46_d822b5bc`; see `notebook/README.md`.
+
 ---
 
-# Current minimal results
+# Historical minimal results
 
 Use `analysis.simple_search_bp.summarize_run(run)` for new runs: logical error,
 complete wall latency and OSD-call fraction, grouped within one run/condition/

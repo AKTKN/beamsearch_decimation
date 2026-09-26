@@ -1,3 +1,54 @@
+# Convergence output and paired AF-BP comparison configs (2026-09-25)
+
+New runs write eight-field `benchmark_results/3`: the five previous fields,
+syndrome-valid `converged`, and nullable AF-BP initial/first-transform BP
+convergence flags. BP-OSD's flag is BP-stage convergence before OSD. The
+active analysis reads both `/3` and previous `/2` without backfilling old
+convergence, and reports conditional logical error and first-transform rescue
+with explicit denominators. Native instrumentation adds only two shot-local
+optional bools and does not change BP/factorization decisions, sampling,
+worker scheduling, truth comparison, or the decoder timing boundary.
+
+Twelve `config/af_bp_phase*.yaml.example` files cover the attached Phase 1–6
+comparisons. They retain the local `config/main.yaml` physical setup: BB72
+d6/R6, three physical rates, 10,000 shots per rate, batches of 100, and 8
+workers. These production-sized comparison configs were validated but **not
+run**. A separate two-shot AF-BP smoke wrote and read `/3` at
+`assets/runs/2026_09_25_23_40_f4cf7d0a`; the old `/2` notebook and the new
+smoke notebook both executed. The focused Python tests passed 58/58, native
+Debug/ASan/UBSan each passed 7 graph plus 6 decoder groups, and pinned
+dependency checks passed. The full Python suite passed **119/119** in
+`search_decimation`; config-isolation tests verify that each paired group
+varies only its documented decoder settings.
+
+---
+
+# Full four-decoder config template (2026-09-25)
+
+`config/all_decoders_full.yaml.example` now lists every accepted field for
+AF-BP, Relay-BP, Beam8, and ordinary BP-OSD. It keeps the user-selected
+iteration budgets and `osd_order: 5`. The physical BB72 p=0.001 example is
+bounded to two shots and was not run. The config validator passed; the new
+field-completeness test and full `search_decimation` Python suite passed
+**105/105**. No decoder implementation or simulator behavior changed.
+
+---
+
+# Active benchmark analysis refresh (2026-09-25)
+
+The active analysis module now discovers and validates every saved
+`benchmark_results/2` condition. The tracked notebook template and editable
+local notebook default to `assets/runs/2026_09_25_22_46_d822b5bc`, with an
+environment override for other active runs. On the supplied BB72 d6/R6,
+p=0.001 run, notebook execution loaded 400 rows (100 paired shots for each of
+four decoders) and wrote eight PNG/PDF files: logical-error, mean wall-latency,
+mean total-iteration, and condition latency-histogram figures. The full Python
+suite passed **104/104**. Source run data were not changed. The single rate
+does not establish a rate trend; this bounded run does not support production
+or decoder-superiority claims.
+
+---
+
 # AF-BP Stage 7 final validation (2026-09-25)
 
 The active package remains `af_bp`, `relay_bp`, `beam8`, and ordinary `bposd`.

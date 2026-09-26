@@ -64,6 +64,8 @@ class AFBPConfig:
 @dataclass(frozen=True)
 class AFBPResult:
     valid: bool
+    initial_bp_converged: bool
+    first_transform_converged: bool | None
     correction: NDArray[np.uint8] | None
     prediction: NDArray[np.uint8] | None
     total_iterations: int
@@ -133,7 +135,8 @@ class AFBPDecoder:
         result = self._native.decode(bits.astype(np.int32).tolist(), diagnostics)
         correction = np.asarray(result.correction, dtype=np.uint8) if result.valid else None
         prediction = np.asarray(result.prediction, dtype=np.uint8) if result.valid else None
-        return AFBPResult(bool(result.valid), correction, prediction,
+        return AFBPResult(bool(result.valid), bool(result.initial_bp_converged),
+                          result.first_transform_converged, correction, prediction,
                           int(result.total_iterations), int(result.graph_instances),
                           int(result.factorizations), str(result.status),
                           np.asarray(result.last_physical_hard, dtype=np.uint8),

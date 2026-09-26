@@ -1,7 +1,9 @@
 # Active storage
 
-New active runs use five-field `benchmark_results/2` with exact
-`total_iterations`. Historical minimal and wide contracts below remain under
+New active runs use eight-field `benchmark_results/3` with exact
+`total_iterations`, validated convergence, and AF-BP initial/first-transform
+flags. Prior `benchmark_results/2` runs remain readable without backfilled
+convergence. Historical minimal and wide contracts below remain under
 `storage/legacy/` and are not rewritten.
 
 ---

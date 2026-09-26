@@ -11,8 +11,11 @@ Use the `search_decimation` conda environment. Physical production rates are
 user-supplied; never launch a production sweep implicitly. The active smoke
 configuration is `config/baselines.yaml.example`. The current result contract is
 `docs/simulation_output.md`: one physical shot per row and fields `shot_id`,
-`decoder_name`, `logical_error`, `latency_ns`, `total_iterations`. Schema
-metadata is `benchmark_results/2`. The iteration count is the actual total
+`decoder_name`, `logical_error`, `latency_ns`, `total_iterations`, `converged`,
+`initial_bp_converged`, and `first_transform_converged`. New schema metadata
+is `benchmark_results/3`; old `/2` runs are read-only and convergence is not
+inferred from their logical-error field. BP-OSD convergence is its BP-stage
+result before OSD. The iteration count is the actual total
 across all BP calls; OSD adds zero. Beam8 has an
 instrumentation-only upstream patch to count all masked paths. Preserve the
 complete `DecoderAdapter.decode` wall-time boundary.

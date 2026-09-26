@@ -28,12 +28,16 @@ scripts/run_benchmark.sh config/baselines.yaml.example
 The smoke config runs two physical shots at p=0.003 for a surface d3 circuit.
 It does not establish decoder performance. A run writes `config_resolved.json`
 and one named Parquet result file per condition under `data/`. Rows hold
-`shot_id`, `decoder_name`, `logical_error`, complete-service `latency_ns`, and
-exact `total_iterations`. Read one run with
+`shot_id`, `decoder_name`, `logical_error`, complete-service `latency_ns`,
+exact `total_iterations`, `converged`, and nullable AF-BP initial/first-transform
+convergence flags. Read one run with
 `analysis.simple_results.summarize_run(path)`; plot through the public
 `analysis.plot_decode_time_histogram`, `plot_logical_error_rate`,
-`plot_mean_decode_time`, and `plot_mean_total_iterations` functions. Active
-results use `benchmark_results/2`; prior schemas require legacy readers.
+`plot_mean_decode_time`, `plot_mean_total_iterations`, and
+`plot_convergence_rate` functions. New results use `benchmark_results/3`;
+previous `benchmark_results/2` files remain readable without inferred
+convergence. See [comparison configs](config/README.md) for the Phase 1–6
+paired experiment templates copied from the local `config/main.yaml` setup.
 
 Screened decimation, Hybrid Search/BP, SEARCH-BP and LPM-DP are historical.
 Their source, configs, readers, tests and prior evidence are preserved; see

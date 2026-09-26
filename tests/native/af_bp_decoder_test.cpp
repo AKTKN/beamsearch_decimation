@@ -47,6 +47,8 @@ static void test_identity_initial_and_original_boundary() {
     Decoder decoder({{0,1}}, {{0},{1}}, {0.1,0.2}, cfg);
     const auto result = decoder.decode({1}, true);
     assert(result.valid && result.status == "SUCCESS");
+    assert(result.initial_bp_converged == true);
+    assert(!result.first_transform_converged.has_value());
     assert(result.graph_instances == 1 && result.factorizations == 0);
     assert(result.total_iterations == 1 && result.calls.size() == 1);
     assert(result.calls[0].variant == "parallel");
@@ -59,6 +61,8 @@ static void test_identity_initial_and_original_boundary() {
     Decoder transformed({{0,1},{0,1}}, {{0},{1}}, {0.1,0.2}, cfg);
     const auto later = transformed.decode({1,1}, true);
     assert(later.valid && later.graph_instances == 2 && later.factorizations == 1);
+    assert(later.initial_bp_converged == false);
+    assert(later.first_transform_converged == true);
     assert(later.total_iterations == 2);
     assert(later.calls[0].actual_iterations == 0 && later.calls[1].actual_iterations == 2);
     assert(later.transforms.size() == 1 && later.transforms[0].new_variable == 2);

@@ -13,7 +13,8 @@ share the same physical samples and the same complete-service timer.
 4. `decoders/__init__.py` prepares AF-BP and pinned upstream baselines, invokes one complete
    service per syndrome, validates against original H and predicts A. It sees no
    logical truth. The worker times the entire service with `perf_counter_ns`.
-5. `storage/minimal.py` writes five-field `benchmark_results/2` rows.
+5. `storage/minimal.py` writes eight-field `benchmark_results/3` rows with
+   exact BP work and convergence; it also validates prior `/2` files on read.
    `analysis/simple_results.py` summarizes active data; `analysis/benchmark_plots.py`
    draws logical-error, latency, and total-iteration figures. Historical
    plotting lives under `analysis/legacy/`.

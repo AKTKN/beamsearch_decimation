@@ -1,6 +1,14 @@
 # Active analysis
 
-Use `analysis.simple_results.summarize_run(path)` for `benchmark_results/2`.
+Use `analysis.simple_results.summarize_run(path)` for new
+`benchmark_results/3` and previous `/2` runs. New runs report convergence,
+logical error conditional on convergence, and AF-BP initial/first-transform
+rescue counts; old runs return unavailable values for those statistics.
+`analysis.plot_convergence_rate(path)` plots only new runs.
+Use `analysis.list_run_conditions(path)` to enumerate and validate every saved
+condition file before plotting. The active notebook uses this API to make one
+latency histogram per condition, alongside logical-error, mean latency, and mean
+total-iteration figures. See `notebook/README.md` for the runnable workflow.
 The public `analysis` plotting functions draw saved logical-error, complete
 latency, and mean total-iteration figures, with code/distance/rate/decoder
 filters. Failed shots contribute to time and iteration summaries. Active
@@ -10,7 +18,7 @@ through `analysis.legacy.benchmark_plots` and other old consumers under
 
 ---
 
-# Minimal current analysis
+# Historical minimal analysis (legacy schemas)
 
 For current minimal results, use `analysis.simple_search_bp.summarize_run(run)`
 for detached statistics and the public `analysis.plot_*` functions for figures.
